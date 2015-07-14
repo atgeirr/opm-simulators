@@ -285,13 +285,13 @@ namespace Opm
             if (rhs.jac_.empty()) {
                 return *this + rhs.val_;
             }
-            std::vector<M> jac = jac_;
             assert(numBlocks() == rhs.numBlocks());
-            int num_blocks = numBlocks();
+            const int num_blocks = numBlocks();
+            std::vector<M> jac(num_blocks);
             for (int block = 0; block < num_blocks; ++block) {
-                assert(jac[block].rows() == rhs.jac_[block].rows());
-                assert(jac[block].cols() == rhs.jac_[block].cols());
-                jac[block] += rhs.jac_[block];
+                assert(jac_[block].rows() == rhs.jac_[block].rows());
+                assert(jac_[block].cols() == rhs.jac_[block].cols());
+                jac[block] = jac_[block] + rhs.jac_[block];
             }
             return function(val_ + rhs.val_, std::move(jac));
         }
@@ -308,13 +308,13 @@ namespace Opm
             if (rhs.jac_.empty()) {
                 return *this - rhs.val_;
             }
-            std::vector<M> jac = jac_;
             assert(numBlocks() == rhs.numBlocks());
-            int num_blocks = numBlocks();
+            const int num_blocks = numBlocks();
+            std::vector<M> jac(num_blocks);
             for (int block = 0; block < num_blocks; ++block) {
-                assert(jac[block].rows() == rhs.jac_[block].rows());
-                assert(jac[block].cols() == rhs.jac_[block].cols());
-                jac[block] -= rhs.jac_[block];
+                assert(jac_[block].rows() == rhs.jac_[block].rows());
+                assert(jac_[block].cols() == rhs.jac_[block].cols());
+                jac[block] = jac_[block] - rhs.jac_[block];
             }
             return function(val_ - rhs.val_, std::move(jac));
         }
