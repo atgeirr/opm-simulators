@@ -114,7 +114,6 @@ try
 {
     typedef Opm::AutoDiffBlock<double> ADB;
     typedef ADB::V V;
-    typedef ADB::M M;
     typedef Eigen::SparseMatrix<double> S;
 
     Opm::time::StopWatch clock;
