@@ -53,7 +53,7 @@ namespace Opm
                                                      const UnstructuredGrid& grid,
                                                      const bool init_rock)
     {
-        init(deck, eclState, grid.number_of_cells, grid.global_cell, grid.cartdims, 
+        init(deck, eclState, grid.number_of_cells, grid.global_cell, grid.cartdims,
              grid.cell_centroids, grid.dimensions, init_rock);
     }
 
@@ -382,7 +382,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
             ADB::M temp;
             fastSparseProduct(dmudr_diag, rs.derivative()[block], temp);
             // jacs[block] += temp;
-	    jacs[block] = jacs[block] + temp;
+            jacs[block] = jacs[block] + temp;
         }
         return ADB::function(std::move(mu), std::move(jacs));
     }
@@ -424,7 +424,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
             ADB::M temp;
             fastSparseProduct(dmudr_diag, rv.derivative()[block], temp);
             // jacs[block] += temp;
-	    jacs[block] = jacs[block] + temp;
+            jacs[block] = jacs[block] + temp;
         }
         return ADB::function(std::move(mu), std::move(jacs));
     }
@@ -505,7 +505,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
             ADB::M temp;
             fastSparseProduct(dbdr_diag, rs.derivative()[block], temp);
             // jacs[block] += temp;
-	    jacs[block] = jacs[block] + temp;
+            jacs[block] = jacs[block] + temp;
         }
         return ADB::function(std::move(b), std::move(jacs));
     }
@@ -548,7 +548,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
             ADB::M temp;
             fastSparseProduct(dbdr_diag, rv.derivative()[block], temp);
             // jacs[block] += temp;
-	    jacs[block] = jacs[block] + temp;
+            jacs[block] = jacs[block] + temp;
         }
         return ADB::function(std::move(b), std::move(jacs));
     }
@@ -772,7 +772,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
         }
         return adbCapPressures;
     }
-                                  
+
     /// Saturation update for hysteresis behavior.
     /// \param[in]  cells       Array of n cell indices to be associated with the saturation values.
     void BlackoilPropsAdFromDeck::updateSatHyst(const std::vector<double>& saturation,
@@ -781,7 +781,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
         const int n = cells.size();
         satprops_->updateSatHyst(n, cells.data(), saturation.data());
     }
-    
+
     /// Update for max oil saturation.
     void BlackoilPropsAdFromDeck::updateSatOilMax(const std::vector<double>& saturation)
     {
@@ -813,7 +813,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
         }
     }
 
-    
+
     /// Apply correction to rs/rv according to kw VAPPARS
     /// \param[in/out] r     Array of n rs/rv values.
     /// \param[in]     so    Array of n oil saturation values.
@@ -824,7 +824,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
                                            const std::vector<int>& cells,
                                            const double vap) const
     {
-        if (!satOilMax_.empty() && vap > 0.0) { 
+        if (!satOilMax_.empty() && vap > 0.0) {
             const int n = cells.size();
             V factor = V::Ones(n, 1);
             const double eps_sqrt = std::sqrt(std::numeric_limits<double>::epsilon());
@@ -833,12 +833,12 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
                     // guard against too small saturation values.
                     const double so_i= std::max(so[i],eps_sqrt);
                     factor[i] = std::pow(so_i/satOilMax_[cells[i]], vap);
-                } 
+                }
             }
             r = factor*r;
         }
     }
-    
+
     /// Apply correction to rs/rv according to kw VAPPARS
     /// \param[in/out] r     Array of n rs/rv values.
     /// \param[in]     so    Array of n oil saturation values.
@@ -849,7 +849,7 @@ BlackoilPropsAdFromDeck::BlackoilPropsAdFromDeck(const BlackoilPropsAdFromDeck& 
                                            const std::vector<int>& cells,
                                            const double vap) const
     {
-        if (!satOilMax_.empty() && vap > 0.0) { 
+        if (!satOilMax_.empty() && vap > 0.0) {
             const int n = cells.size();
             V factor = V::Ones(n, 1);
             const double eps_sqrt = std::sqrt(std::numeric_limits<double>::epsilon());

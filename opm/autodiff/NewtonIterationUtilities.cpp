@@ -60,9 +60,9 @@ namespace Opm
         const std::vector<M>& Jn = eqs[n].derivative();
 
         // Use sparse LU to solve the block submatrices i.e compute inv(D)
-	typedef Eigen::SparseMatrix<double> Sp;
-	Sp Jnn;
-	Jn[n].toSparse(Jnn);
+        typedef Eigen::SparseMatrix<double> Sp;
+        Sp Jnn;
+        Jn[n].toSparse(Jnn);
 #if HAVE_UMFPACK
         const Eigen::UmfPackLU<Sp> solver(Jnn);
 #else
@@ -107,8 +107,8 @@ namespace Opm
                 M Bu;
                 fastSparseProduct(B, u, Bu);
                 // J -= Bu;
-		Bu = Bu * -1.0;
-		J = J + Bu;
+                Bu = Bu * -1.0;
+                J = J + Bu;
             }
         }
 
@@ -148,9 +148,9 @@ namespace Opm
         const M& C = eq_coll.derivative()[0];
 
         // Use sparse LU to solve the block submatrices
-	typedef Eigen::SparseMatrix<double> Sp;
-	Sp D;
-	D1.toSparse(D);
+        typedef Eigen::SparseMatrix<double> Sp;
+        Sp D;
+        D1.toSparse(D);
 #if HAVE_UMFPACK
         const Eigen::UmfPackLU<Sp> solver(D);
 #else
@@ -196,7 +196,7 @@ namespace Opm
                             Eigen::SparseMatrix<double, Eigen::RowMajor>& A,
                             V& b)
     {
-	/*
+        /*
         if (num_phases != 3) {
             OPM_THROW(std::logic_error, "formEllipticSystem() requires 3 phases.");
         }
@@ -276,7 +276,7 @@ namespace Opm
         // Create output as product of L with equations.
         A = L * total_residual.derivative()[0];
         b = L * total_residual.value().matrix();
-	*/
+        */
     }
 
 
