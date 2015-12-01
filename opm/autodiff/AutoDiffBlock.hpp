@@ -444,6 +444,23 @@ namespace Opm
             return jac_;
         }
 
+        AutoDiffBlock(const AutoDiffBlock& other) = default;
+        AutoDiffBlock& operator=(const AutoDiffBlock& other) = default;
+
+        AutoDiffBlock(AutoDiffBlock&& other)
+        {
+            swap(other);
+        }
+
+        AutoDiffBlock& operator=(AutoDiffBlock&& other)
+        {
+            if (&other != this) {
+                swap(other);
+            }
+            return *this;
+        }
+
+
     private:
         AutoDiffBlock(const V& val)
             : val_(val)
@@ -451,13 +468,14 @@ namespace Opm
         }
 
         AutoDiffBlock(V&& val)
-            : val_(std::move(val))
         {
+            val_.swap(val);
         }
 
         AutoDiffBlock(V&& val, std::vector<M>&& jac)
-            : val_(std::move(val)), jac_(std::move(jac))
+            : jac_(std::move(jac))
         {
+            val_.swap(val);
 #ifndef NDEBUG
             const int num_elem = val_.size();
             const int num_blocks = jac_.size();
