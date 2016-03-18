@@ -83,8 +83,8 @@ namespace Opm
                            const std::string& output_dir)
     {
         Opm::DataMap dm;
-        dm["saturation"] = &state.saturation();
-        dm["pressure"] = &state.pressure();
+        dm["saturation"] = &state.getCellData("SATURATION");
+        dm["pressure"] = &state.getCellData("PRESSURE");
         for (const auto& pair : state.cellData()) 
         {
             const std::string& name = pair.first;
@@ -105,16 +105,18 @@ namespace Opm
             dm[ key ] = &pair.second;
         }
 
-        std::vector<double> cell_velocity;
-        Opm::estimateCellVelocity(AutoDiffGrid::numCells(grid),
-                                  AutoDiffGrid::numFaces(grid),
-                                  AutoDiffGrid::beginFaceCentroids(grid),
-                                  UgGridHelpers::faceCells(grid),
-                                  AutoDiffGrid::beginCellCentroids(grid),
-                                  AutoDiffGrid::beginCellVolumes(grid),
-                                  AutoDiffGrid::dimensions(grid),
-                                  state.faceflux(), cell_velocity);
-        dm["velocity"] = &cell_velocity;
+        if (state.hasFaceData("FACEFLUX")) {
+            std::vector<double> cell_velocity;
+            Opm::estimateCellVelocity(AutoDiffGrid::numCells(grid),
+                                      AutoDiffGrid::numFaces(grid),
+                                      AutoDiffGrid::beginFaceCentroids(grid),
+                                      UgGridHelpers::faceCells(grid),
+                                      AutoDiffGrid::beginCellCentroids(grid),
+                                      AutoDiffGrid::beginCellVolumes(grid),
+                                      AutoDiffGrid::dimensions(grid),
+                                      state.getFaceData("FACEFLUX"), cell_velocity);
+            dm["velocity"] = &cell_velocity;
+        }
 
         // Write data (not grid) in Matlab format
         for (Opm::DataMap::const_iterator it = dm.begin(); it != dm.end(); ++it) {

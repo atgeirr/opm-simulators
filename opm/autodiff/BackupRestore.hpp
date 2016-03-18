@@ -183,7 +183,7 @@ namespace Opm {
                 OPM_THROW(std::logic_error,"backup-restore object type mismatch");
             }
         }
-    }
+    } // anonymous namespace
 
     // SimulationDataContainer
     inline
@@ -196,11 +196,11 @@ namespace Opm {
         writeValue( out, numPhases );
 
         // write variables
-        writeContainer( out, state.pressure() );
-        writeContainer( out, state.temperature() );
-        writeContainer( out, state.facepressure() );
-        writeContainer( out, state.faceflux() );
-        writeContainer( out, state.saturation() );
+        writeContainer( out, state.getCellData("PRESSURE") );
+        writeContainer( out, state.getCellData("TEMPERATURE") );
+        writeContainer( out, state.getFaceData("FACEPRESSURE") );
+        writeContainer( out, state.getFaceData("FACEFLUX") );
+        writeContainer( out, state.getCellData("SATURATION") );
 
         return out;
     }
@@ -218,11 +218,11 @@ namespace Opm {
             OPM_THROW(std::logic_error,"num phases wrong");
 
         // read variables
-        readContainer( in, state.pressure() );
-        readContainer( in, state.temperature() );
-        readContainer( in, state.facepressure() );
-        readContainer( in, state.faceflux() );
-        readContainer( in, state.saturation() );
+        readContainer( in, state.getCellData("PRESSURE") );
+        readContainer( in, state.getCellData("TEMPERATURE") );
+        readContainer( in, state.getFaceData("FACEPRESSURE") );
+        readContainer( in, state.getFaceData("FACEFLUX") );
+        readContainer( in, state.getCellData("SATURATION") );
 
         return in;
     }

@@ -75,6 +75,7 @@ namespace Opm
             // Ensure that we start out with zero rates by default.
             perfphaserates_.clear();
             perfphaserates_.resize(nperf * np, 0.0);
+            const auto& reservoir_pressure = state.getCellData("PRESSURE");
             for (int w = 0; w < nw; ++w) {
                 assert((wells->type[w] == INJECTOR) || (wells->type[w] == PRODUCER));
                 const WellControls* ctrl = wells->ctrls[w];
@@ -89,7 +90,7 @@ namespace Opm
                         for (int p = 0; p < np; ++p) {
                             perfphaserates_[np*perf + p] = wellRates()[np*w + p] / double(num_perf_this_well);
                         }
-                        perfPress()[perf] = state.pressure()[wells->well_cells[perf]];
+                        perfPress()[perf] = reservoir_pressure[wells->well_cells[perf]];
                     }
                 }
             }

@@ -72,8 +72,8 @@ namespace Opm
             OPM_THROW(std::runtime_error, "Failed to open " << vtkfilename.str());
         }
         Opm::DataMap dm;
-        dm["saturation"] = &state.saturation();
-        dm["pressure"] = &state.pressure();
+        dm["saturation"] = &state.getCellData("SATURATION");
+        dm["pressure"] = &state.getCellData("PRESSURE");
         std::vector<double> cell_velocity;
         Opm::estimateCellVelocity(AutoDiffGrid::numCells(grid),
                                   AutoDiffGrid::numFaces(grid),
@@ -82,7 +82,7 @@ namespace Opm
                                   AutoDiffGrid::beginCellCentroids(grid),
                                   AutoDiffGrid::beginCellVolumes(grid),
                                   AutoDiffGrid::dimensions(grid),
-                                  state.faceflux(), cell_velocity);
+                                  state.getFaceData("FACEFLUX"), cell_velocity);
         dm["velocity"] = &cell_velocity;
         Opm::writeVtkData(grid, dm, vtkfile);
     }
@@ -94,8 +94,8 @@ namespace Opm
                            const std::string& output_dir)
     {
         Opm::DataMap dm;
-        dm["saturation"] = &state.saturation();
-        dm["pressure"] = &state.pressure();
+        dm["saturation"] = &state.getCellData("SATURATION");
+        dm["pressure"] = &state.getCellData("PRESSURE");
         for (const auto& pair : state.cellData()) {
             const std::string& name = pair.first;
             std::string key;
@@ -123,7 +123,7 @@ namespace Opm
                                   AutoDiffGrid::beginCellCentroids(grid),
                                   AutoDiffGrid::beginCellVolumes(grid),
                                   AutoDiffGrid::dimensions(grid),
-                                  state.faceflux(), cell_velocity);
+                                  state.getFaceData("FACEFLUX"), cell_velocity);
         dm["velocity"] = &cell_velocity;
 
         // Write data (not grid) in Matlab format
@@ -227,8 +227,8 @@ namespace Opm
 #else
         Dune::VTKWriter<Dune::CpGrid::LeafGridView> writer(grid.leafView(), Dune::VTK::nonconforming);
 #endif
-        writer.addCellData(state.saturation(), "saturation", state.numPhases());
-        writer.addCellData(state.pressure(), "pressure", 1);
+        writer.addCellData(state.getCellData("SATURATION"), "saturation", state.numPhases());
+        writer.addCellData(state.getCellData("PRESSURE"), "pressure", 1);
 
         std::vector<double> cell_velocity;
         Opm::estimateCellVelocity(AutoDiffGrid::numCells(grid),
@@ -238,7 +238,7 @@ namespace Opm
                                   AutoDiffGrid::beginCellCentroids(grid),
                                   AutoDiffGrid::beginCellVolumes(grid),
                                   AutoDiffGrid::dimensions(grid),
-                                  state.faceflux(), cell_velocity);
+                                  state.getFaceData("FACEFLUX"), cell_velocity);
         writer.addCellData(cell_velocity, "velocity", Dune::CpGrid::dimension);
         writer.pwrite(vtkfilename.str(), vtkpath.str(), std::string("."), Dune::VTK::ascii);
     }
