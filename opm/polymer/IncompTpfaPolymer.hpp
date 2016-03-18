@@ -97,7 +97,7 @@ namespace Opm
 
     private:
         virtual void computePerSolveDynamicData(const double dt,
-                                                const SimulationDataContainer& state,
+                                                const TwophaseState& state,
                                                 const WellState& well_state);
     private:
         // ------ Data that will remain unmodified after construction. ------
