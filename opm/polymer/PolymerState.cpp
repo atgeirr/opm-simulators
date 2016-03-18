@@ -18,8 +18,6 @@
 */
 
 
-#include <opm/common/data/SimulationDataContainer.hpp>
-
 #include <opm/polymer/PolymerState.hpp>
 
 namespace Opm
@@ -27,8 +25,8 @@ namespace Opm
     const std::string PolymerState::CONCENTRATION = "CONCENTRATION";
     const std::string PolymerState::CMAX = "CMAX";
 
-    PolymerState::PolymerState(int number_of_cells, int number_of_faces, int num_phases) :
-        SimulationDataContainer( number_of_cells , number_of_faces , num_phases )
+    PolymerState::PolymerState(int number_of_cells, int number_of_faces)
+        : TwophaseState( number_of_cells , number_of_faces)
     {
         registerCellData(CONCENTRATION , 1 , 0 );
         registerCellData(CMAX , 1 , 0 );

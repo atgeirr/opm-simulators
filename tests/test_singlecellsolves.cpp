@@ -83,7 +83,7 @@ try
     // Rock and fluid init.
     {
         const UnstructuredGrid& ug_grid = *(grid->c_grid());
-        state.reset( new PolymerState(  UgGridHelpers::numCells( ug_grid ) , UgGridHelpers::numFaces( ug_grid ), 2));
+        state.reset( new PolymerState(  UgGridHelpers::numCells( ug_grid ) , UgGridHelpers::numFaces( ug_grid )));
 
         props.reset(new IncompPropertiesBasic(param, ug_grid.dimensions, UgGridHelpers::numCells( ug_grid )));
         // Init state variables (saturation and pressure).

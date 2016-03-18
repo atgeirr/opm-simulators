@@ -112,7 +112,7 @@ try
             props.reset(new IncompPropertiesFromDeck(deck, eclipseState, ug_grid ));
             // check_well_controls = param.getDefault("check_well_controls", false);
             // max_well_control_iterations = param.getDefault("max_well_control_iterations", 10);
-            state.reset( new PolymerState(  UgGridHelpers::numCells( ug_grid ) , UgGridHelpers::numFaces( ug_grid ), 2));
+            state.reset( new PolymerState(  UgGridHelpers::numCells( ug_grid ) , UgGridHelpers::numFaces( ug_grid )));
 
             // Rock compressibility.
             rock_comp.reset(new RockCompressibility(deck, eclipseState));
@@ -141,7 +141,7 @@ try
 
             // Rock and fluid init.
             props.reset(new IncompPropertiesBasic(param, ug_grid.dimensions, UgGridHelpers::numCells( ug_grid )));;
-            state.reset( new PolymerState(  UgGridHelpers::numCells( ug_grid ) , UgGridHelpers::numFaces( ug_grid ) , 2));
+            state.reset( new PolymerState(  UgGridHelpers::numCells( ug_grid ) , UgGridHelpers::numFaces( ug_grid )));
             // Rock compressibility.
             rock_comp.reset(new RockCompressibility(param));
             // Gravity.
