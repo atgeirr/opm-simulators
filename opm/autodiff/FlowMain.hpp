@@ -467,8 +467,8 @@ namespace Opm
                     const int numCells  = Opm::UgGridHelpers::numCells(grid);
 
                     // Uglyness 1: The state is a templated type, here we however make explicit use BlackoilState.
-                    auto& gor = state_->getCellData( BlackoilState::GASOILRATIO );
-                    const auto& surface_vol = state_->getCellData( BlackoilState::SURFACEVOL );
+                    auto& gor = state_->gasoilratio();
+                    const auto& surface_vol = state_->surfacevol();
                     for (int c = 0; c < numCells; ++c) {
                         // Uglyness 2: Here we explicitly use the layout of the saturation in the surface_vol field.
                         gor[c] = surface_vol[ c * numPhases + pu.phase_pos[Gas]] / surface_vol[ c * numPhases + pu.phase_pos[Oil]];
