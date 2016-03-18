@@ -2521,8 +2521,8 @@ namespace detail {
     template <class Grid, class Implementation>
     double
     BlackoilModelBase<Grid, Implementation>::
-    relativeChange(const SimulationDataContainer& previous,
-                   const SimulationDataContainer& current ) const
+    relativeChange(const ReservoirState& previous,
+                   const ReservoirState& current ) const
     {
         std::vector< double > p0  ( previous.pressure() );
         std::vector< double > sat0( previous.saturation() );
