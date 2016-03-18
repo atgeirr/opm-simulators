@@ -475,13 +475,12 @@ namespace Opm
                     }
                 }
             } else if (deck_->hasKeyword("EQUIL") && props.numPhases() == 3) {
-                // Which state class are we really using - what a f... mess?
                 state_.reset( new ReservoirState( Opm::UgGridHelpers::numCells(grid),
                                                   Opm::UgGridHelpers::numFaces(grid),
                                                   props.numPhases()));
 
                 initStateEquil(grid, props, deck_, eclipse_state_, gravity_[2], *state_);
-                //state_.faceflux().resize(Opm::UgGridHelpers::numFaces(grid), 0.0);
+                state_->faceflux().resize(Opm::UgGridHelpers::numFaces(grid), 0.0);
             } else {
                 state_.reset( new ReservoirState( Opm::UgGridHelpers::numCells(grid),
                                                   Opm::UgGridHelpers::numFaces(grid),
