@@ -247,8 +247,7 @@ public:
 
             // Compute orignal fluid in place if this has not been done yet
             if (originalFluidInPlace.empty()) {
-                solver->model().convertInput(/*iterationIdx=*/0, state, ebosSimulator_ );
-                ebosSimulator_.model().invalidateIntensiveQuantitiesCache(/*timeIdx=*/0);
+                solver->model().convertInput(/*iterationIdx=*/0, state);
 
                 originalFluidInPlace = solver->computeFluidInPlace(fipnum);
                 originalFluidInPlaceTotals = FIPTotals(originalFluidInPlace, state);

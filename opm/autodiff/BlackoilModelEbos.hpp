@@ -243,8 +243,6 @@ namespace Opm {
                 residual_norms_history_.clear();
                 current_relaxation_ = 1.0;
                 dx_old_ = 0.0;
-                convertInput( iteration, reservoir_state, ebosSimulator_ );
-                ebosSimulator_.model().invalidateIntensiveQuantitiesCache(/*timeIdx=*/0);
             }
 
             report.total_linearizations = 1;
@@ -322,8 +320,7 @@ namespace Opm {
                 wellModel().updateWellState(xw, well_state);
                 // if the solution is updated the solution needs to be comunicated to ebos
                 // and the cachedIntensiveQuantities needs to be updated.
-                convertInput( iteration, reservoir_state, ebosSimulator_ );
-                ebosSimulator_.model().invalidateIntensiveQuantitiesCache(/*timeIdx=*/0);
+                convertInput( iteration, reservoir_state);
 
                 report.update_time += perfTimer.stop();
             }
@@ -1441,9 +1438,9 @@ namespace Opm {
 
 
         void convertInput( const int iterationIdx,
-                           const ReservoirState& reservoirState,
-                           Simulator& simulator ) const
+                           const ReservoirState& reservoirState) const
         {
+            Simulator& simulator = ebosSimulator_; // alias to avoid changing all the code below
             SolutionVector& solution = simulator.model().solution( 0 /* timeIdx */ );
             const Opm::PhaseUsage pu = fluid_.phaseUsage();
 
@@ -1523,6 +1520,8 @@ namespace Opm {
             {
                 simulator.model().solution( 1 /* timeIdx */ ) = solution;
             }
+
+            ebosSimulator_.model().invalidateIntensiveQuantitiesCache(/*timeIdx=*/0);
         }
 
     public:
@@ -1686,8 +1685,7 @@ namespace Opm {
             // if the last time step failed we need to update the solution varables in ebos
             // and recalculate the IntesiveQuantities. Also pass the solution initially.
             if ( (timer.lastStepFailed() || timer.reportStepNum()==0) && iterationIdx == 0  ) {
-                convertInput( iterationIdx, reservoirState, ebosSimulator_ );
-                ebosSimulator_.model().invalidateIntensiveQuantitiesCache(/*timeIdx=*/0);
+                convertInput( iterationIdx, reservoirState);
             }
 
             ebosSimulator_.problem().beginIteration();
