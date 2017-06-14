@@ -1031,6 +1031,8 @@ namespace Opm
             if (totalSolverTime != 0.0) {
                 miscSummaryData["TCPU"] = totalSolverTime;
             }
+
+            miscSummaryData["MLINEARS"] = solver.linearIterationsLastStep();
         }
 
         writeTimeStepWithCellProperties(timer, localState, localCellData, localWellState, miscSummaryData, extraRestartData, substep);
