@@ -231,8 +231,7 @@ namespace Opm
 
 
             // write simulation state at the report stage
-            const auto& physicalModel = solver->model();
-            output_writer_.writeTimeStep( timer, state, well_state, physicalModel );
+            output_writer_.writeTimeStep( timer, state, well_state, *solver );
 
             prev_well_state = well_state;
         }

@@ -984,13 +984,13 @@ namespace Opm
 
 
 
-    template<class Model>
+    template<class Solver>
     inline void
     BlackoilOutputWriter::
     writeTimeStep(const SimulatorTimerInterface& timer,
                   const SimulationDataContainer& localState,
                   const WellStateFullyImplicitBlackoil& localWellState,
-                  const Model& physicalModel,
+                  const Solver& solver,
                   const bool substep,
                   const double nextstep,
                   const SimulatorReport& simulatorReport)
@@ -999,7 +999,8 @@ namespace Opm
         const RestartConfig& restartConfig = eclipseState_.getRestartConfig();
         const SummaryConfig& summaryConfig = eclipseState_.getSummaryConfig();
         const int reportStepNum = timer.reportStepNum();
-        bool logMessages = output_ && parallelOutput_->isIORank();
+        const bool logMessages = output_ && parallelOutput_->isIORank();
+        const auto& physicalModel = solver.model();
         std::map<std::string, std::vector<double>> extraRestartData;
         std::map<std::string, double> miscSummaryData;
 

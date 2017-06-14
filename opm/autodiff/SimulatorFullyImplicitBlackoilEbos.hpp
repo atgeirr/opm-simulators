@@ -288,7 +288,7 @@ public:
 
                 // No per cell data is written for initial step, but will be
                 // for subsequent steps, when we have started simulating
-                output_writer_.writeTimeStep( timer, state, well_state, solver->model() );
+                output_writer_.writeTimeStep( timer, state, well_state, *solver );
 
                 report.output_write_time += perfTimer.stop();
             }
@@ -389,7 +389,7 @@ public:
             Dune::Timer perfTimer;
             perfTimer.start();
             const double nextstep = adaptiveTimeStepping ? adaptiveTimeStepping->suggestedNextStep() : -1.0;
-            output_writer_.writeTimeStep( timer, state, well_state, solver->model(), false, nextstep, report);
+            output_writer_.writeTimeStep( timer, state, well_state, *solver, false, nextstep, report);
             report.output_write_time += perfTimer.stop();
 
             prev_well_state = well_state;

@@ -320,8 +320,7 @@ namespace Opm
             // write simulation state at the report stage
             Dune::Timer perfTimer;
             perfTimer.start();
-            const auto& physicalModel = solver->model();
-            output_writer_.writeTimeStep( timer, state, well_state, physicalModel );
+            output_writer_.writeTimeStep( timer, state, well_state, *solver );
             report.output_write_time += perfTimer.stop();
 
             prev_well_state = well_state;

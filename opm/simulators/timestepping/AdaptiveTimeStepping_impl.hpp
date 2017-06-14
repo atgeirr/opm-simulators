@@ -333,8 +333,7 @@ namespace Opm {
                     Opm::time::StopWatch perfTimer;
                     perfTimer.start();
                     bool substep = true;
-                    const auto& physicalModel = solver.model();
-                    outputWriter->writeTimeStep( substepTimer, state, well_state, physicalModel, substep);
+                    outputWriter->writeTimeStep( substepTimer, state, well_state, solver, substep);
                     report.output_write_time += perfTimer.secsSinceStart();
                 }
 
