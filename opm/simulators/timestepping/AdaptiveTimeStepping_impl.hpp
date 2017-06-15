@@ -322,6 +322,9 @@ namespace Opm {
                     OpmLog::info(ss.str());
                 }
 
+                // set new time step length
+                substepTimer.provideTimeStepEstimate( dtEstimate );
+
                 // write data if outputWriter was provided
                 // if the time step is done we do not need
                 // to write it as this will be done by the simulator
@@ -333,12 +336,9 @@ namespace Opm {
                     Opm::time::StopWatch perfTimer;
                     perfTimer.start();
                     bool substep = true;
-                    outputWriter->writeTimeStep( substepTimer, state, well_state, solver, substep);
+                    outputWriter->writeTimeStep( substepTimer, state, well_state, solver, substep, dtEstimate, report);
                     report.output_write_time += perfTimer.secsSinceStart();
                 }
-
-                // set new time step length
-                substepTimer.provideTimeStepEstimate( dtEstimate );
 
                 // update states
                 last_state      = state ;
