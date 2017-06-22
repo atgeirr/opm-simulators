@@ -269,5 +269,6 @@ list (APPEND PUBLIC_HEADER_FILES
   opm/simulators/timestepping/TimeStepControlInterface.hpp
   opm/simulators/timestepping/SimulatorTimer.hpp
   opm/simulators/timestepping/SimulatorTimerInterface.hpp
+  opm/simulators/timestepping/TimeDiscretization.hpp
   )
 
