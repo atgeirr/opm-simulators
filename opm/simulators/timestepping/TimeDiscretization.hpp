@@ -167,7 +167,7 @@ namespace Opm
         }
     private:
         std::vector<double> substep_lengths_;
-        size_t substep_;
+        size_t substep_ = 0;
     };
 
 
@@ -184,7 +184,8 @@ namespace Opm
         {
         }
 
-        template <class ReservoirState, class WellState, class Output>
+
+        template <class ReservoirState, class WellState>
         SimulatorReport
         step(SimulatorTimerInterface& timer,
              ReservoirState& reservoir_state,
@@ -193,6 +194,26 @@ namespace Opm
             return solver_.step(timer,
                                 reservoir_state,
                                 well_state);
+        }
+
+
+        SimulatorReport failureReport() const
+        {
+            return solver_.failureReport();
+        }
+
+
+        template <class ReservoirState>
+        std::vector<std::vector<double> >
+        computeFluidInPlace(const ReservoirState& x, const std::vector<int>& fipnum) const
+        {
+            return solver_.model().computeFluidInPlace(x, fipnum);
+        }
+
+
+        auto& model() const
+        {
+            return solver_.model();
         }
 
     private:
@@ -213,7 +234,7 @@ namespace Opm
         {
         }
 
-        template <class ReservoirState, class WellState, class Output>
+        template <class ReservoirState, class WellState>
         SimulatorReport
         step(SimulatorTimerInterface& timer,
              ReservoirState& reservoir_state,
@@ -230,6 +251,26 @@ namespace Opm
                                 reservoir_state,
                                 well_state);
             return rep;
+        }
+
+
+        SimulatorReport failureReport() const
+        {
+            return solver_.failureReport();
+        }
+
+
+        template <class ReservoirState>
+        std::vector<std::vector<double> >
+        computeFluidInPlace(const ReservoirState& x, const std::vector<int>& fipnum) const
+        {
+            return solver_.model().computeFluidInPlace(x, fipnum);
+        }
+
+
+        auto& model() const
+        {
+            return solver_.model();
         }
 
     private:
