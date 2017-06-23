@@ -32,6 +32,7 @@
 #include <opm/autodiff/SimFIBODetails.hpp>
 #include <opm/autodiff/moduleVersion.hpp>
 #include <opm/simulators/timestepping/AdaptiveTimeStepping.hpp>
+#include <opm/simulators/timestepping/TimeDiscretization.hpp>
 #include <opm/core/utility/initHydroCarbonState.hpp>
 #include <opm/core/utility/StopWatch.hpp>
 
@@ -309,6 +310,9 @@ public:
 
             solver->model().beginReportStep();
 
+            // ImplicitEuler<Solver> actual_solver(*solver);
+            TwoSteps<Solver> actual_solver(*solver);
+
             // If sub stepping is enabled allow the solver to sub cycle
             // in case the report steps are too large for the solver to converge
             //
@@ -319,14 +323,14 @@ public:
                         events.hasEvent(ScheduleEvents::PRODUCTION_UPDATE, timer.currentStepNum()) ||
                         events.hasEvent(ScheduleEvents::INJECTION_UPDATE, timer.currentStepNum()) ||
                         events.hasEvent(ScheduleEvents::WELL_STATUS_CHANGE, timer.currentStepNum());
-                stepReport = adaptiveTimeStepping->step( timer, *solver, state, well_state, event, output_writer_,
+                stepReport = adaptiveTimeStepping->step( timer, actual_solver, state, well_state, event, output_writer_,
                                                          output_writer_.requireFIPNUM() ? &fipnum : nullptr );
                 report += stepReport;
                 failureReport_ += adaptiveTimeStepping->failureReport();
             }
             else {
                 // solve for complete report step
-                stepReport = solver->step(timer, state, well_state);
+                stepReport = actual_solver.step(timer, state, well_state);
                 report += stepReport;
                 failureReport_ += solver->failureReport();
 
