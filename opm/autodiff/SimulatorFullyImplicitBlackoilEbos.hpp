@@ -31,6 +31,7 @@
 #include <opm/autodiff/BlackoilAquiferModel.hpp>
 #include <opm/autodiff/moduleVersion.hpp>
 #include <opm/simulators/timestepping/AdaptiveTimeSteppingEbos.hpp>
+#include <opm/simulators/timestepping/TimeDiscretization.hpp>
 #include <opm/grid/utility/StopWatch.hpp>
 
 #include <opm/common/Exceptions.hpp>
@@ -250,6 +251,9 @@ public:
 
             solver->model().beginReportStep();
 
+            // ImplicitEuler<Solver> actual_solver(*solver);
+            TwoSteps<Solver> actual_solver(*solver);
+
             // If sub stepping is enabled allow the solver to sub cycle
             // in case the report steps are too large for the solver to converge
             //
@@ -266,13 +270,13 @@ public:
                         events.hasEvent(ScheduleEvents::PRODUCTION_UPDATE, timer.currentStepNum()) ||
                         events.hasEvent(ScheduleEvents::INJECTION_UPDATE, timer.currentStepNum()) ||
                         events.hasEvent(ScheduleEvents::WELL_STATUS_CHANGE, timer.currentStepNum());
-                stepReport = adaptiveTimeStepping->step(timer, *solver, event, nullptr);
+                stepReport = adaptiveTimeStepping->step( timer, actual_solver, event, nullptr );
                 report += stepReport;
                 failureReport_ += adaptiveTimeStepping->failureReport();
             }
             else {
                 // solve for complete report step
-                stepReport = solver->step(timer);
+                stepReport = actual_solver.step(timer);
                 report += stepReport;
                 failureReport_ += solver->failureReport();
 
