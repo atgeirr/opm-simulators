@@ -1695,7 +1695,9 @@ typedef Eigen::Array<double,
             for ( int idx = 0; idx < nm; ++idx )
             {
                 B_avg[idx] = B.col(idx).sum()/nc;
-                maxCoeff[idx] = tempV.col(idx).maxCoeff();
+                int maxcellidx = -1;
+                maxCoeff[idx] = tempV.col(idx).maxCoeff(&maxcellidx);
+                OpmLog::debug("Max coeff for material " + std::to_string(idx) + " at cell " + std::to_string(maxcellidx));
                 R_sum[idx] = R.col(idx).sum();
 
                 assert(nm >= np);
