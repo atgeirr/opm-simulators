@@ -256,6 +256,7 @@ namespace Opm {
             rhos_.col(Water) = props_.surfaceDensity(Water, Base::cells_);
             rhos_.col(Oil) = props_.surfaceDensity(Oil, Base::cells_);
             rhos_.col(Gas) = props_.surfaceDensity(Gas, Base::cells_);
+            res_.resize(ops_.div.rows());
         }
 
 
@@ -446,8 +447,13 @@ namespace Opm {
         V gdz_;
         DataBlock rhos_;
 
+        std::vector<Vec2> res_;
+
         std::array<double, 2> max_abs_dx_;
         std::array<int, 2> max_abs_dx_cell_;
+
+        std::array<double, 2> max_abs_res_;
+        std::array<int, 2> max_abs_res_cell_;
 
         // TODO: remove this, for debug only.
         BlackoilTransportModel<Grid, WellModel> tr_model_;
@@ -608,6 +614,10 @@ namespace Opm {
             max_abs_dx_[1] = 0.0;
             max_abs_dx_cell_[0] = -1;
             max_abs_dx_cell_[1] = -1;
+            max_abs_res_[0] = 0.0;
+            max_abs_res_[1] = 0.0;
+            max_abs_res_cell_[0] = -1;
+            max_abs_res_cell_[1] = -1;
 
             // Solve the equations.
             const int num_components = components_.size() - 1;
@@ -624,7 +634,9 @@ namespace Opm {
             {
                 std::ostringstream os;
                 os << "===  Max abs dx[0]: " << max_abs_dx_[0] << " (cell " << max_abs_dx_cell_[0]
-                   <<")  dx[1]: " << max_abs_dx_[1] << " (cell " << max_abs_dx_cell_[1] << ")";
+                   <<")  dx[1]: " << max_abs_dx_[1] << " (cell " << max_abs_dx_cell_[1] << ")\n";
+                os << "===  Max abs res[0]: " << max_abs_res_[0] << " (cell " << max_abs_res_cell_[0]
+                   <<")  res[1]: " << max_abs_res_[1] << " (cell " << max_abs_res_cell_[1] << ")";
                 OpmLog::debug(os.str());
             }
         }
@@ -667,6 +679,19 @@ namespace Opm {
                    << " ), rs = " << cstate_[cell].rs << ", rv = " << cstate_[cell].rv << " }";
                 OpmLog::debug(os.str());
             }
+
+            // Log max residuals.
+            if (std::fabs(res[0]) > max_abs_res_[0]) {
+                max_abs_res_cell_[0] = cell;
+            }
+            if (std::fabs(res[1]) > max_abs_res_[1]) {
+                max_abs_res_cell_[1] = cell;
+            }
+            max_abs_res_[0] = std::max(max_abs_res_[0], std::fabs(res[0]));
+            max_abs_res_[1] = std::max(max_abs_res_[1], std::fabs(res[1]));
+
+            // Store residuals for debugging.
+            res_[cell] = res;
         }
 
 
