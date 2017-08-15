@@ -87,6 +87,7 @@ SET_BOOL_PROP(EclFlowProblem, ExportGlobalTransmissibility, true);
 SET_BOOL_PROP(EclFlowProblem, BlackoilConserveSurfaceVolume, true);
 SET_BOOL_PROP(EclFlowProblem, UseVolumetricResidual, false);
 
+SET_BOOL_PROP(EclFlowProblem, SolvePressureOnly, false);
 
 // SWATINIT is done by the flow part of flow_ebos. this can be removed once the legacy
 // code for fluid and satfunc handling gets fully retired.
