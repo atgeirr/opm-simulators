@@ -47,6 +47,8 @@
 #include <opm/material/densead/Math.hpp>
 #include <opm/material/densead/Evaluation.hpp>
 
+#include <ewoms/models/blackoil/blackoilpolymermodules.hh>
+
 #include <string>
 #include <memory>
 #include <vector>

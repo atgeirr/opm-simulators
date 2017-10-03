@@ -96,6 +96,7 @@ list (APPEND TEST_SOURCE_FILES
   tests/test_wellswitchlogger.cpp
   tests/test_timer.cpp
   tests/test_invert.cpp
+  tests/test_standardwell.cpp
   )
 
 list (APPEND TEST_DATA_FILES
