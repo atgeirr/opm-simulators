@@ -31,32 +31,6 @@
 #include <opm/common/utility/platform_dependent/reenable_warnings.h>
 
 
-
-
-
-#include <ewoms/common/propertysystem.hh>
-
-
-namespace Ewoms {
-namespace Properties {
-
-    // NEW_TYPE_TAG(TestProblem);
-    // NEW_TYPE_TAG(DerivedTestProblem, INHERITS_FROM(TestProblem));
-
-    NEW_PROP_TAG(Grid);
-    NEW_PROP_TAG(Simulator);
-    NEW_PROP_TAG(FluidSystem);
-    NEW_PROP_TAG(Indices);
-    NEW_PROP_TAG(IntensiveQuantities);
-    NEW_PROP_TAG(MaterialLaw);
-
-}
-}
-
-
-#include <opm/autodiff/WellInterface.hpp>
-
-/*
 #include <vector>
 #include <unordered_set>
 #include <memory>
@@ -83,11 +57,29 @@ namespace Properties {
 #include <opm/autodiff/BlackoilPropsAdFromDeck.hpp>
 #include <opm/autodiff/MultisegmentWells.hpp>
 #include <opm/autodiff/WellInterface.hpp>
-//#include <opm/autodiff/StandardWell.hpp>
+#include <opm/autodiff/StandardWell.hpp>
 
+#include <ewoms/models/blackoil/blackoilindices.hh>
+#include <opm/material/fluidsystems/BlackOilFluidSystem.hpp>
 
-// NEW_TYPE_TAG(TestProblem);
+class Dummy {};
 
+namespace Ewoms {
+    namespace Properties {
+
+        NEW_TYPE_TAG(TestProblem);
+
+        SET_TYPE_PROP(TestProblem, Grid, Dummy);
+        SET_TYPE_PROP(TestProblem, Simulator, Dummy);
+        SET_TYPE_PROP(TestProblem, FluidSystem, Opm::FluidSystems::BlackOil<double>);
+        SET_TYPE_PROP(TestProblem, Indices, Ewoms::BlackOilIndices<0,0,0>);
+        SET_TYPE_PROP(TestProblem, IntensiveQuantities, Dummy);
+        SET_TYPE_PROP(TestProblem, MaterialLaw, Dummy);
+
+        SET_BOOL_PROP(TestProblem, EnablePolymer, false);
+        SET_BOOL_PROP(TestProblem, EnableSolvent, false);
+    }
+}
 
 struct SetupStandardWell {
 
@@ -138,23 +130,11 @@ struct SetupStandardWell {
         // ms_wells.reset(new Opm::MultisegmentWells(wells, &(wells_manager.wellCollection()), wells_ecl, current_timestep));
     };
 
-    // StandardWell<TestProblem> standard_well;
+    //std::unique_ptr<Opm::StandardWell<TTAG(TestProblem)>> standard_well;
 };
-
-// number of wells for this case
-const int nw = 2;
-// number of segments for this case
-const int nseg = 7;
-// number of perforations for this case
-const int nperf = 8;
 
 BOOST_AUTO_TEST_CASE(testConstruction)
 {
     SetupStandardWell setup;
 }
-*/
 
-BOOST_AUTO_TEST_CASE(testConstruction)
-{
-    int x;
-}

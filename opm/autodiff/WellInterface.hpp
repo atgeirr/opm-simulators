@@ -54,8 +54,23 @@
 #include <vector>
 #include <cassert>
 
+
+// Declaring property tags needed by the WellInterface class.
+namespace Ewoms {
+    namespace Properties {
+        NEW_PROP_TAG(Grid);
+        NEW_PROP_TAG(Simulator);
+        NEW_PROP_TAG(FluidSystem);
+        NEW_PROP_TAG(Indices);
+        NEW_PROP_TAG(IntensiveQuantities);
+        NEW_PROP_TAG(MaterialLaw);
+    }
+}
+
+
 namespace Opm
 {
+
 
 
     template<typename TypeTag>
