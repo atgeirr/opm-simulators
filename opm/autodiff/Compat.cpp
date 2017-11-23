@@ -96,6 +96,18 @@ data::Solution simToSolution( const SimulationDataContainer& reservoir,
 
     if( phases.phase_used[ aqua ] ) {
         sol.insert( "SWAT", UnitSystem::measure::identity, destripe( sat, ph, phases.phase_pos[ aqua ] ) , data::TargetType::RESTART_SOLUTION );
+        if( reservoir.hasCellData( "FLOWATI+" ) ) {
+            sol.insert( "FLOWATI+", UnitSystem::measure::liquid_surface_rate,
+                        reservoir.getCellData( "FLOWATI+" ) , data::TargetType::RESTART_SOLUTION );
+        }
+        if( reservoir.hasCellData( "FLOWATJ+" ) ) {
+            sol.insert( "FLOWATJ+", UnitSystem::measure::liquid_surface_rate,
+                        reservoir.getCellData( "FLOWATJ+" ) , data::TargetType::RESTART_SOLUTION );
+        }
+        if( reservoir.hasCellData( "FLOWATK+" ) ) {
+            sol.insert( "FLOWATK+", UnitSystem::measure::liquid_surface_rate,
+                        reservoir.getCellData( "FLOWATK+" ) , data::TargetType::RESTART_SOLUTION );
+        }
     }
 
     if( phases.phase_used[ vapour ] ) {

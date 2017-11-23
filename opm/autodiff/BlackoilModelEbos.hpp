@@ -1155,12 +1155,18 @@ namespace Opm {
                 simData.registerCellData( "WAT_DEN", 1 );
                 simData.registerCellData( "WAT_VISC", 1 );
                 simData.registerCellData( "WATKR", 1 );
+                simData.registerCellData( "FLOWATI+", 1 );
+                simData.registerCellData( "FLOWATJ+", 1 );
+                simData.registerCellData( "FLOWATK+", 1 );
             }
 
             VectorType& bWater   = aqua_active ? simData.getCellData( "1OVERBW" ) : zero;
             VectorType& rhoWater = aqua_active ? simData.getCellData( "WAT_DEN" ) : zero;
             VectorType& muWater  = aqua_active ? simData.getCellData( "WAT_VISC" ) : zero;
             VectorType& krWater  = aqua_active ? simData.getCellData( "WATKR" ) : zero;
+            VectorType& floIWater = aqua_active ? simData.getCellData( "FLOWATI+" ) : zero;
+            VectorType& floJWater = aqua_active ? simData.getCellData( "FLOWATJ+" ) : zero;
+            VectorType& floKWater = aqua_active ? simData.getCellData( "FLOWATK+" ) : zero;
 
             // OIL
             if( liquid_active ) {
@@ -1275,6 +1281,9 @@ namespace Opm {
                     rhoWater[cellIdx] = fs.density(FluidSystem::waterPhaseIdx).value();
                     muWater[cellIdx] = fs.viscosity(FluidSystem::waterPhaseIdx).value();
                     krWater[cellIdx] = intQuants.relativePermeability(FluidSystem::waterPhaseIdx).value();
+                    floIWater[cellIdx] = 1.0;
+                    floJWater[cellIdx] = 1.0;
+                    floKWater[cellIdx] = 1.0;
                 }
                 if (vapour_active) {
                     saturation[ satIdx + vapour_pos ]  = fs.saturation(FluidSystem::gasPhaseIdx).value();
@@ -1368,6 +1377,34 @@ namespace Opm {
                                                            intQuants.pvtRegionIndex()).value();
 
                 }
+
+
+                elemCtx.updateAll(elem); // Necessary?
+
+                // loop over  over the intersections of the current element
+                const auto& stencil = elemCtx.stencil(/*timeIdx=*/0);
+                size_t numInteriorFaces = elemCtx.numInteriorFaces(/*timeIdx=*/0);
+                for (unsigned scvfIdx = 0; scvfIdx < numInteriorFaces; scvfIdx++) {
+                    const auto& extQuants = elemCtx.extensiveQuantities(scvfIdx, /*timeIdx=*/0);
+
+                    const auto& face = stencil.interiorFace(scvfIdx);
+                    unsigned i = face.interiorIndex();
+                    unsigned j = face.exteriorIndex();
+
+                    for (unsigned phaseIdx = 0; phaseIdx < num_phases; ++phaseIdx) {
+                        if (!FluidSystem::phaseIsActive(phaseIdx))
+                            continue;
+
+                        unsigned upIdx = extQuants.upstreamIndex(phaseIdx);
+                        unsigned dnIdx = extQuants.downstreamIndex(phaseIdx);
+
+                        // [m^3/m^2 / s] of fluid at reservoir conditions
+                        const auto& volFlux = extQuants.volumeFlux(phaseIdx);
+
+                        // do your thing
+                    }
+                }
+
             }
 
             const size_t max_num_cells_faillog = 20;
