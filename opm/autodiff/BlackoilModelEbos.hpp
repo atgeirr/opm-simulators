@@ -1388,8 +1388,10 @@ namespace Opm {
                     const auto& extQuants = elemCtx.extensiveQuantities(scvfIdx, /*timeIdx=*/0);
 
                     const auto& face = stencil.interiorFace(scvfIdx);
-                    unsigned i = face.interiorIndex();
-                    unsigned j = face.exteriorIndex();
+                    unsigned int i = face.interiorIndex();
+                    unsigned int j = face.exteriorIndex();
+                    unsigned int thisCell = elemCtx.globalSpaceIndex(i, /*timeIdx=*/0);
+                    unsigned int nbCell = elemCtx.globalSpaceIndex(j, /*timeIdx=*/0);
 
                     for (unsigned phaseIdx = 0; phaseIdx < num_phases; ++phaseIdx) {
                         if (!FluidSystem::phaseIsActive(phaseIdx))
