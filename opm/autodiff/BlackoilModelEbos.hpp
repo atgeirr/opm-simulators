@@ -1389,7 +1389,9 @@ namespace Opm {
 
                     const auto& face = stencil.interiorFace(scvfIdx);
                     unsigned int i = face.interiorIndex();
+                    assert(i == 0);
                     unsigned int j = face.exteriorIndex();
+                    assert(j != 0);
                     unsigned int thisCell = elemCtx.globalSpaceIndex(i, /*timeIdx=*/0);
                     unsigned int nbCell = elemCtx.globalSpaceIndex(j, /*timeIdx=*/0);
 
