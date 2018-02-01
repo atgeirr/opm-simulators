@@ -448,6 +448,7 @@ namespace Opm {
             wellModel().timeStepSucceeded(timer.simulationTimeElapsed());
             aquiferModel().timeStepSucceeded(timer);
             ebosSimulator_.problem().endTimeStep();
+            ebosSimulator_.problem().advanceTimeLevel();
 
             //ebosSimulator_.startNextEpisode( timer.currentStepLength() );
             //ebosSimulator_.setEpisodeIndex( timer.reportStepNum() );
