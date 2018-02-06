@@ -333,6 +333,9 @@ namespace Opm {
             }
 
 
+            //collect objective values, derivatives and well control state for output
+            // assume most all is related to well
+            //AdjointStepType adjointStep = wellModel().collectObjective(x);
             // Do model-specific post-step actions.
            // model_->afterStep(timer, reservoir_state, well_state);
 
@@ -349,6 +352,13 @@ namespace Opm {
             ebosSimulator_.model().linearizer().linearize(1);
             ebosSimulator_.problem().endIteration();
             const auto& ebosJac1 = ebosSimulator_.model().linearizer().matrix();
+
+
+            // prepare rhs for next step
+            BVector rhs_next(nc);
+            ebosJac1.mtv(x,rhs_next);
+
+
 
             /*
             auto& ebosResid1 = ebosSimulator_.model().linearizer().residual();
