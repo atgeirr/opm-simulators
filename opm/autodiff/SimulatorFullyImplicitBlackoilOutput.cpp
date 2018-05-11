@@ -334,7 +334,7 @@ namespace Opm
                 std::cout << "Skipping restart write in start of step " << timer.currentStepNum() << std::endl;
             } else {
                 // ... insert "extra" data (KR, VISC, ...)
-                const int reportStepForOutput = substep ? timer.reportStepNum() + 1 : timer.reportStepNum();
+                const int reportStepForOutput = substep ? timer.reportStepNum() : timer.reportStepNum() - 1;
                 eclIO_->writeTimeStep(reportStepForOutput,
                                       substep,
                                       timer.simulationTimeElapsed(),

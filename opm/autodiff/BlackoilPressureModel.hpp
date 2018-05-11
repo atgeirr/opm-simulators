@@ -26,6 +26,7 @@
 #include <opm/core/simulator/BlackoilState.hpp>
 #include <opm/autodiff/WellStateFullyImplicitBlackoil.hpp>
 #include <opm/autodiff/BlackoilModelParameters.hpp>
+#include <opm/autodiff/DebugTimeReport.hpp>
 #include <opm/simulators/timestepping/SimulatorTimerInterface.hpp>
 
 #include <algorithm>
@@ -122,7 +123,11 @@ namespace Opm {
                 residual_.singlePrecision
             };
             assert(pressure_res.sizeNonLinear() == n1 + n2);
-            V dx_pressure = linsolver_.computeNewtonIncrement(pressure_res);
+            V dx_pressure;
+            {
+                DebugTimeReport debtimer("Linear solver time pressure");
+                dx_pressure = linsolver_.computeNewtonIncrement(pressure_res);
+            }
             assert(dx_pressure.size() == n1 + n2);
             V dx_full = V::Zero(n_full);
             dx_full.topRows(n1) = dx_pressure.topRows(n1);

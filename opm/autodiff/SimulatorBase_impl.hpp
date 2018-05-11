@@ -184,9 +184,13 @@ namespace Opm
                 Dune::Timer perfTimer;
                 perfTimer.start();
 
+                // HACK
+                auto timercopy = timer;
+                ++timercopy;
+
                 // No per cell data is written for initial step, but will be
                 // for subsequent steps, when we have started simulating
-                output_writer_.writeTimeStepWithoutCellProperties( timer, state, well_state, {}, {} );
+                output_writer_.writeTimeStepWithoutCellProperties( timercopy, state, well_state, {}, {} );
 
                 report.output_write_time += perfTimer.stop();
             }
