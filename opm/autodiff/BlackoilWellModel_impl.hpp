@@ -743,7 +743,7 @@ namespace Opm {
         wellhelpers::WellSwitchingLogger logger;
 
         for (const auto& well : well_container_) {
-            well->updateWellControl(well_state_, logger);
+            well->updateWellControl(ebosSimulator_, well_state_, logger);
         }
 
         updateGroupControls();
@@ -818,7 +818,7 @@ namespace Opm {
             well_state_.currentControls()[w] = control;
             // TODO: for VFP control, the perf_densities are still zero here, investigate better
             // way to handle it later.
-            well->updateWellStateWithTarget(well_state_);
+            well->updateWellStateWithTarget(ebosSimulator_, well_state_);
 
             // The wells are not considered to be newly added
             // for next time step
@@ -935,6 +935,7 @@ namespace Opm {
             const WellNode& well_node = wellCollection().findWellNode(well_name);
 
             const double well_efficiency_factor = well_node.getAccumulativeEfficiencyFactor();
+            std::cout << " well " << well->name() << " well_efficiency_factor " << well_efficiency_factor << std::endl;
 
             well->setWellEfficiencyFactor(well_efficiency_factor);
         }
@@ -1064,7 +1065,7 @@ namespace Opm {
             wellCollection().updateWellTargets(well_state_.wellRates());
 
             for (auto& well : well_container_) {
-                well->updateWellStateWithTarget(well_state_);
+                well->updateWellStateWithTarget(ebosSimulator_, well_state_);
             }
         }
     }

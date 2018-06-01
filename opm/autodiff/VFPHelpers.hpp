@@ -28,6 +28,10 @@
 #include <opm/material/densead/Math.hpp>
 #include <opm/material/densead/Evaluation.hpp>
 
+// TODO: temporary here for the line intersection calculation for the THP control
+#include <opm/polymer/Point2D.hpp>
+
+
 /**
  * This file contains a set of helper functions used by VFPProd / VFPInj.
  */
@@ -947,6 +951,77 @@ inline double findTHP(
     }
 
     return thp;
+}
+
+
+inline bool findIntersectionForBhp(const std::vector<double>&rate_samples,
+                                   const std::vector<double>&bhp_samples,
+                                   const double flo_rate1,
+                                   const double flo_rate2,
+                                   const double bhp1,
+                                   const double bhp2,
+                                   double& bhp)
+{
+    // there possibly two intersection point, then we choose the bigger one
+    // we choose the bigger one, then it will be the later one in the rate_samples
+
+    const size_t num_samples = rate_samples.size();
+    assert(num_samples == bhp_samples.size());
+
+    assert(flo_rate1 != flo_rate2);
+
+    const double line_slope = (bhp2 - bhp1) / (flo_rate2 - flo_rate1);
+    // line equation will be
+    // bhp - bhp1 - line_slope * (flo_rate - flo_rate1) = 0
+    auto flambda = [&](const double flo_rate, const double bhp) {
+        return bhp - bhp1 - line_slope * (flo_rate - flo_rate1);
+    };
+
+    int number_intersection_found = 0;
+    int index_segment = 0; // the intersection segment that intersection happens
+    for (size_t i = 0; i < rate_samples.size() - 1; ++i) {
+        const double temp1 = flambda(rate_samples[i], bhp_samples[i]);
+        const double temp2 = flambda(rate_samples[i+1], bhp_samples[i+1]);
+        if (temp1 * temp2 <= 0.) { // intersection happens
+            // in theory there should be maximu two intersection points
+            // while considering the situation == 0. here, we might find more
+            // we always use the last one
+            /* if (number_intersection_found < 2) {
+                ++number_intersection_found;
+            } */
+            ++number_intersection_found;
+            index_segment = i;
+
+            /* if (number_intersection_found == 2) {
+                break;
+            } */
+        }
+    }
+
+    std::cout << " number_intersection_found " << number_intersection_found << std::endl;
+
+    if (number_intersection_found == 0) { // there is not intersection point
+        return false;
+    }
+
+    // then we need to calculate the intersection point
+    detail::Point2D intersection_point;
+
+    detail::Point2D line_segment[2] = { detail::Point2D(rate_samples[index_segment], bhp_samples[index_segment]),
+                                        detail::Point2D(rate_samples[index_segment + 1], bhp_samples[index_segment + 1]) };
+
+    detail::Point2D line[2] = { detail::Point2D(flo_rate1, bhp1),
+                                detail::Point2D(flo_rate2, bhp2) };
+
+    const bool inter_section_found = detail::Point2D::findIntersection(line_segment, line, intersection_point);
+
+    if (inter_section_found) {
+        bhp = intersection_point.getY();
+        std::cout << " found a bhp is " << bhp << " rate is " << intersection_point.getX() << std::endl;
+    } else {
+        std::cout << " did not find the intersection point " << std::endl;
+    }
+    return bhp;
 }
 
 

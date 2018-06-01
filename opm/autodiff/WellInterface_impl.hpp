@@ -384,7 +384,8 @@ namespace Opm
     template<typename TypeTag>
     void
     WellInterface<TypeTag>::
-    updateWellControl(WellState& well_state,
+    updateWellControl(const Simulator& ebosSimulator,
+                      WellState& well_state,
                       wellhelpers::WellSwitchingLogger& logger) const
     {
         const int np = number_of_phases_;
@@ -436,7 +437,7 @@ namespace Opm
         }
 
         if (updated_control_index != old_control_index) { //  || well_collection_->groupControlActive()) {
-            updateWellStateWithTarget(well_state);
+            updateWellStateWithTarget(ebosSimulator, well_state);
         }
     }
 
@@ -949,7 +950,7 @@ namespace Opm
             solveEqAndUpdateWellState(well_state);
 
             wellhelpers::WellSwitchingLogger logger;
-            updateWellControl(well_state, logger);
+            updateWellControl(ebosSimulator, well_state, logger);
             initPrimaryVariablesEvaluation();
         } while (it < max_iter);
 
@@ -963,4 +964,19 @@ namespace Opm
             }
         }
     }
+
+
+
+
+    template<typename TypeTag>
+    bool
+    WellInterface<TypeTag>::isVFPActive() const
+    {
+        // TODO: it should be a function based on the vfp table number provided in the schedule
+        // TODO: the well_controls from core might not have the correct behavoir in term of handling
+        // TODO: the VFP table numbers.
+        return true;
+
+    }
+
 }

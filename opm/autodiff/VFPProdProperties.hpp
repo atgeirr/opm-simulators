@@ -22,6 +22,8 @@
 
 #include <opm/parser/eclipse/EclipseState/Schedule/VFPProdTable.hpp>
 #include <opm/core/wells.h>
+// TODO: this one not sure should be here.
+#include <opm/core/props/BlackoilPhases.hpp>
 #include <opm/material/densead/Math.hpp>
 #include <opm/material/densead/Evaluation.hpp>
 #include <opm/autodiff/VFPHelpers.hpp>
@@ -158,6 +160,105 @@ public:
         }
         return bhp;
     }
+
+
+    // TODO: different name to avoid name conflicts
+    double bhpfra(const int table_id,
+                 const double& flo,
+                 const double& wfr,
+                 const double& gfr,
+                 const double& thp,
+                 const double& alq) const {
+
+        //Get the table
+        const VFPProdTable* table = detail::getTable(m_tables, table_id);
+
+        //Compute the BHP for each well independently
+        //First, find the values to interpolate between
+        //Value of FLO is negative in OPM for producers, but positive in VFP table
+        auto flo_i = detail::findInterpData(-flo, table->getFloAxis());
+        auto thp_i = detail::findInterpData( thp, table->getTHPAxis()); // assume constant
+        auto wfr_i = detail::findInterpData( wfr, table->getWFRAxis());
+        auto gfr_i = detail::findInterpData( gfr, table->getGFRAxis());
+        auto alq_i = detail::findInterpData( alq, table->getALQAxis()); //assume constant
+
+        detail::VFPEvaluation bhp_val = detail::interpolate(table->getTable(), flo_i, thp_i, wfr_i, gfr_i, alq_i);
+
+        return bhp_val.value;
+    }
+
+    // TODO: if not template, we should move to a cpp file
+    void calculateRatesBhpWithTHPTarget(const std::vector<double>& rates1,
+                                        const std::vector<double>& rates2,
+                                        const double bhp1, // this one will be used as fixed fractions, in the middle
+                                        const double bhp2,
+                                        const double bhp_end, // higher end for producers, lower end for injectors
+                                        const double dp,
+                                        const int table_id,
+                                        const double thp,
+                                        const double alq,
+                                        std::vector<double>& return_rates,
+                                        double& return_bhp) const
+    {
+        assert(table_id > 0);
+
+        const VFPProdTable* table = detail::getTable(m_tables, table_id);
+
+        const int Water = BlackoilPhases::Aqua;
+        const int Oil = BlackoilPhases::Liquid;
+        const int Gas = BlackoilPhases::Vapour;
+
+        // FLO is the rate
+        // implement based on producer first
+        const double aqua1 = rates1[Water];
+        const double liquid1 = rates1[Oil];
+        const double vapour1 = rates1[Gas];
+        const double flo_rate1 = detail::getFlo(aqua1, liquid1, vapour1, table->getFloType());
+
+        const double aqua2 = rates2[Water];
+        const double liquid2 = rates2[Oil];
+        const double vapour2 = rates2[Gas];
+        const double flo_rate2 = detail::getFlo(aqua2, liquid2, vapour2, table->getFloType());
+
+        std::cout << "flo_rate1 is " << flo_rate1 << std::endl;
+        std::cout << " bhp1 is " << bhp1 << std::endl;
+
+        std::cout << "flo_rate2 is " << flo_rate2 << std::endl;
+        std::cout << " bhp2 is " << bhp2 << std::endl;
+
+
+        const double wfr = detail::getWFR(aqua1, liquid1, vapour1, table->getWFRType());
+        const double gfr = detail::getGFR(aqua1, liquid1, vapour1, table->getGFRType());
+
+        const int sample_number = 100;
+        std::vector<double> bhp_samples(sample_number);
+        std::vector<double> rate_samples(sample_number, 0.);
+
+        // rate sampling interval
+        const double rate_iterval = flo_rate2 / (sample_number - 1);
+        for (int i = 0; i < sample_number; ++i) {
+            rate_samples[i] =  i * rate_iterval;
+        }
+
+        // based on all the rate samples, let us calculate the bhp_samples
+        for (int i = 0; i < sample_number; ++i) {
+            bhp_samples[i] = bhpfra(table_id, rate_samples[i], wfr, gfr, thp, alq) - dp;
+        }
+
+        std::cout << " the rate and bhp samples " << std::endl;
+        for (int i = 0; i < sample_number; ++i) {
+            std::cout << rate_samples[i] << " " << bhp_samples[i] << std::endl;
+        }
+
+        // interface needs to be resigned
+        const bool found = detail::findIntersectionForBhp(rate_samples, bhp_samples, flo_rate1, flo_rate2, bhp1, bhp2, return_bhp);
+
+        if (!found) {
+            std::cout << " COULD NOT find an Intersection point, the well might need to be closed " << std::endl;
+            std::cin.ignore();
+        }
+    }
+
 
     /**
      * Linear interpolation of bhp as a function of the input parameters

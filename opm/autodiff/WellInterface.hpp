@@ -202,9 +202,11 @@ namespace Opm
                                            const WellState& well_state,
                                            std::vector<double>& well_potentials) = 0;
 
-        virtual void updateWellStateWithTarget(WellState& well_state) const = 0;
+        virtual void updateWellStateWithTarget(const Simulator& ebosSimulator,
+                                               WellState& well_state) const = 0;
 
-        void updateWellControl(WellState& well_state,
+        void updateWellControl(const Simulator& ebosSimulator,
+                               WellState& well_state,
                                wellhelpers::WellSwitchingLogger& logger) const;
 
         virtual void updatePrimaryVariables(const WellState& well_state) const = 0;
@@ -347,6 +349,9 @@ namespace Opm
 
         double scalingFactor(const int comp_idx) const;
 
+        // when a well is specified with a non-zero VFP table number
+        // it is supposed to calcualte the THP values even without THP target/limit there.
+        bool isVFPActive() const;
 
     };
 
