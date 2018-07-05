@@ -189,6 +189,7 @@ namespace Opm
         using Base::wellHasTHPConstraints;
         using Base::mostStrictBhpFromBhpLimits;
         using Base::scalingFactor;
+        using Base::isVFPActive;
 
         // protected member variables from the Base class
         using Base::current_step_;
@@ -317,7 +318,7 @@ namespace Opm
         template <class ValueType>
         ValueType calculateBhpFromThp(const std::vector<ValueType>& rates, const int control_index) const;
 
-        double calculateThpFromBhp(const std::vector<double>& rates, const int control_index, const double bhp) const;
+        double calculateThpFromBhp(const std::vector<double>& rates, const double bhp) const;
 
         // get the mobility for specific perforation
         void getMobility(const Simulator& ebosSimulator,

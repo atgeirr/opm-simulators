@@ -968,15 +968,42 @@ namespace Opm
 
 
 
+
     template<typename TypeTag>
     bool
     WellInterface<TypeTag>::isVFPActive() const
     {
-        // TODO: it should be a function based on the vfp table number provided in the schedule
-        // TODO: the well_controls from core might not have the correct behavoir in term of handling
-        // TODO: the VFP table numbers.
-        return true;
+        // since the well_controls only handles the VFP number when THP control/limit is there.
+        // we need to get the table number through the parser, in case THP control/limit is not there.
+        // when THP  control/limit is not active, if available VFP table is provided, we will still need to
+        // update and output THP value.
+        if (well_type_ == PRODUCER) { // producer
+            const int table_id = well_ecl_->getProductionProperties(current_step_).VFPTableNumber;
+            if (table_id <= 0) {
+                return false;
+            } else {
+                if (vfp_properties_->getProd()->getTable(table_id)) {
+                    return true;
+                } else {
+                    // actually, an exception will be thrown here through getTable function
+                    // TODO: not sure whether we should terminate running or give a warning here without testing
+                    return false;
+                }
+            }
 
+        } else { // injector
+            const int table_id = well_ecl_->getInjectionProperties(current_step_).VFPTableNumber;
+            if (table_id <= 0) {
+                return false;
+            } else {
+                if (vfp_properties_->getInj()->getTable(table_id)) {
+                    return true;
+                } else {
+                    // same with above, an exception will be thrown through getTable function
+                    return false;
+                }
+            }
+        }
     }
 
 }

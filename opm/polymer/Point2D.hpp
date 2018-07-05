@@ -61,8 +61,9 @@ namespace Opm {
                 }
 
                 /// Finding the intersection point of a line segment and a line.
+                /// They are both described with two points.
                 /// return true, if found.
-                static bool findIntersection(Point2D line_segment1[2], Point2D line2[2], Point2D& intersection_point)
+                static bool findIntersection(const Point2D line_segment1[2], const Point2D line2[2], Point2D& intersection_point)
                 {
 
                     const double x1 = line_segment1[0].getX();

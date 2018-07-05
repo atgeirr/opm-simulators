@@ -470,6 +470,8 @@ namespace Opm
             getMobility(ebosSimulator, perf, mob);
             double perf_dis_gas_rate = 0.;
             double perf_vap_oil_rate = 0.;
+
+            // the current way of handling closing connections is through setting the corresponding well_index to be zero
             if (well_index_[perf] > 1.e-15) {
                 computePerfRate(intQuants, mob, well_index_[perf], bhp, perf_pressure_diffs_[perf], allow_cf,
                                 cq_s, perf_dis_gas_rate, perf_vap_oil_rate);
@@ -1070,43 +1072,34 @@ namespace Opm
     StandardWell<TypeTag>::
     updateThp(WellState& well_state) const
     {
-        // for the wells having a THP constaint, we should update their thp value
-        // If it is under THP control, it will be set to be the target value.
-        // TODO: a better standard is probably whether we have the table to calculate the THP value
-        // TODO: it is something we need to check the output to decide.
+        // When there is no vaild VFP table provided, we set the thp to be zero.
+        if (!isVFPActive()) {
+            well_state.thp()[index_of_well_] = 0.;
+            return;
+        }
+
+        // otherwise, we need to update the thp value
         const WellControls* wc = well_controls_;
-        // TODO: we should only maintain one current control either from the well_state or from well_controls struct.
-        // Either one can be more favored depending on the final strategy for the initilzation of the well control
-        const int nwc = well_controls_get_num(wc);
-        // Looping over all controls until we find a THP constraint
-        for (int ctrl_index = 0; ctrl_index < nwc; ++ctrl_index) {
-            if (well_controls_iget_type(wc, ctrl_index) == THP) {
-                // the current control
-                const int current = well_state.currentControls()[index_of_well_];
-                // if well under THP control at the moment
-                if (current == ctrl_index) {
-                    const double thp_target = well_controls_iget_target(wc, current);
-                    well_state.thp()[index_of_well_] = thp_target;
-                } else { // otherwise we calculate the thp from the bhp value
-                    const Opm::PhaseUsage& pu = phaseUsage();
-                    std::vector<double> rates(3, 0.0);
+        // or we get the control type based on the control index in WellState
+        if (well_controls_get_current_type(wc) == THP) {
+            well_state.thp()[index_of_well_] = well_controls_get_current_target(wc);
+        } else { // we calculate the thp based on the bhp and rates
+            const Opm::PhaseUsage& pu = phaseUsage();
+            std::vector<double> rates(3, 0.0);
 
-                    if (FluidSystem::phaseIsActive(FluidSystem::waterPhaseIdx)) {
-                        rates[ Water ] = well_state.wellRates()[index_of_well_ * number_of_phases_ + pu.phase_pos[ Water ] ];
-                    }
-                    if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
-                        rates[ Oil ] = well_state.wellRates()[index_of_well_ * number_of_phases_ + pu.phase_pos[ Oil ] ];
-                    }
-                    if (FluidSystem::phaseIsActive(FluidSystem::gasPhaseIdx)) {
-                        rates[ Gas ] = well_state.wellRates()[index_of_well_ * number_of_phases_ + pu.phase_pos[ Gas ] ];
-                    }
-
-                    const double bhp = well_state.bhp()[index_of_well_];
-
-                    well_state.thp()[index_of_well_] = calculateThpFromBhp(rates, ctrl_index, bhp);
-                }
-                break;
+            if (FluidSystem::phaseIsActive(FluidSystem::waterPhaseIdx)) {
+                rates[ Water ] = well_state.wellRates()[index_of_well_ * number_of_phases_ + pu.phase_pos[ Water ] ];
             }
+            if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
+                rates[ Oil ] = well_state.wellRates()[index_of_well_ * number_of_phases_ + pu.phase_pos[ Oil ] ];
+            }
+            if (FluidSystem::phaseIsActive(FluidSystem::gasPhaseIdx)) {
+                rates[ Gas ] = well_state.wellRates()[index_of_well_ * number_of_phases_ + pu.phase_pos[ Gas ] ];
+            }
+
+            const double bhp = well_state.bhp()[index_of_well_];
+
+            well_state.thp()[index_of_well_] = calculateThpFromBhp(rates, bhp);
         }
     }
 
@@ -1801,6 +1794,7 @@ namespace Opm
                                 const double initial_bhp, // bhp from BHP constraints
                                 const std::vector<double>& initial_potential) const
     {
+        OpmLog::warning("OLD_TECHNIC_THP_POTENTIAL", "We should use new technique to calculate well potential with THP limit!!!");
         // TODO: pay attention to the situation that finally the potential is calculated based on the bhp control
         // TODO: should we consider the bhp constraints during the iterative process?
         const int np = number_of_phases_;
@@ -2098,7 +2092,6 @@ namespace Opm
     double
     StandardWell<TypeTag>::
     calculateThpFromBhp(const std::vector<double>& rates,
-                        const int control_index,
                         const double bhp) const
     {
         assert(int(rates.size()) == 3); // the vfp related only supports three phases now.
@@ -2107,26 +2100,29 @@ namespace Opm
         const double liquid = rates[Oil];
         const double vapour = rates[Gas];
 
-        const int vfp        = well_controls_iget_vfp(well_controls_, control_index);
-        const double& alq    = well_controls_iget_alq(well_controls_, control_index);
-
         // pick the density in the top layer
         const double rho = perf_densities_[0];
 
         double thp = 0.0;
         if (well_type_ == INJECTOR) {
-            const double vfp_ref_depth = vfp_properties_->getInj()->getTable(vfp)->getDatumDepth();
+            const int table_id = well_ecl_->getInjectionProperties(current_step_).VFPTableNumber;
+
+            const double vfp_ref_depth = vfp_properties_->getInj()->getTable(table_id)->getDatumDepth();
 
             const double dp = wellhelpers::computeHydrostaticCorrection(ref_depth_, vfp_ref_depth, rho, gravity_);
 
-            thp = vfp_properties_->getInj()->thp(vfp, aqua, liquid, vapour, bhp + dp);
+            thp = vfp_properties_->getInj()->thp(table_id, aqua, liquid, vapour, bhp + dp);
          }
          else if (well_type_ == PRODUCER) {
-             const double vfp_ref_depth = vfp_properties_->getProd()->getTable(vfp)->getDatumDepth();
+             const int table_id = well_ecl_->getProductionProperties(current_step_).VFPTableNumber;
+
+             const double alq = well_ecl_->getProductionProperties(current_step_).ALQValue;
+
+             const double vfp_ref_depth = vfp_properties_->getProd()->getTable(table_id)->getDatumDepth();
 
              const double dp = wellhelpers::computeHydrostaticCorrection(ref_depth_, vfp_ref_depth, rho, gravity_);
 
-             thp = vfp_properties_->getProd()->thp(vfp, aqua, liquid, vapour, bhp + dp, alq);
+             thp = vfp_properties_->getProd()->thp(table_id, aqua, liquid, vapour, bhp + dp, alq);
          }
          else {
              OPM_THROW(std::logic_error, "Expected INJECTOR or PRODUCER well");
