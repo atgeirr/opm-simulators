@@ -345,6 +345,7 @@ namespace Opm
                                           const double thp_target,
                                           WellState& well_state) const;
 
+        // TODO: it should be moved to WellInterface later most likely
         void convertRatesForVFP(std::vector<double>& well_rates) const;
     };
 

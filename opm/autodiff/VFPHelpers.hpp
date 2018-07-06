@@ -28,10 +28,6 @@
 #include <opm/material/densead/Math.hpp>
 #include <opm/material/densead/Evaluation.hpp>
 
-// TODO: temporary here for the line intersection calculation for the THP control
-#include <opm/polymer/Point2D.hpp>
-
-
 /**
  * This file contains a set of helper functions used by VFPProd / VFPInj.
  */
@@ -954,6 +950,42 @@ inline double findTHP(
 }
 
 
+// a data type use to do the intersection calculation to get the intial bhp under THP control
+struct DataPoint {
+    double rate;
+    double bhp;
+};
+
+// looking for a intersection point a line segment and a line, they are both defined with two points
+// it is copied from #include <opm/polymer/Point2D.hpp>, which should be removed since it is only required by the lagacy polymer
+inline bool findIntersection(const std::array<DataPoint, 2>& line_segment, const std::array<DataPoint, 2>& line, double& bhp) {
+    const double x1 = line_segment[0].rate;
+    const double y1 = line_segment[0].bhp;
+    const double x2 = line_segment[1].rate;
+    const double y2 = line_segment[1].bhp;
+
+    const double x3 = line[0].rate;
+    const double y3 = line[0].bhp;
+    const double x4 = line[1].rate;
+    const double y4 = line[1].bhp;
+
+    const double d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+    if (d == 0.) {
+        return false;
+    }
+
+    const double x = ((x3 - x4) * (x1 * y2 - y1 * x2) - (x1 - x2) * (x3 * y4 - y3 * x4)) / d;
+    const double y = ((y3 - y4) * (x1 * y2 - y1 * x2) - (y1 - y2) * (x3 * y4 - y3 * x4)) / d;
+
+    if (x >= std::min(x1,x2) && x <= std::max(x1,x2)) {
+        bhp = y;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 inline bool findIntersectionForBhp(const std::vector<double>&rate_samples,
                                    const std::vector<double>&bhp_samples,
                                    const double flo_rate1,
@@ -985,16 +1017,9 @@ inline bool findIntersectionForBhp(const std::vector<double>&rate_samples,
         if (temp1 * temp2 <= 0.) { // intersection happens
             // in theory there should be maximu two intersection points
             // while considering the situation == 0. here, we might find more
-            // we always use the last one
-            /* if (number_intersection_found < 2) {
-                ++number_intersection_found;
-            } */
+            // we always use the last one, which is the one has the biggest rate
             ++number_intersection_found;
             index_segment = i;
-
-            /* if (number_intersection_found == 2) {
-                break;
-            } */
         }
     }
 
@@ -1004,29 +1029,24 @@ inline bool findIntersectionForBhp(const std::vector<double>&rate_samples,
         return false;
     }
 
+
     // then we need to calculate the intersection point
-    detail::Point2D intersection_point;
+    const std::array<DataPoint, 2> line_segment{ DataPoint{rate_samples[index_segment], bhp_samples[index_segment]},
+                                                 DataPoint{rate_samples[index_segment + 1], bhp_samples[index_segment + 1]} };
 
-    detail::Point2D line_segment[2] = { detail::Point2D(rate_samples[index_segment], bhp_samples[index_segment]),
-                                        detail::Point2D(rate_samples[index_segment + 1], bhp_samples[index_segment + 1]) };
+    const std::array<DataPoint, 2> line { DataPoint{flo_rate1, bhp1},
+                                          DataPoint{flo_rate2, bhp2} };
 
-    detail::Point2D line[2] = { detail::Point2D(flo_rate1, bhp1),
-                                detail::Point2D(flo_rate2, bhp2) };
-
-    const bool inter_section_found = detail::Point2D::findIntersection(line_segment, line, intersection_point);
+    const bool inter_section_found = findIntersection(line_segment, line, bhp);
 
     if (inter_section_found) {
-        bhp = intersection_point.getY();
-        std::cout << " found a bhp is " << bhp << " rate is " << intersection_point.getX() << std::endl;
+        std::cout << " found a bhp is " << bhp << std::endl;
+        return true;
     } else {
         std::cout << " did not find the intersection point " << std::endl;
+        return false;
     }
-    return bhp;
 }
-
-
-
-
 
 
 

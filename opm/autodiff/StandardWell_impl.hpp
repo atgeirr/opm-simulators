@@ -1125,26 +1125,9 @@ namespace Opm
         switch (well_controls_iget_type(wc, current)) {
         case BHP:
             well_state.bhp()[well_index] = target;
-            // TODO: we should update the well rates here too, at least for production wells
-            // crossflow is the problem.
-
-            // TODO: on the other hand, we should be able to solve the welleq to converge, when giving
-            // a simple type of control. /NOTE, group control will make things very different.
-            //
-            // TODO: but, but, within the well level, we still should be able to get a result for the well
-            // based on single type of control.
-
-            // Then we will have updateWellStateWithRateControl, updateWellSateWithBhpControl, updateWellStateWithThpControl.
-            // Then the function updateWellStateWithTarget will be a function call all these individual functions.
-
-            // But, but, if the well is not newly opened, if there is no schedule event happening, we should use the old WellState.
-
-            // TODO: similar to the way below to handle THP
-            // we should not something related to thp here when there is thp constraint
-            // or when can calculate the THP (table avaiable or requested for output?)
-
-            // TODO: if necessary (VFP number is > 0), we should update the THP value
-            // for either output purpose or limit checking purpose when there is a THP limit/target there.
+            // \Note it should be okay not updating other rates and bhp here
+            // They should be updated in the updateWellState.
+            // Leaving a note here for later reference.
             break;
 
         case THP:
@@ -2208,158 +2191,115 @@ namespace Opm
                                  const double thp_target,
                                  WellState& well_state) const
     {
-            // TODO: this will be the big task here.
-            // p_bhp = BHP(THP, rates(p_bhp))
-            // more sophiscated techniques is required to obtain the bhp and rates here
+        // TODO: this will be the big task here.
+        // p_bhp = BHP(THP, rates(p_bhp))
+        // more sophiscated techniques is required to obtain the bhp and rates here
 
-            // For now, we assume we do not have the well state from the previous time step,
-            // which is true for a newly opened well.
-            // Based on the BHP limit, we calculate the rate, then we will obtain a fraction of the phases/components
-            // TODO: it will be a little problematic for strong crossflow.
-            // To get the inflow performance curve, we need at least another BHP value to calculate another flow rates
-            // which is very likely to be good to have the reservoir pressure.
-            // TODO: Or alternatively, we can give a zero rate constraint to solve for one BHP, then we plot the curves out.
-            // TODO: this can be a more plausible solution.
-            //
-            //
-            // TODO: looks like in this model, all the wells are banned from crossflow.
-            // TODO: We can assume there is not crossflow for the first version here.
-            //
-            //
-            // Then we will fix the phase fractions here. Phase fractions can be used to obtain the VFP/VLP curves.
-            // By default, it requires the current values of the fractions, does this mean it will be implicit?
-            //
-            //
-            //
-            // NOTE: handle only the production wells first
-            if (well_type_ != PRODUCER) {
-                std::cout << " well " << name() << " is under THP control but it is a INJECTOR" << std::endl;
-            }
+        // Based on the BHP limit, we calculate the rate, then we will obtain a fraction of the phases/components
+        // TODO: it will be a little problematic for strong crossflow.
+        // To get the inflow performance curve, we need at least another BHP value to calculate another flow rates
+        // which is very likely to be good to have the reservoir pressure.
+        // TODO: Or alternatively, we can give a zero rate constraint to solve for one BHP, then we plot the curves out.
+        // TODO: this can be a more plausible solution.
+        //
+        // TODO: looks like in this model, all the wells are banned from crossflow.
+        // TODO: We can assume there is not crossflow for the first version here.
+        //
+        // Then we will fix the phase fractions here. Phase fractions can be used to obtain the VFP/VLP curves.
+        // By default, it requires the current values of the fractions, does this mean it will be implicit?
+        //
+        // NOTE: handling only the production wells first
+        // TODO: Later, we will split this function to be two function, one is for injectors and the other one is for producers.
+        if (well_type_ != PRODUCER) {
+            std::cout << " well " << name() << " is under THP control but it is a INJECTOR" << std::endl;
+        }
 
+        // get the reservoir pressure of the first perforated cell
+        const double cell_idx = well_cells_[0];
+        const auto& intQuants = *(ebos_simulator.model().cachedIntensiveQuantities(cell_idx, /*timeIdx=*/ 0));
+        const auto& fs = intQuants.fluidState();
+        const double cell_pressure = fs.pressure(FluidSystem::oilPhaseIdx).value();
 
-            // get the reservoir pressure of the first perforated cell
-            const double cell_idx = well_cells_[0];
-            const auto& intQuants = *(ebos_simulator.model().cachedIntensiveQuantities(cell_idx, /*timeIdx=*/ 0));
-            const auto& fs = intQuants.fluidState();
-            const double cell_pressure = fs.pressure(FluidSystem::oilPhaseIdx).value();
+        // As first try, we use the BHP limit, and the middle value of BHP limit and the pressure of the top perforated cell.
+        // TODO: Not sure what is the best choices here, to be found out during testing
+        // get the BHP limit
+        const double bhp_limit = mostStrictBhpFromBhpLimits();
 
-            // get the BHP limit
-            const double bhp_limit = mostStrictBhpFromBhpLimits();
+        // To plot the inflow performance line/curve, we use the BHP limit and also the the middle of the BHP limit
+        // and the cell pressure
+        const double middle_pressure = (bhp_limit + cell_pressure) / 2.0;
 
-            // To plot the inflow performance line/curve, we use the BHP limit and also the the middle of the BHP limit
-            // and the cell pressure
-            const double middle_pressure = (bhp_limit + cell_pressure) / 2.0;
+        // we fix the fractions based on this middle pressure
+        std::vector<double> well_rates_middle;
+        computeWellRatesWithBhp(ebos_simulator, middle_pressure, well_rates_middle);
 
-            // we fix the fractions based on this middle pressure
-            std::vector<double> well_rates_middle;
+        std::vector<double> well_rate_bhp_limit;
+        computeWellRatesWithBhp(ebos_simulator, bhp_limit, well_rate_bhp_limit);
 
-            computeWellRatesWithBhp(ebos_simulator, middle_pressure, well_rates_middle);
+        std::cout << " well rates with middle_pressure " << middle_pressure << " for well " << name() << std::endl;
+        for (const double value : well_rates_middle) {
+            std::cout << value << " ";
+        }
+        std::cout << std::endl;
 
-            std::vector<double> well_rate_bhp_limit;
-            computeWellRatesWithBhp(ebos_simulator, bhp_limit, well_rate_bhp_limit);
+        std::cout << " well rates with bhp limit " << bhp_limit << " for well " << name() << std::endl;
+        for (const double value : well_rate_bhp_limit) {
+            std::cout << value << " ";
+        }
+        std::cout << std::endl;
 
-            std::cout << " well rates with middle_pressure " << middle_pressure << " for well " << name() << std::endl;
-            for (const double value : well_rates_middle) {
-                std::cout << value << " ";
-            }
-            std::cout << std::endl;
+        // TODO: for many cases this can be wrong, while there is not easy way to fix it.
+        // Should it be something related to BHP value or it should be fixed?
+        // At least for production well, we can try to use the fluid density in the perforated grid block?
+        // It is a guess needs to be justified someway
+        const double rho = perf_densities_[0];
+        std::cout << " rho is " << rho << " for well " << name() << std::endl;
 
-            std::cout << " well rates with bhp limit " << bhp_limit << " for well " << name() << std::endl;
-            for (const double value : well_rate_bhp_limit) {
-                std::cout << value << " ";
-            }
-            std::cout << std::endl;
+        // TODO: pay attention to the order of the rates here, it might be one place for debugging
+        // for three phase case, this looks like not doing anything
+        convertRatesForVFP(well_rates_middle);
 
-            // TODO: for many cases this can be wrong, while there is not easy way to fix it.
-            // Should it be something related to BHP value or it should be fixed?
-            const double rho = perf_densities_[0];
-            std::cout << " rho is " << rho << " for well " << name() << std::endl;
+        convertRatesForVFP(well_rate_bhp_limit);
+#if 0
+        std::cout << " after conversion " << std::endl;
+        std::cout << " well rates with middle_pressure " << middle_pressure << " for well " << name() << std::endl;
+        for (const double value : well_rates_middle) {
+            std::cout << value << " ";
+        }
+        std::cout << std::endl;
 
-            convertRatesForVFP(well_rates_middle);
+        std::cout << " well rates with bhp limit " << bhp_limit << " for well " << name() << std::endl;
+        for (const double value : well_rate_bhp_limit) {
+            std::cout << value << " ";
+        }
+        std::cout << std::endl;
+#endif
 
-            convertRatesForVFP(well_rate_bhp_limit);
+        const int control_index = well_controls_get_current(well_controls_);
+        const int table_id = well_controls_iget_vfp(well_controls_, control_index);
+        const double thp    = well_controls_iget_target(well_controls_, control_index);
+        const double alq    = well_controls_iget_alq(well_controls_, control_index);
+        const double vfp_ref_depth = vfp_properties_->getProd()->getTable(table_id)->getDatumDepth();
 
-            std::cout << " after conversion " << std::endl;
-            std::cout << " well rates with middle_pressure " << middle_pressure << " for well " << name() << std::endl;
-            for (const double value : well_rates_middle) {
-                std::cout << value << " ";
-            }
-            std::cout << std::endl;
+        const double dp = (vfp_ref_depth - ref_depth_) * rho * gravity_;
+        std::cout << " dp for well " << name() << "is " << dp << std::endl;
 
-            std::cout << " well rates with bhp limit " << bhp_limit << " for well " << name() << std::endl;
-            for (const double value : well_rate_bhp_limit) {
-                std::cout << value << " ";
-            }
-            std::cout << std::endl;
+        double obtain_bhp;
+        vfp_properties_->getProd()->calculateRatesBhpWithTHPTarget(well_rates_middle, well_rate_bhp_limit,
+                                                                       middle_pressure, bhp_limit,
+                                                                       dp, table_id, thp, alq, obtain_bhp);
 
-            const int control_index = well_controls_get_current(well_controls_);
-            const int table_id = well_controls_iget_vfp(well_controls_, control_index);
-            const double thp    = well_controls_iget_target(well_controls_, control_index);
-            const double alq    = well_controls_iget_alq(well_controls_, control_index);
-            const double vfp_ref_depth = vfp_properties_->getProd()->getTable(table_id)->getDatumDepth();
+        // TODO: it is possible to get rates based on the above function, for now, we use BHP value to re-calcualte the rates
+        std::vector<double> obtain_rates(3);
+        computeWellRatesWithBhp(ebos_simulator, obtain_bhp, obtain_rates);
 
-            const double dp = (vfp_ref_depth - ref_depth_) * rho * gravity_;
-            std::cout << " dp for well " << name() << "is " << dp << std::endl;
+        well_state.bhp()[index_of_well_] = obtain_bhp;
 
-            std::vector<double> obtain_rates(3);
-            double obtain_bhp;
+        for (int p = 0; p < number_of_phases_; ++p) {
+            well_state.wellRates()[index_of_well_ * number_of_phases_ + p] = obtain_rates[p];
+        }
 
-            vfp_properties_->getProd()->calculateRatesBhpWithTHPTarget(well_rates_middle, well_rate_bhp_limit,
-                                                                       middle_pressure, bhp_limit, cell_pressure,
-                                                                       dp, table_id, thp, alq, obtain_rates, obtain_bhp);
-
-            computeWellRatesWithBhp(ebos_simulator, obtain_bhp, obtain_rates);
-
-            well_state.bhp()[index_of_well_] = obtain_bhp;
-
-            for (int p = 0; p < number_of_phases_; ++p) {
-                well_state.wellRates()[index_of_well_ * number_of_phases_ + p] = obtain_rates[p];
-            }
-
-            well_state.thp()[index_of_well_] = thp_target;
-
-
-            // we also have ref_depth_
-
-            // TODO: let us try whatever density is here, go through the framework first.
-
-            /* std::cin.ignore();
-
-
-            // TODO: pay attention to the order of the rates.
-
-            // TODO: trying to make the perforation density correct. (based on the rates here)
-
-            // bhp reference point and also the vfp reference depth, and density here.
-            // Then there will be a curve to describe the rate and bhp relation. (this should be a function in the VFPProdProperties)
-            // TODO: let us see how the things going here first.
-
-
-            // Basically, with a input rates, we the fractions are fixed. There is one rates there. Maybe we should put all the rates and
-            // BHP to the VFPProdProperties there, since there will be more facility available there.
-
-            // TODO: a lot of variables can be optimized below
-            const Opm::PhaseUsage& pu = phaseUsage();
-            const int np = number_of_phases_;
-            const int well_index = index_of_well_;
-            const int current = well_state.currentControls()[well_index];
-            const WellControls* wc = well_controls_;
-            const double target = well_controls_iget_target(wc, current);
-
-            well_state.thp()[well_index] = target;
-
-            std::vector<double> rates(3, 0.0);
-            if (FluidSystem::phaseIsActive(FluidSystem::waterPhaseIdx)) {
-                rates[ Water ] = well_state.wellRates()[well_index*np + pu.phase_pos[ Water ] ];
-            }
-            if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
-                 rates[ Oil ] = well_state.wellRates()[well_index*np + pu.phase_pos[ Oil ] ];
-            }
-            if (FluidSystem::phaseIsActive(FluidSystem::gasPhaseIdx)) {
-                rates[ Gas ] = well_state.wellRates()[well_index*np + pu.phase_pos[ Gas ] ];
-            }
-
-            well_state.bhp()[well_index] = calculateBhpFromThp(rates, current); */
+        well_state.thp()[index_of_well_] = thp_target;
     }
 
 

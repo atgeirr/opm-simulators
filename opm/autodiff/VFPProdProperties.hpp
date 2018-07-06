@@ -187,17 +187,16 @@ public:
         return bhp_val.value;
     }
 
-    // TODO: if not template, we should move to a cpp file
+    // TODO: if not template finally, we should move to a cpp file
     void calculateRatesBhpWithTHPTarget(const std::vector<double>& rates1,
                                         const std::vector<double>& rates2,
-                                        const double bhp1, // this one will be used as fixed fractions, in the middle
+                                        // bhp2 is the bhp limit, the bhp1 is the middle af bhp2 and cell pressure
+                                        const double bhp1,
                                         const double bhp2,
-                                        const double bhp_end, // higher end for producers, lower end for injectors
                                         const double dp,
                                         const int table_id,
                                         const double thp,
                                         const double alq,
-                                        std::vector<double>& return_rates,
                                         double& return_bhp) const
     {
         assert(table_id > 0);
@@ -209,7 +208,6 @@ public:
         const int Gas = BlackoilPhases::Vapour;
 
         // FLO is the rate
-        // implement based on producer first
         const double aqua1 = rates1[Water];
         const double liquid1 = rates1[Oil];
         const double vapour1 = rates1[Gas];

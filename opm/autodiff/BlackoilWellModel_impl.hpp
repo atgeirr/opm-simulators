@@ -935,7 +935,6 @@ namespace Opm {
             const WellNode& well_node = wellCollection().findWellNode(well_name);
 
             const double well_efficiency_factor = well_node.getAccumulativeEfficiencyFactor();
-            std::cout << " well " << well->name() << " well_efficiency_factor " << well_efficiency_factor << std::endl;
 
             well->setWellEfficiencyFactor(well_efficiency_factor);
         }
