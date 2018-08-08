@@ -71,12 +71,19 @@ namespace detail
     }
 } // namespace detail
 
+
+namespace Ewoms {
+namespace Properties {
+NEW_TYPE_TAG(EclFlowSequentialProblem, INHERITS_FROM(EclFlowProblem));
+SET_BOOL_PROP(EclFlowSequentialProblem, EnableSequential, true);
+}}
+
 namespace Opm
 {
 
     void setDeck(Deck &deck, EclipseState& eclState, Schedule& schedule, SummaryConfig& summaryConfig)
     {
-        typedef TTAG(EclFlowProblem) TypeTag;
+        typedef TTAG(EclFlowSequentialProblem) TypeTag;
         typedef GET_PROP_TYPE(TypeTag, Vanguard) Vanguard;
 
         Vanguard::setExternalDeck(&deck, &eclState, &schedule, &summaryConfig);
@@ -95,7 +102,7 @@ namespace Opm
         Dune::MPIHelper::instance(argc, argv);
 #endif
 
-        Opm::FlowMainEbos<TTAG(EclFlowProblem)> mainfunc;
+        Opm::FlowMainEbos<TTAG(EclFlowSequentialProblem)> mainfunc;
         return mainfunc.execute(argc, argv);
     }
 
