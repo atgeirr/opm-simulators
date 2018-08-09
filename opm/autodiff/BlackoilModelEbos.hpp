@@ -145,8 +145,11 @@ namespace Opm {
         typedef Dune::FieldMatrix<Scalar, numEq, numPv> MatrixBlockType;
         typedef Dune::BCRSMatrix <MatrixBlockType>      Mat;
         typedef Dune::BlockVector<VectorBlockType>      BVector;
-        typedef Dune::FieldMatrix<Scalar, 1, 1>         BlockType11;
-        typedef Dune::BCRSMatrix <BlockType11>          Mat11;
+
+        typedef Dune::FieldMatrix<Scalar, 1, 1>         MatBlockType11;
+        typedef Dune::BCRSMatrix <MatBlockType11>       Mat11;
+        typedef Dune::FieldVector<Scalar, 1>            VecBlockType1;
+        typedef Dune::BlockVector<VecBlockType1>        Vec1;
 
         typedef ISTLSolverEbos<TypeTag> ISTLSolverType;
 
@@ -191,9 +194,6 @@ namespace Opm {
             if (!istlSolver_)
             {
                 OPM_THROW(std::logic_error,"solver down cast to ISTLSolver failed");
-            }
-            if (enableSequential) {
-                matrix_for_sequential_.reset(new Mat11);
             }
         }
 
@@ -423,7 +423,7 @@ namespace Opm {
             }
 
             if (enableSequential) {
-                buildSequentialMatrix(ebosJac);
+                buildSequentialMatrix(ebosJac, ebosSimulator_.model().linearizer().residual());
             }
 
             return wellModel().lastReport();
@@ -512,6 +512,10 @@ namespace Opm {
         {
             return istlSolver().iterations();
         }
+
+
+        template <bool, class, class>
+        friend struct JacSolver;
 
         /// Solve the Jacobian system Jx = r where J is the Jacobian and
         /// r is the residual.
@@ -1070,7 +1074,7 @@ namespace Opm {
             return *istlSolver_;
         }
 
-        void buildSequentialMatrix(const Mat& ebosJac)
+        void buildSequentialMatrix(const Mat& ebosJac, const BVector& ebosResid)
         {
             // Create matrix structure.
             const int num_rows = ebosJac.N();
@@ -1093,6 +1097,15 @@ namespace Opm {
                     const double sum = elem[0] + elem[1] + elem[2];
                     m[row.index()][elemiter.index()] = sum;
                 }
+            }
+
+            // Create and fill residual.
+            residual_for_sequential_.reset(new Vec1(num_rows));
+            Vec1& r = *residual_for_sequential_;
+            for (int i = 0; i < num_rows; ++i) {
+                const auto& elem = ebosResid[i];
+                const double sum = elem[0] + elem[1] + elem[2];
+                r[i] = sum;
             }
         }
 
@@ -1127,7 +1140,9 @@ namespace Opm {
         BVector dx_old_;
 
         std::unique_ptr<Mat> matrix_for_preconditioner_;
+
         std::unique_ptr<Mat11> matrix_for_sequential_;
+        std::unique_ptr<Vec1> residual_for_sequential_;
 
     public:
         /// return the StandardWells object
@@ -1171,39 +1186,43 @@ namespace Opm {
         /// r is the residual.
         static void solveJacobianSystem(const Model* mod, BlockVector& x)
         {
-            /*
-              const auto& ebosJac = mod->ebosSimulator_.model().linearizer().matrix();
-              auto& ebosResid = mod->ebosSimulator_.model().linearizer().residual();
+            const auto& ebosJac = mod->ebosSimulator_.model().linearizer().matrix();
+            auto& ebosResid = mod->ebosSimulator_.model().linearizer().residual();
 
-              // J = [A, B; C, D], where A is the reservoir equations, B and C the interaction of well
-              // with the reservoir and D is the wells itself.
-              // The full system is reduced to a number of cells X number of cells system via Schur complement
-              // A -= B^T D^-1 C
-              // Instead of modifying A, the Ax operator is modified. i.e Ax -= B^T D^-1 C x in the WellModelMatrixAdapter.
-              // The residual is modified similarly.
-              // r = [r, r_well], where r is the residual and r_well the well residual.
-              // r -= B^T * D^-1 r_well
+            // J = [A, B; C, D], where A is the reservoir equations, B and C the interaction of well
+            // with the reservoir and D is the wells itself.
+            // The full system is reduced to a number of cells X number of cells system via Schur complement
+            // A -= B^T D^-1 C
+            // Instead of modifying A, the Ax operator is modified. i.e Ax -= B^T D^-1 C x in the WellModelMatrixAdapter.
+            // The residual is modified similarly.
+            // r = [r, r_well], where r is the residual and r_well the well residual.
+            // r -= B^T * D^-1 r_well
 
-              // apply well residual to the residual.
-              mod->wellModel().apply(ebosResid);
+            // apply well residual to the residual.
+            mod->wellModel().apply(ebosResid);
 
-              // set initial guess
-              x = 0.0;
+            using Mat = typename Model::Mat;
+            using BVector = BlockVector;
+            using WellModel = decltype(mod->wellModel());
 
-              const Mat& actual_mat_for_prec = mod->matrix_for_preconditioner_ ? *(mod->matrix_for_preconditioner_.get()) : ebosJac;
-              // Solve system.
-              if( mod->isParallel() ) {
-              typedef WellModelMatrixAdapter< Mat, BVector, BVector, BlackoilWellModel<TypeTag>, true > Operator;
-              Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel(),
-              mod->istlSolver().parallelInformation() );
-              assert( opA.comm() );
-              mod->istlSolver().solve( opA, x, ebosResid, *(opA.comm()) );
-              } else {
-              typedef WellModelMatrixAdapter< Mat, BVector, BVector, BlackoilWellModel<TypeTag>, false > Operator;
-              Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel());
-              mod->istlSolver().solve( opA, x, ebosResid );
-              }
-            */
+            // set initial guess
+            x = 0.0;
+
+            const auto& actual_mat_for_prec = mod->matrix_for_preconditioner_ ?
+                *(mod->matrix_for_preconditioner_.get()) : ebosJac;
+
+            // Solve system.
+            if( mod->isParallel() ) {
+                typedef typename Model::template WellModelMatrixAdapter< Mat, BVector, BVector, WellModel, true > Operator;
+                Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel(),
+                             mod->istlSolver().parallelInformation() );
+                assert( opA.comm() );
+                mod->istlSolver().solve( opA, x, ebosResid, *(opA.comm()) );
+            } else {
+                typedef typename Model::template WellModelMatrixAdapter< Mat, BVector, BVector, WellModel, false > Operator;
+                Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel());
+                mod->istlSolver().solve( opA, x, ebosResid );
+            }
         }
     };
 
@@ -1212,6 +1231,52 @@ namespace Opm {
     {
         static void solveJacobianSystem(const Model* mod, BlockVector& x)
         {
+            const auto& ebosJac = *mod->matrix_for_sequential_;
+            auto& ebosResid = *mod->residual_for_sequential_;
+
+            // J = [A, B; C, D], where A is the reservoir equations, B and C the interaction of well
+            // with the reservoir and D is the wells itself.
+            // The full system is reduced to a number of cells X number of cells system via Schur complement
+            // A -= B^T D^-1 C
+            // Instead of modifying A, the Ax operator is modified. i.e Ax -= B^T D^-1 C x in the WellModelMatrixAdapter.
+            // The residual is modified similarly.
+            // r = [r, r_well], where r is the residual and r_well the well residual.
+            // r -= B^T * D^-1 r_well
+
+            // apply well residual to the residual.
+            //mod->wellModel().apply(ebosResid);
+
+            using Mat = typename Model::Mat11;
+            using BVector = typename Model::Vec1;
+            using WellModel = decltype(mod->wellModel());
+
+            // set initial guess
+            const int n = x.size();
+            BVector x1(n);
+            x1 = 0.0;
+
+            // const auto& actual_mat_for_prec = mod->matrix_for_preconditioner_ ?
+            //     *(mod->matrix_for_preconditioner_.get()) : ebosJac;
+            const auto& actual_mat_for_prec = ebosJac;
+
+            // Solve system.
+            if( mod->isParallel() ) {
+                typedef typename Model::template WellModelMatrixAdapter< Mat, BVector, BVector, WellModel, true > Operator;
+                Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel(),
+                             mod->istlSolver().parallelInformation() );
+                assert( opA.comm() );
+                mod->istlSolver().solve( opA, x1, ebosResid, *(opA.comm()) );
+            } else {
+                typedef typename Model::template WellModelMatrixAdapter< Mat, BVector, BVector, WellModel, false > Operator;
+                Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel());
+                mod->istlSolver().solve( opA, x1, ebosResid );
+            }
+
+            // Set x from x1.
+            x = 0.0;
+            for (int i = 0; i < n; ++i) {
+                x[i][0] = x1[i];
+            }
         }
     };
 
