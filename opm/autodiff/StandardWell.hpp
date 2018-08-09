@@ -51,6 +51,7 @@ namespace Opm
         using typename Base::RateConverterType;
 
         using Base::numEq;
+        using Base::numPv;
 
         using Base::has_solvent;
         using Base::has_polymer;
@@ -112,10 +113,10 @@ namespace Opm
         typedef Dune::BCRSMatrix <DiagMatrixBlockWellType> DiagMatWell;
 
         // the matrix type for the non-diagonal matrix B and C^T
-        typedef Dune::FieldMatrix<Scalar, numWellEq, numEq>  OffDiagMatrixBlockWellType;
+        typedef Dune::FieldMatrix<Scalar, numWellEq, numPv>  OffDiagMatrixBlockWellType;
         typedef Dune::BCRSMatrix<OffDiagMatrixBlockWellType> OffDiagMatWell;
 
-        typedef DenseAd::Evaluation<double, /*size=*/numEq + numWellEq> EvalWell;
+        typedef DenseAd::Evaluation<double, /*size=*/numPv + numWellEq> EvalWell;
 
         using Base::contiSolventEqIdx;
         using Base::contiPolymerEqIdx;

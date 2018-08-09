@@ -48,9 +48,10 @@ namespace Opm
             typedef typename GET_PROP_TYPE(TypeTag, IntensiveQuantities) IntensiveQuantities;
 
             static const int numEq = BlackoilIndices::numEq;
+            static const int numPv = GET_PROP_VALUE(TypeTag, EnableSequential) ? 1 : numEq;
             typedef double Scalar;
 
-            typedef DenseAd::Evaluation<double, /*size=*/numEq> Eval;
+            typedef DenseAd::Evaluation<double, /*size=*/numPv> Eval;
             typedef Opm::BlackOilFluidState<Eval, FluidSystem> FluidState;
 
             static const auto waterCompIdx = FluidSystem::waterCompIdx;
@@ -88,7 +89,7 @@ namespace Opm
                     qinflow = Qai_.at(idx);
                     ebosResid[cellID][waterCompIdx] -= qinflow.value();
 
-                    for (int pvIdx = 0; pvIdx < numEq; ++pvIdx) 
+                    for (int pvIdx = 0; pvIdx < numPv; ++pvIdx) 
                     {
                         // also need to consider the efficiency factor when manipulating the jacobians.
                         ebosJac[cellID][cellID][waterCompIdx][pvIdx] -= qinflow.derivative(pvIdx);

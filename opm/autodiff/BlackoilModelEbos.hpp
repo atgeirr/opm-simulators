@@ -115,6 +115,7 @@ namespace Opm {
 
         typedef double Scalar;
         static const int numEq = Indices::numEq;
+        static const int numPv = GET_PROP_VALUE(TypeTag, EnableSequential) ? 1 : numEq;
         static const int contiSolventEqIdx = Indices::contiSolventEqIdx;
         static const int contiPolymerEqIdx = Indices::contiPolymerEqIdx;
         static const int contiEnergyEqIdx = Indices::contiEnergyEqIdx;
@@ -122,8 +123,8 @@ namespace Opm {
         static const int polymerConcentrationIdx = Indices::polymerConcentrationIdx;
         static const int temperatureIdx = Indices::temperatureIdx;
 
-        typedef Dune::FieldVector<Scalar, numEq >        VectorBlockType;
-        typedef Dune::FieldMatrix<Scalar, numEq, numEq >        MatrixBlockType;
+        typedef Dune::FieldVector<Scalar, numPv >        VectorBlockType;
+        typedef Dune::FieldMatrix<Scalar, numPv, numPv >        MatrixBlockType;
         typedef Dune::BCRSMatrix <MatrixBlockType>      Mat;
         typedef Dune::BlockVector<VectorBlockType>      BVector;
 

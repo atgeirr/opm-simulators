@@ -83,13 +83,14 @@ namespace Opm
         typedef typename GET_PROP_TYPE(TypeTag, MaterialLaw) MaterialLaw;
 
         static const int numEq = Indices::numEq;
+        static const int numPv = GET_PROP_VALUE(TypeTag, EnableSequential) ? 1 : numEq;
         typedef double Scalar;
 
-        typedef Dune::FieldVector<Scalar, numEq    > VectorBlockType;
-        typedef Dune::FieldMatrix<Scalar, numEq, numEq > MatrixBlockType;
+        typedef Dune::FieldVector<Scalar, numPv    > VectorBlockType;
+        typedef Dune::FieldMatrix<Scalar, numPv, numPv > MatrixBlockType;
         typedef Dune::BCRSMatrix <MatrixBlockType> Mat;
         typedef Dune::BlockVector<VectorBlockType> BVector;
-        typedef DenseAd::Evaluation<double, /*size=*/numEq> Eval;
+        typedef DenseAd::Evaluation<double, /*size=*/numPv> Eval;
 
         typedef Ewoms::BlackOilPolymerModule<TypeTag> PolymerModule;
 

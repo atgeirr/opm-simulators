@@ -112,7 +112,7 @@ namespace Opm
 
             primary_variables_evaluation_[eqIdx] = 0.0;
             primary_variables_evaluation_[eqIdx].setValue(primary_variables_[eqIdx]);
-            primary_variables_evaluation_[eqIdx].setDerivative(numEq + eqIdx, 1.0);
+            primary_variables_evaluation_[eqIdx].setDerivative(numPv + eqIdx, 1.0);
         }
     }
 
@@ -262,7 +262,7 @@ namespace Opm
     {
         EvalWell out = 0.0;
         out.setValue(in.value());
-        for(int eqIdx = 0; eqIdx < numEq;++eqIdx) {
+        for(int eqIdx = 0; eqIdx < numPv;++eqIdx) {
             out.setDerivative(eqIdx, in.derivative(eqIdx));
         }
         return out;
@@ -496,9 +496,9 @@ namespace Opm
                 for (int pvIdx = 0; pvIdx < numWellEq; ++pvIdx) {
                     if (!only_wells) {
                         // also need to consider the efficiency factor when manipulating the jacobians.
-                        duneC_[0][cell_idx][pvIdx][componentIdx] -= cq_s_effective.derivative(pvIdx+numEq); // intput in transformed matrix
+                        duneC_[0][cell_idx][pvIdx][componentIdx] -= cq_s_effective.derivative(pvIdx+numPv); // intput in transformed matrix
                     }
-                    invDuneD_[0][0][componentIdx][pvIdx] -= cq_s_effective.derivative(pvIdx+numEq);
+                    invDuneD_[0][0][componentIdx][pvIdx] -= cq_s_effective.derivative(pvIdx+numPv);
                 }
 
                 for (int pvIdx = 0; pvIdx < numEq; ++pvIdx) {
@@ -608,7 +608,7 @@ namespace Opm
             EvalWell resWell_loc = (wellSurfaceVolumeFraction(componentIdx) - F0_[componentIdx]) * volume / dt;
             resWell_loc += getQs(componentIdx) * well_efficiency_factor_;
             for (int pvIdx = 0; pvIdx < numWellEq; ++pvIdx) {
-                invDuneD_[0][0][componentIdx][pvIdx] += resWell_loc.derivative(pvIdx+numEq);
+                invDuneD_[0][0][componentIdx][pvIdx] += resWell_loc.derivative(pvIdx+numPv);
             }
             resWell_[0][componentIdx] += resWell_loc.value();
         }
@@ -2221,7 +2221,7 @@ namespace Opm
                 while ( col != row.end() && col.index() < col_index ) ++col;
                 assert(col != row.end() && col.index() == col_index);
 
-                Dune::FieldMatrix<Scalar, numWellEq, numEq> tmp;
+                Dune::FieldMatrix<Scalar, numWellEq, numPv> tmp;
                 typename Mat::block_type tmp1;
                 Dune::FMatrixHelp::multMatrix(invDuneD_[0][0],  (*colB), tmp);
                 Detail::multMatrixTransposed((*colC), tmp, tmp1);

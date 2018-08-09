@@ -79,19 +79,20 @@ namespace Opm {
             typedef typename GET_PROP_TYPE(TypeTag, Scalar)              Scalar;
 
             static const int numEq = Indices::numEq;
+            static const int numPv = GET_PROP_VALUE(TypeTag, EnableSequential) ? 1 : numEq;
             static const int solventSaturationIdx = Indices::solventSaturationIdx;
 
             // TODO: where we should put these types, WellInterface or Well Model?
             // or there is some other strategy, like TypeTag
-            typedef Dune::FieldVector<Scalar, numEq    > VectorBlockType;
+            typedef Dune::FieldVector<Scalar, numPv    > VectorBlockType;
             typedef Dune::BlockVector<VectorBlockType> BVector;
 
 #if  DUNE_VERSION_NEWER_REV(DUNE_ISTL, 2 , 5, 1)
             // 3x3 matrix block inversion was unstable from at least 2.3 until and
             // including 2.5.0
-            typedef Dune::FieldMatrix<Scalar, numEq, numEq > MatrixBlockType;
+            typedef Dune::FieldMatrix<Scalar, numPv, numPv > MatrixBlockType;
 #else
-            typedef Dune::FieldMatrix<Scalar, numEq, numEq > MatrixBlockType;
+            typedef Dune::FieldMatrix<Scalar, numPv, numPv > MatrixBlockType;
 #endif
             typedef Dune::BCRSMatrix <MatrixBlockType> Mat;
 
