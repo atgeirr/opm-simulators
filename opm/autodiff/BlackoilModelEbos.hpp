@@ -114,8 +114,9 @@ namespace Opm {
         typedef typename GET_PROP_TYPE(TypeTag, MaterialLawParams) MaterialLawParams;
 
         typedef double Scalar;
+        static const bool enableSequential = GET_PROP_VALUE(TypeTag, EnableSequential);
         static const int numEq = Indices::numEq;
-        static const int numPv = GET_PROP_VALUE(TypeTag, EnableSequential) ? 1 : numEq;
+        static const int numPv =  enableSequential ? 1 : numEq;
         static const int contiSolventEqIdx = Indices::contiSolventEqIdx;
         static const int contiPolymerEqIdx = Indices::contiPolymerEqIdx;
         static const int contiEnergyEqIdx = Indices::contiEnergyEqIdx;
@@ -123,10 +124,12 @@ namespace Opm {
         static const int polymerConcentrationIdx = Indices::polymerConcentrationIdx;
         static const int temperatureIdx = Indices::temperatureIdx;
 
-        typedef Dune::FieldVector<Scalar, numPv >        VectorBlockType;
-        typedef Dune::FieldMatrix<Scalar, numPv, numPv >        MatrixBlockType;
+        typedef Dune::FieldVector<Scalar, numEq >        VectorBlockType;
+        typedef Dune::FieldMatrix<Scalar, numEq, numPv >        MatrixBlockType;
         typedef Dune::BCRSMatrix <MatrixBlockType>      Mat;
         typedef Dune::BlockVector<VectorBlockType>      BVector;
+        typedef Dune::FieldMatrix<Scalar, 1, 1>         BlockType11;
+        typedef Dune::BCRSMatrix <BlockType11>          Mat11;
 
         typedef ISTLSolverEbos<TypeTag> ISTLSolverType;
         //typedef typename SolutionVector :: value_type            PrimaryVariables ;
@@ -170,6 +173,9 @@ namespace Opm {
             if (!istlSolver_)
             {
                 OPM_THROW(std::logic_error,"solver down cast to ISTLSolver failed");
+            }
+            if (enableSequential) {
+                matrix_for_sequential_.reset(new Mat11);
             }
         }
 
@@ -398,6 +404,10 @@ namespace Opm {
                 wellModel().addWellContributions(*matrix_for_preconditioner_);
             }
 
+            if (enableSequential) {
+                buildSequentialMatrix(ebosJac);
+            }
+
             return wellModel().lastReport();
         }
 
@@ -507,6 +517,7 @@ namespace Opm {
             // set initial guess
             x = 0.0;
 
+            /*
             const Mat& actual_mat_for_prec = matrix_for_preconditioner_ ? *matrix_for_preconditioner_.get() : ebosJac;
             // Solve system.
             if( isParallel() )
@@ -523,6 +534,7 @@ namespace Opm {
                 Operator opA(ebosJac, actual_mat_for_prec, wellModel());
                 istlSolver().solve( opA, x, ebosResid );
             }
+            */
         }
 
         //=====================================================================
@@ -1073,6 +1085,32 @@ namespace Opm {
             return *istlSolver_;
         }
 
+        void buildSequentialMatrix(const Mat& ebosJac)
+        {
+            // Create matrix structure.
+            const int num_rows = ebosJac.N();
+            const int num_cols = ebosJac.M();
+            const int nnz = ebosJac.nonzeroes();
+            matrix_for_sequential_.reset(new Mat11(num_rows, num_cols, nnz, Mat11::row_wise));
+            Mat11& m = *matrix_for_sequential_;
+            auto mrow = m.createbegin();
+            auto erow = ebosJac.begin();
+            for (; mrow != m.createend(); ++mrow, ++erow) {
+                for (auto elem = erow->begin(); elem != erow->end(); ++elem) {
+                    mrow.insert(elem.index());
+                }
+            }
+
+            // Fill matrix.
+            for (auto row = ebosJac.begin(); row != ebosJac.end(); ++row) {
+                for (auto elemiter = row->begin(); elemiter != row->end(); ++elemiter) {
+                    const auto& elem = *elemiter;
+                    const double sum = elem[0] + elem[1] + elem[2];
+                    m[row.index()][elemiter.index()] = sum;
+                }
+            }
+        }
+
         // ---------  Data members  ---------
 
         Simulator& ebosSimulator_;
@@ -1104,6 +1142,7 @@ namespace Opm {
         BVector dx_old_;
 
         std::unique_ptr<Mat> matrix_for_preconditioner_;
+        std::unique_ptr<Mat11> matrix_for_sequential_;
 
     public:
         /// return the StandardWells object

@@ -84,15 +84,15 @@ namespace Opm {
 
             // TODO: where we should put these types, WellInterface or Well Model?
             // or there is some other strategy, like TypeTag
-            typedef Dune::FieldVector<Scalar, numPv    > VectorBlockType;
+            typedef Dune::FieldVector<Scalar, numEq    > VectorBlockType;
             typedef Dune::BlockVector<VectorBlockType> BVector;
 
 #if  DUNE_VERSION_NEWER_REV(DUNE_ISTL, 2 , 5, 1)
             // 3x3 matrix block inversion was unstable from at least 2.3 until and
             // including 2.5.0
-            typedef Dune::FieldMatrix<Scalar, numPv, numPv > MatrixBlockType;
+            typedef Dune::FieldMatrix<Scalar, numEq, numPv > MatrixBlockType;
 #else
-            typedef Dune::FieldMatrix<Scalar, numPv, numPv > MatrixBlockType;
+            typedef Dune::FieldMatrix<Scalar, numEq, numPv > MatrixBlockType;
 #endif
             typedef Dune::BCRSMatrix <MatrixBlockType> Mat;
 

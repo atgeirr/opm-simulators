@@ -113,8 +113,10 @@ namespace Opm
         typedef Dune::BCRSMatrix <DiagMatrixBlockWellType> DiagMatWell;
 
         // the matrix type for the non-diagonal matrix B and C^T
-        typedef Dune::FieldMatrix<Scalar, numWellEq, numPv>  OffDiagMatrixBlockWellType;
-        typedef Dune::BCRSMatrix<OffDiagMatrixBlockWellType> OffDiagMatWell;
+        typedef Dune::FieldMatrix<Scalar, numWellEq, numPv>  OffDiagBMatrixBlockWellType;
+        typedef Dune::BCRSMatrix<OffDiagBMatrixBlockWellType> OffDiagBMatWell;
+        typedef Dune::FieldMatrix<Scalar, numWellEq, numEq>  OffDiagCtMatrixBlockWellType;
+        typedef Dune::BCRSMatrix<OffDiagCtMatrixBlockWellType> OffDiagCtMatWell;
 
         typedef DenseAd::Evaluation<double, /*size=*/numPv + numWellEq> EvalWell;
 
@@ -224,8 +226,8 @@ namespace Opm
         BVectorWell resWell_;
 
         // two off-diagonal matrices
-        OffDiagMatWell duneB_;
-        OffDiagMatWell duneC_;
+        OffDiagBMatWell duneB_;
+        OffDiagCtMatWell duneC_;
         // diagonal matrix for the well
         DiagMatWell invDuneD_;
 

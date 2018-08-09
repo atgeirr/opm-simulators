@@ -39,8 +39,8 @@ namespace Opm
     {
         assert(num_components_ == numWellConservationEq);
 
-        duneB_.setBuildMode( OffDiagMatWell::row_wise );
-        duneC_.setBuildMode( OffDiagMatWell::row_wise );
+        duneB_.setBuildMode( OffDiagBMatWell::row_wise );
+        duneC_.setBuildMode( OffDiagCtMatWell::row_wise );
         invDuneD_.setBuildMode( DiagMatWell::row_wise );
     }
 
@@ -730,7 +730,7 @@ namespace Opm
         // TODO: we should use a different index system for the well equations
         resWell_[0][Bhp] = control_eq.value();
         for (int pv_idx = 0; pv_idx < numWellEq; ++pv_idx) {
-            invDuneD_[0][0][Bhp][pv_idx] = control_eq.derivative(pv_idx + numEq);
+            invDuneD_[0][0][Bhp][pv_idx] = control_eq.derivative(pv_idx + numPv);
         }
     }
 
