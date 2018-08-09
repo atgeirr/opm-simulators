@@ -49,8 +49,8 @@ BEGIN_PROPERTIES
 NEW_TYPE_TAG(FlowIstlSolver, INHERITS_FROM(FlowIstlSolverParams));
 
 NEW_PROP_TAG(Scalar);
-NEW_PROP_TAG(GlobalEqVector);
-NEW_PROP_TAG(JacobianMatrix);
+// NEW_PROP_TAG(GlobalEqVector);
+// NEW_PROP_TAG(JacobianMatrix);
 NEW_PROP_TAG(Indices);
 
 END_PROPERTIES
@@ -346,6 +346,10 @@ namespace Detail
         }
     }
 }
+
+
+
+
     /// This class solves the fully implicit black-oil system by
     /// solving the reduced system (after eliminating well variables)
     /// as a block-structured matrix (one block for all cell variables) for a fixed
@@ -359,9 +363,18 @@ namespace Detail
     class ISTLSolverEbos : public NewtonIterationBlackoilInterface
     {
         typedef typename GET_PROP_TYPE(TypeTag, Scalar) Scalar;
-        typedef typename GET_PROP_TYPE(TypeTag, JacobianMatrix) Matrix;
-        typedef typename GET_PROP_TYPE(TypeTag, GlobalEqVector) Vector;
         typedef typename GET_PROP_TYPE(TypeTag, Indices) Indices;
+        static const bool enableSequential = GET_PROP_VALUE(TypeTag, EnableSequential);
+        static const int numEq = Indices::numEq;
+        static const int numPv =  enableSequential ? 1 : numEq;
+
+        typedef Dune::FieldVector<Scalar, numPv>        VectorBlockType;
+        typedef Dune::BlockVector<VectorBlockType>      Vector;
+        typedef Dune::FieldMatrix<Scalar, numPv, numPv> MatrixBlockType;
+        typedef Dune::BCRSMatrix <MatrixBlockType>      Matrix;
+
+        //        typedef typename GET_PROP_TYPE(TypeTag, JacobianMatrix) Matrix;
+        //        typedef typename GET_PROP_TYPE(TypeTag, GlobalEqVector) Vector;
 
         enum { pressureIndex = Indices::pressureSwitchIdx };
 

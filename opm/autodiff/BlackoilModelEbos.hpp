@@ -88,6 +88,23 @@ SET_BOOL_PROP(EclFlowProblem, EnableEnergy, false);
 END_PROPERTIES
 
 namespace Opm {
+
+
+
+
+    template <bool Sequential, class Model, class BlockVector>
+    struct JacSolver
+    {
+        static void solveJacobianSystem(const Model* mod, BlockVector& x);
+    };
+
+
+
+
+
+
+
+
     /// A model implementation for three-phase black oil.
     ///
     /// The simulator is capable of handling three-phase problems
@@ -124,14 +141,15 @@ namespace Opm {
         static const int polymerConcentrationIdx = Indices::polymerConcentrationIdx;
         static const int temperatureIdx = Indices::temperatureIdx;
 
-        typedef Dune::FieldVector<Scalar, numEq >        VectorBlockType;
-        typedef Dune::FieldMatrix<Scalar, numEq, numPv >        MatrixBlockType;
+        typedef Dune::FieldVector<Scalar, numEq>        VectorBlockType;
+        typedef Dune::FieldMatrix<Scalar, numEq, numPv> MatrixBlockType;
         typedef Dune::BCRSMatrix <MatrixBlockType>      Mat;
         typedef Dune::BlockVector<VectorBlockType>      BVector;
         typedef Dune::FieldMatrix<Scalar, 1, 1>         BlockType11;
         typedef Dune::BCRSMatrix <BlockType11>          Mat11;
 
         typedef ISTLSolverEbos<TypeTag> ISTLSolverType;
+
         //typedef typename SolutionVector :: value_type            PrimaryVariables ;
 
         // ---------  Public methods  ---------
@@ -499,43 +517,10 @@ namespace Opm {
         /// r is the residual.
         void solveJacobianSystem(BVector& x) const
         {
-            const auto& ebosJac = ebosSimulator_.model().linearizer().matrix();
-            auto& ebosResid = ebosSimulator_.model().linearizer().residual();
-
-            // J = [A, B; C, D], where A is the reservoir equations, B and C the interaction of well
-            // with the reservoir and D is the wells itself.
-            // The full system is reduced to a number of cells X number of cells system via Schur complement
-            // A -= B^T D^-1 C
-            // Instead of modifying A, the Ax operator is modified. i.e Ax -= B^T D^-1 C x in the WellModelMatrixAdapter.
-            // The residual is modified similarly.
-            // r = [r, r_well], where r is the residual and r_well the well residual.
-            // r -= B^T * D^-1 r_well
-
-            // apply well residual to the residual.
-            wellModel().apply(ebosResid);
-
-            // set initial guess
-            x = 0.0;
-
-            /*
-            const Mat& actual_mat_for_prec = matrix_for_preconditioner_ ? *matrix_for_preconditioner_.get() : ebosJac;
-            // Solve system.
-            if( isParallel() )
-            {
-                typedef WellModelMatrixAdapter< Mat, BVector, BVector, BlackoilWellModel<TypeTag>, true > Operator;
-                Operator opA(ebosJac, actual_mat_for_prec, wellModel(),
-                             istlSolver().parallelInformation() );
-                assert( opA.comm() );
-                istlSolver().solve( opA, x, ebosResid, *(opA.comm()) );
-            }
-            else
-            {
-                typedef WellModelMatrixAdapter< Mat, BVector, BVector, BlackoilWellModel<TypeTag>, false > Operator;
-                Operator opA(ebosJac, actual_mat_for_prec, wellModel());
-                istlSolver().solve( opA, x, ebosResid );
-            }
-            */
+            JacSolver<enableSequential, BlackoilModelEbos, BVector>::solveJacobianSystem(this, x);
         }
+
+
 
         //=====================================================================
         // Implementation for ISTL-matrix based operator
@@ -1175,6 +1160,63 @@ namespace Opm {
     public:
         std::vector<bool> wasSwitched_;
     };
+
+
+
+
+    template <class Model, class BlockVector>
+    struct JacSolver<false, Model, BlockVector>
+    {
+        /// Solve the Jacobian system Jx = r where J is the Jacobian and
+        /// r is the residual.
+        static void solveJacobianSystem(const Model* mod, BlockVector& x)
+        {
+            /*
+              const auto& ebosJac = mod->ebosSimulator_.model().linearizer().matrix();
+              auto& ebosResid = mod->ebosSimulator_.model().linearizer().residual();
+
+              // J = [A, B; C, D], where A is the reservoir equations, B and C the interaction of well
+              // with the reservoir and D is the wells itself.
+              // The full system is reduced to a number of cells X number of cells system via Schur complement
+              // A -= B^T D^-1 C
+              // Instead of modifying A, the Ax operator is modified. i.e Ax -= B^T D^-1 C x in the WellModelMatrixAdapter.
+              // The residual is modified similarly.
+              // r = [r, r_well], where r is the residual and r_well the well residual.
+              // r -= B^T * D^-1 r_well
+
+              // apply well residual to the residual.
+              mod->wellModel().apply(ebosResid);
+
+              // set initial guess
+              x = 0.0;
+
+              const Mat& actual_mat_for_prec = mod->matrix_for_preconditioner_ ? *(mod->matrix_for_preconditioner_.get()) : ebosJac;
+              // Solve system.
+              if( mod->isParallel() ) {
+              typedef WellModelMatrixAdapter< Mat, BVector, BVector, BlackoilWellModel<TypeTag>, true > Operator;
+              Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel(),
+              mod->istlSolver().parallelInformation() );
+              assert( opA.comm() );
+              mod->istlSolver().solve( opA, x, ebosResid, *(opA.comm()) );
+              } else {
+              typedef WellModelMatrixAdapter< Mat, BVector, BVector, BlackoilWellModel<TypeTag>, false > Operator;
+              Operator opA(ebosJac, actual_mat_for_prec, mod->wellModel());
+              mod->istlSolver().solve( opA, x, ebosResid );
+              }
+            */
+        }
+    };
+
+    template <class Model, class BlockVector>
+    struct JacSolver<true, Model, BlockVector>
+    {
+        static void solveJacobianSystem(const Model* mod, BlockVector& x)
+        {
+        }
+    };
+
+
+
 } // namespace Opm
 
 #endif // OPM_BLACKOILMODELBASE_IMPL_HEADER_INCLUDED
