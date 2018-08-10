@@ -303,6 +303,9 @@ namespace Opm {
                 // enable single precision for solvers when dt is smaller then 20 days
                 //residual_.singlePrecision = (unit::convert::to(dt, unit::day) < 20.) ;
 
+                // Apply well modification to the residual. Used to be in solveJacobianSystem().
+                wellModel().apply(ebosSimulator_.model().linearizer().residual());
+
                 // Compute the nonlinear update.
                 const int nc = UgGridHelpers::numCells(grid_);
                 BVector x(nc);
@@ -1165,9 +1168,6 @@ namespace Opm {
             // r = [r, r_well], where r is the residual and r_well the well residual.
             // r -= B^T * D^-1 r_well
 
-            // apply well residual to the residual.
-            mod->wellModel().apply(ebosResid);
-
             using Mat = typename Model::Mat;
             using BVector = BlockVector;
             using WellModel = decltype(mod->wellModel());
@@ -1214,9 +1214,6 @@ namespace Opm {
             // The residual is modified similarly.
             // r = [r, r_well], where r is the residual and r_well the well residual.
             // r -= B^T * D^-1 r_well
-            /*
-            // apply well residual to the residual.
-            mod->wellModel().apply(ebosResid);
 
             using Mat = typename Model::Mat11;
             using BVector = typename Model::Vec1;
@@ -1249,7 +1246,6 @@ namespace Opm {
             for (int i = 0; i < n; ++i) {
                 x[i][0] = x1[i];
             }
-            */
         }
 
 
