@@ -93,9 +93,10 @@ namespace Opm {
 
 
     template <bool Sequential, class Model, class BlockVector>
-    struct JacSolver
+    struct SeqImpHandler
     {
         static void solveJacobianSystem(const Model* mod, BlockVector& x);
+        static void buildSequentialResJac(Model* mod);
     };
 
 
@@ -423,7 +424,7 @@ namespace Opm {
             }
 
             if (enableSequential) {
-                buildSequentialMatrix(ebosJac, ebosSimulator_.model().linearizer().residual());
+                SeqImpHandler<enableSequential, BlackoilModelEbos, BVector>::buildSequentialResJac(this);
             }
 
             return wellModel().lastReport();
@@ -515,13 +516,13 @@ namespace Opm {
 
 
         template <bool, class, class>
-        friend struct JacSolver;
+        friend struct SeqImpHandler;
 
         /// Solve the Jacobian system Jx = r where J is the Jacobian and
         /// r is the residual.
         void solveJacobianSystem(BVector& x) const
         {
-            JacSolver<enableSequential, BlackoilModelEbos, BVector>::solveJacobianSystem(this, x);
+            SeqImpHandler<enableSequential, BlackoilModelEbos, BVector>::solveJacobianSystem(this, x);
         }
 
 
@@ -1074,40 +1075,6 @@ namespace Opm {
             return *istlSolver_;
         }
 
-        void buildSequentialMatrix(const Mat& ebosJac, const BVector& ebosResid)
-        {
-            // Create matrix structure.
-            const int num_rows = ebosJac.N();
-            const int num_cols = ebosJac.M();
-            const int nnz = ebosJac.nonzeroes();
-            matrix_for_sequential_.reset(new Mat11(num_rows, num_cols, nnz, Mat11::row_wise));
-            Mat11& m = *matrix_for_sequential_;
-            auto mrow = m.createbegin();
-            auto erow = ebosJac.begin();
-            for (; mrow != m.createend(); ++mrow, ++erow) {
-                for (auto elem = erow->begin(); elem != erow->end(); ++elem) {
-                    mrow.insert(elem.index());
-                }
-            }
-
-            // Fill matrix.
-            for (auto row = ebosJac.begin(); row != ebosJac.end(); ++row) {
-                for (auto elemiter = row->begin(); elemiter != row->end(); ++elemiter) {
-                    const auto& elem = *elemiter;
-                    const double sum = elem[0] + elem[1] + elem[2];
-                    m[row.index()][elemiter.index()] = sum;
-                }
-            }
-
-            // Create and fill residual.
-            residual_for_sequential_.reset(new Vec1(num_rows));
-            Vec1& r = *residual_for_sequential_;
-            for (int i = 0; i < num_rows; ++i) {
-                const auto& elem = ebosResid[i];
-                const double sum = elem[0] + elem[1] + elem[2];
-                r[i] = sum;
-            }
-        }
 
         // ---------  Data members  ---------
 
@@ -1180,7 +1147,7 @@ namespace Opm {
 
 
     template <class Model, class BlockVector>
-    struct JacSolver<false, Model, BlockVector>
+    struct SeqImpHandler<false, Model, BlockVector>
     {
         /// Solve the Jacobian system Jx = r where J is the Jacobian and
         /// r is the residual.
@@ -1224,10 +1191,15 @@ namespace Opm {
                 mod->istlSolver().solve( opA, x, ebosResid );
             }
         }
+
+        static void buildSequentialResJac(Model*)
+        {
+            // Do nothing, sequential solver disabled.
+        }
     };
 
     template <class Model, class BlockVector>
-    struct JacSolver<true, Model, BlockVector>
+    struct SeqImpHandler<true, Model, BlockVector>
     {
         static void solveJacobianSystem(const Model* mod, BlockVector& x)
         {
@@ -1242,9 +1214,9 @@ namespace Opm {
             // The residual is modified similarly.
             // r = [r, r_well], where r is the residual and r_well the well residual.
             // r -= B^T * D^-1 r_well
-
+            /*
             // apply well residual to the residual.
-            //mod->wellModel().apply(ebosResid);
+            mod->wellModel().apply(ebosResid);
 
             using Mat = typename Model::Mat11;
             using BVector = typename Model::Vec1;
@@ -1277,7 +1249,50 @@ namespace Opm {
             for (int i = 0; i < n; ++i) {
                 x[i][0] = x1[i];
             }
+            */
         }
+
+
+        static void buildSequentialResJac(Model* mod)
+        {
+            auto& ebosResid = mod->ebosSimulator_.model().linearizer().residual();
+            auto& ebosJac = mod->ebosSimulator_.model().linearizer().matrix();
+
+            // Create matrix structure.
+            const int num_rows = ebosJac.N();
+            const int num_cols = ebosJac.M();
+            const int nnz = ebosJac.nonzeroes();
+            using Mat11 = typename Model::Mat11;
+            mod->matrix_for_sequential_.reset(new Mat11(num_rows, num_cols, nnz, Mat11::row_wise));
+            auto& m = *mod->matrix_for_sequential_;
+            auto mrow = m.createbegin();
+            auto erow = ebosJac.begin();
+            for (; mrow != m.createend(); ++mrow, ++erow) {
+                for (auto elem = erow->begin(); elem != erow->end(); ++elem) {
+                    mrow.insert(elem.index());
+                }
+            }
+
+            // Fill matrix.
+            for (auto row = ebosJac.begin(); row != ebosJac.end(); ++row) {
+                for (auto elemiter = row->begin(); elemiter != row->end(); ++elemiter) {
+                    const auto& elem = *elemiter;
+                    const double sum = elem[0] + elem[1] + elem[2];
+                    m[row.index()][elemiter.index()] = sum;
+                }
+            }
+
+            // Create and fill residual.
+            using Vec1 = typename Model::Vec1;
+            mod->residual_for_sequential_.reset(new Vec1(num_rows));
+            auto& r = *mod->residual_for_sequential_;
+            for (int i = 0; i < num_rows; ++i) {
+                const auto& elem = ebosResid[i];
+                const double sum = elem[0] + elem[1] + elem[2];
+                r[i] = sum;
+            }
+        }
+
     };
 
 
