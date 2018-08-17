@@ -97,6 +97,7 @@ namespace Opm
 
         using typename Base::Mat;
         using typename Base::BVector;
+        using typename Base::SBVector;
         using typename Base::Eval;
 
         // sparsity pattern for the matrices
@@ -151,7 +152,7 @@ namespace Opm
         virtual ConvergenceReport getWellConvergence(const std::vector<double>& B_avg) const;
 
         /// Ax = Ax - C D^-1 B x
-        virtual void apply(const BVector& x, BVector& Ax) const;
+        virtual void apply(const SBVector& x, SBVector& Ax) const;
         /// r = r - C D^-1 Rw
         virtual void apply(BVector& r) const;
 

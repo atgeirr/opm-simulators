@@ -220,8 +220,10 @@ namespace Opm {
                     well_container.emplace_back(new StandardWell<TypeTag>(well_ecl, timeStepIdx, wells(),
                                                                           param_, *rateConverter_, pvtreg, numComponents() ) );
                 } else {
-                    well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, timeStepIdx, wells(),
-                                                                              param_, *rateConverter_, pvtreg, numComponents() ) );
+                    // TODO: Implement apply(x,y) for MultisegmentWell.
+                    // well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, timeStepIdx, wells(),
+                    //                                                           param_, *rateConverter_, pvtre
+                    //                                                           g, numComponents() ) );
                 }
             }
 
@@ -361,8 +363,9 @@ namespace Opm {
                     well_container.emplace_back(new StandardWell<TypeTag>(well_ecl, time_step, wells(),
                                                 param_, *rateConverter_, pvtreg, numComponents() ) );
                 } else {
-                    well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, time_step, wells(),
-                                                param_, *rateConverter_, pvtreg, numComponents() ) );
+                    // TODO: Implement apply(x,y) for MultisegmentWell.
+                    // well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, time_step, wells(),
+                    //                             param_, *rateConverter_, pvtreg, numComponents() ) );
                 }
             }
         }
@@ -457,7 +460,7 @@ namespace Opm {
     template<typename TypeTag>
     void
     BlackoilWellModel<TypeTag>::
-    apply(const BVector& x, BVector& Ax) const
+    apply(const SBVector& x, SBVector& Ax) const
     {
         // TODO: do we still need localWellsActive()?
         if ( ! localWellsActive() ) {
@@ -477,7 +480,7 @@ namespace Opm {
     template<typename TypeTag>
     void
     BlackoilWellModel<TypeTag>::
-    applyScaleAdd(const Scalar alpha, const BVector& x, BVector& Ax) const
+    applyScaleAdd(const Scalar alpha, const SBVector& x, SBVector& Ax) const
     {
         if ( ! localWellsActive() ) {
             return;

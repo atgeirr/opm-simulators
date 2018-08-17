@@ -86,10 +86,12 @@ namespace Opm
         static const int numPv = GET_PROP_VALUE(TypeTag, EnableSequential) ? 1 : numEq;
         typedef double Scalar;
 
-        typedef Dune::FieldVector<Scalar, numEq    > VectorBlockType;
+        typedef Dune::FieldVector<Scalar, numEq> VectorBlockType;
+        typedef Dune::FieldVector<Scalar, numPv> SystemBlockType;
         typedef Dune::FieldMatrix<Scalar, numEq, numPv > MatrixBlockType;
         typedef Dune::BCRSMatrix <MatrixBlockType> Mat;
         typedef Dune::BlockVector<VectorBlockType> BVector;
+        typedef Dune::BlockVector<SystemBlockType> SBVector;
         typedef DenseAd::Evaluation<double, /*size=*/numPv> Eval;
 
         typedef Ewoms::BlackOilPolymerModule<TypeTag> PolymerModule;
@@ -193,7 +195,7 @@ namespace Opm
                                                            WellState& well_state) const = 0;
 
         /// Ax = Ax - C D^-1 B x
-        virtual void apply(const BVector& x, BVector& Ax) const = 0;
+        virtual void apply(const SBVector& x, SBVector& Ax) const = 0;
 
         /// r = r - C D^-1 Rw
         virtual void apply(BVector& r) const = 0;

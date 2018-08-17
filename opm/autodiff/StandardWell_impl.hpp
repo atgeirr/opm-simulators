@@ -1684,7 +1684,7 @@ namespace Opm
     template<typename TypeTag>
     void
     StandardWell<TypeTag>::
-    apply(const BVector& x, BVector& Ax) const
+    apply(const SBVector& x, SBVector& Ax) const
     {
         if ( param_.matrix_add_well_contributions_ )
         {

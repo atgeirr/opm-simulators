@@ -49,7 +49,7 @@
 #include <opm/autodiff/RateConverter.hpp>
 #include <opm/autodiff/WellInterface.hpp>
 #include <opm/autodiff/StandardWell.hpp>
-#include <opm/autodiff/MultisegmentWell.hpp>
+//#include <opm/autodiff/MultisegmentWell.hpp>
 #include <opm/autodiff/Compat.hpp>
 #include<opm/autodiff/SimFIBODetails.hpp>
 #include<dune/common/fmatrix.hh>
@@ -84,8 +84,10 @@ namespace Opm {
 
             // TODO: where we should put these types, WellInterface or Well Model?
             // or there is some other strategy, like TypeTag
-            typedef Dune::FieldVector<Scalar, numEq    > VectorBlockType;
+            typedef Dune::FieldVector<Scalar, numEq> VectorBlockType;
+            typedef Dune::FieldVector<Scalar, numPv> SystemBlockType;
             typedef Dune::BlockVector<VectorBlockType> BVector;
+            typedef Dune::BlockVector<SystemBlockType> SBVector;
 
 #if  DUNE_VERSION_NEWER_REV(DUNE_ISTL, 2 , 5, 1)
             // 3x3 matrix block inversion was unstable from at least 2.3 until and
@@ -149,10 +151,10 @@ namespace Opm {
             void apply( BVector& r) const;
 
             // subtract B*inv(D)*C * x from A*x
-            void apply(const BVector& x, BVector& Ax) const;
+            void apply(const SBVector& x, SBVector& Ax) const;
 
             // apply well model with scaling of alpha
-            void applyScaleAdd(const Scalar alpha, const BVector& x, BVector& Ax) const;
+            void applyScaleAdd(const Scalar alpha, const SBVector& x, SBVector& Ax) const;
 
             // using the solution x to recover the solution xw for wells and applying
             // xw to update Well State
@@ -264,7 +266,7 @@ namespace Opm {
             WellTestState wellTestState_;
 
             // used to better efficiency of calcuation
-            mutable BVector scaleAddRes_;
+            mutable SBVector scaleAddRes_;
 
             const Wells* wells() const { return wells_manager_->c_wells(); }
 
