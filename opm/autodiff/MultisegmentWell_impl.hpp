@@ -487,7 +487,7 @@ namespace Opm
     template <typename TypeTag>
     void
     MultisegmentWell<TypeTag>::
-    apply(const BVector& x, BVector& Ax) const
+    apply(const SBVector& x, SBVector& Ax) const
     {
         BVectorWell Bx(duneB_.N());
 

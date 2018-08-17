@@ -49,7 +49,7 @@
 #include <opm/autodiff/RateConverter.hpp>
 #include <opm/autodiff/WellInterface.hpp>
 #include <opm/autodiff/StandardWell.hpp>
-//#include <opm/autodiff/MultisegmentWell.hpp>
+#include <opm/autodiff/MultisegmentWell.hpp>
 #include <opm/autodiff/Compat.hpp>
 #include<opm/autodiff/SimFIBODetails.hpp>
 #include<dune/common/fmatrix.hh>

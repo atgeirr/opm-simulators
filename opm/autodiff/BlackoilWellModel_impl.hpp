@@ -220,10 +220,8 @@ namespace Opm {
                     well_container.emplace_back(new StandardWell<TypeTag>(well_ecl, timeStepIdx, wells(),
                                                                           param_, *rateConverter_, pvtreg, numComponents() ) );
                 } else {
-                    // TODO: Implement apply(x,y) for MultisegmentWell.
-                    // well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, timeStepIdx, wells(),
-                    //                                                           param_, *rateConverter_, pvtre
-                    //                                                           g, numComponents() ) );
+                    well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, timeStepIdx, wells(),
+                                                                              param_, *rateConverter_, pvtreg, numComponents() ) );
                 }
             }
 
@@ -363,9 +361,8 @@ namespace Opm {
                     well_container.emplace_back(new StandardWell<TypeTag>(well_ecl, time_step, wells(),
                                                 param_, *rateConverter_, pvtreg, numComponents() ) );
                 } else {
-                    // TODO: Implement apply(x,y) for MultisegmentWell.
-                    // well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, time_step, wells(),
-                    //                             param_, *rateConverter_, pvtreg, numComponents() ) );
+                    well_container.emplace_back(new MultisegmentWell<TypeTag>(well_ecl, time_step, wells(),
+                                                param_, *rateConverter_, pvtreg, numComponents() ) );
                 }
             }
         }
