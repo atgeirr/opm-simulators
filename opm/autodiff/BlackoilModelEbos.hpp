@@ -955,9 +955,18 @@ namespace Opm {
 
             const bool converged_Well = wellModel().getWellConvergence(B_avg);
 
-            bool converged = converged_MB && converged_Well;
+            bool converged = converged_MB && converged_Well && converged_CNV;
 
-            converged = converged && converged_CNV;
+            double pressure_res = 0.0;
+            if (enableSequential) {
+                std::array<double, numEq> mbres;
+                for ( int compIdx = 0; compIdx < numComp; ++compIdx )  {
+                    mbres[compIdx] = B_avg[compIdx] * R_sum[compIdx] * dt / pvSum;
+                    pressure_res += mbres[compIdx];
+                }
+                pressure_res = std::fabs(pressure_res);
+                converged = pressure_res < tol_mb;
+            }
 
             if ( terminal_output_ )
             {
@@ -994,17 +1003,24 @@ namespace Opm {
                     for (int compIdx = 0; compIdx < numComp; ++compIdx) {
                         msg += "    CNV(" + key[ compIdx ] + ") ";
                     }
+                    if (enableSequential) {
+                        msg = "Iter   Residual";
+                    }
                     OpmLog::debug(msg);
                 }
                 std::ostringstream ss;
                 const std::streamsize oprec = ss.precision(3);
                 const std::ios::fmtflags oflags = ss.setf(std::ios::scientific);
                 ss << std::setw(4) << iteration;
-                for (int compIdx = 0; compIdx < numComp; ++compIdx) {
-                    ss << std::setw(11) << mass_balance_residual[compIdx];
-                }
-                for (int compIdx = 0; compIdx < numComp; ++compIdx) {
-                    ss << std::setw(11) << CNV[compIdx];
+                if (enableSequential) {
+                    ss << std::setw(11) << pressure_res;
+                } else {
+                    for (int compIdx = 0; compIdx < numComp; ++compIdx) {
+                        ss << std::setw(11) << mass_balance_residual[compIdx];
+                    }
+                    for (int compIdx = 0; compIdx < numComp; ++compIdx) {
+                        ss << std::setw(11) << CNV[compIdx];
+                    }
                 }
                 ss.precision(oprec);
                 ss.flags(oflags);
