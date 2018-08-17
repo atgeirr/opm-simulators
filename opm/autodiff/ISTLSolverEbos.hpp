@@ -52,6 +52,7 @@ NEW_PROP_TAG(Scalar);
 // NEW_PROP_TAG(GlobalEqVector);
 // NEW_PROP_TAG(JacobianMatrix);
 NEW_PROP_TAG(Indices);
+NEW_PROP_TAG(EnableSequential);
 
 END_PROPERTIES
 
