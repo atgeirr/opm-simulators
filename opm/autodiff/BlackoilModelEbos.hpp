@@ -1268,15 +1268,6 @@ namespace Opm {
 
         static void buildSequentialResJac(Model* mod)
         {
-            // The sequential residual is a linear combination of the
-            // mass balance residuals, with coefficients equal to (for
-            // water, oil, gas):
-            //    1/bw,
-            //    (1/bo - rs/bg)/(1-rs*rv)
-            //    (1/bg - rv/bo)/(1-rs*rv)
-            // These coefficients must be applied for both the residual and
-            // Jacobian.
-
             auto& ebosResid = mod->ebosSimulator_.model().linearizer().residual();
             auto& ebosJac = mod->ebosSimulator_.model().linearizer().matrix();
 
@@ -1296,28 +1287,25 @@ namespace Opm {
             }
 
             // Create scale factors.
+            // The sequential residual is a linear combination of the
+            // mass balance residuals, with coefficients equal to (for
+            // water, oil, gas):
+            //    1/bw,
+            //    (1/bo - rs/bg)/(1-rs*rv)
+            //    (1/bg - rv/bo)/(1-rs*rv)
+            // These coefficients must be applied for both the residual and
+            // Jacobian.
             std::vector<std::array<double, 3>> scaleFactors(num_rows);
             for (int r = 0; r < num_rows; ++r) {
-                for (int eq = 0; eq < 3; ++eq) {
-                    scaleFactors[r][eq] = 1.0;
-                }
+                const auto& fs = mod->ebosSimulator_.model().cachedIntensiveQuantities(r, 0)->fluidState();
+                enum { Wat = 0, Oil = 1, Gas = 2 };
+                scaleFactors[r][Wat] = 1.0 / fs.invB(Wat).value();
+                scaleFactors[r][Oil] = 1.0 / fs.invB(Oil).value() - fs.Rs().value() / fs.invB(Gas).value();
+                scaleFactors[r][Gas] = 1.0 / fs.invB(Gas).value() - fs.Rv().value() / fs.invB(Oil).value();
+                const double detfac = 1.0 / (1.0 - fs.Rs().value() * fs.Rv().value());
+                scaleFactors[r][Oil] *= detfac;
+                scaleFactors[r][Gas] *= detfac;
             }
-
-            #if 0
-            ElementContext elemCtx(mod->ebosSimulator_);
-            ElementIterator elemIt = gridView.template begin</*codim=*/0>();
-            const ElementIterator& elemEndIt = gridView.template end</*codim=*/0>();
-            for (; elemIt != elemEndIt; ++elemIt) {
-                const Element& elem = *elemIt;
-                elemCtx.updatePrimaryStencil(elem);
-                elemCtx.updatePrimaryIntensiveQuantities(/*timeIdx=*/0);
-                for (unsigned dofIdx = 0; dofIdx < elemCtx.numPrimaryDof(/*timeIdx=*/0); ++dofIdx) {
-                    const auto& intQuants = elemCtx.intensiveQuantities(dofIdx, /*timeIdx=*/0);
-                    const auto& fs = intQuants.fluidState();
-                    Scalar bg = 1.0/FluidSystem::template inverseFormationVolumeFactor<FluidState, Scalar>(fs, gasPhaseIdx, pvtRegionIdx);
-                }
-            }
-            #endif
 
             // Fill matrix.
             for (auto row = ebosJac.begin(); row != ebosJac.end(); ++row) {
