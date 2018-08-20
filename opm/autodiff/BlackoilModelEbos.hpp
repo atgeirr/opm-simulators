@@ -427,6 +427,7 @@ namespace Opm {
             }
 
             if (enableSequential) {
+                assert(numEq == 3);
                 SeqImpHandler<enableSequential, BlackoilModelEbos, BVector>::buildSequentialResJac(this);
             }
 
@@ -1267,6 +1268,15 @@ namespace Opm {
 
         static void buildSequentialResJac(Model* mod)
         {
+            // The sequential residual is a linear combination of the
+            // mass balance residuals, with coefficients equal to (for
+            // water, oil, gas):
+            //    1/bw,
+            //    (1/bo - rs/bg)/(1-rs*rv)
+            //    (1/bg - rv/bo)/(1-rs*rv)
+            // These coefficients must be applied for both the residual and
+            // Jacobian.
+
             auto& ebosResid = mod->ebosSimulator_.model().linearizer().residual();
             auto& ebosJac = mod->ebosSimulator_.model().linearizer().matrix();
 
@@ -1285,11 +1295,36 @@ namespace Opm {
                 }
             }
 
+            // Create scale factors.
+            std::vector<std::array<double, 3>> scaleFactors(num_rows);
+            for (int r = 0; r < num_rows; ++r) {
+                for (int eq = 0; eq < 3; ++eq) {
+                    scaleFactors[r][eq] = 1.0;
+                }
+            }
+
+            #if 0
+            ElementContext elemCtx(mod->ebosSimulator_);
+            ElementIterator elemIt = gridView.template begin</*codim=*/0>();
+            const ElementIterator& elemEndIt = gridView.template end</*codim=*/0>();
+            for (; elemIt != elemEndIt; ++elemIt) {
+                const Element& elem = *elemIt;
+                elemCtx.updatePrimaryStencil(elem);
+                elemCtx.updatePrimaryIntensiveQuantities(/*timeIdx=*/0);
+                for (unsigned dofIdx = 0; dofIdx < elemCtx.numPrimaryDof(/*timeIdx=*/0); ++dofIdx) {
+                    const auto& intQuants = elemCtx.intensiveQuantities(dofIdx, /*timeIdx=*/0);
+                    const auto& fs = intQuants.fluidState();
+                    Scalar bg = 1.0/FluidSystem::template inverseFormationVolumeFactor<FluidState, Scalar>(fs, gasPhaseIdx, pvtRegionIdx);
+                }
+            }
+            #endif
+
             // Fill matrix.
             for (auto row = ebosJac.begin(); row != ebosJac.end(); ++row) {
                 for (auto elemiter = row->begin(); elemiter != row->end(); ++elemiter) {
                     const auto& elem = *elemiter;
-                    const double sum = elem[0] + elem[1] + elem[2];
+                    const auto& scale = scaleFactors[row.index()];
+                    const double sum = scale[0]*elem[0] + scale[1]*elem[1] + scale[2]*elem[2];
                     m[row.index()][elemiter.index()] = sum;
                 }
             }
@@ -1300,7 +1335,8 @@ namespace Opm {
             auto& r = *mod->residual_for_sequential_;
             for (int i = 0; i < num_rows; ++i) {
                 const auto& elem = ebosResid[i];
-                const double sum = elem[0] + elem[1] + elem[2];
+                const auto& scale = scaleFactors[i];
+                const double sum = scale[0]*elem[0] + scale[1]*elem[1] + scale[2]*elem[2];
                 r[i] = sum;
             }
         }
