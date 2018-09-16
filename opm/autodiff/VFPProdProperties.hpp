@@ -228,7 +228,7 @@ public:
         const double wfr = detail::getWFR(aqua1, liquid1, vapour1, table->getWFRType());
         const double gfr = detail::getGFR(aqua1, liquid1, vapour1, table->getGFRType());
 
-        const int sample_number = 100;
+        const int sample_number = 1000;
         std::vector<double> bhp_samples(sample_number);
         std::vector<double> rate_samples(sample_number, 0.);
 
@@ -243,10 +243,10 @@ public:
             bhp_samples[i] = bhpfra(table_id, rate_samples[i], wfr, gfr, thp, alq) - dp;
         }
 
-        std::cout << " the rate and bhp samples " << std::endl;
-        for (int i = 0; i < sample_number; ++i) {
-            std::cout << rate_samples[i] << " " << bhp_samples[i] << std::endl;
-        }
+        // std::cout << " the rate and bhp samples " << std::endl;
+        // for (int i = 0; i < sample_number; ++i) {
+        //     std::cout << rate_samples[i] << " " << bhp_samples[i] << std::endl;
+        // }
 
         // interface needs to be resigned
         const bool found = detail::findIntersectionForBhp(rate_samples, bhp_samples, flo_rate1, flo_rate2, bhp1, bhp2, return_bhp);
