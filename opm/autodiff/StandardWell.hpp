@@ -341,8 +341,9 @@ namespace Opm
         // handle the non reasonable fractions due to numerical overshoot
         void processFractions() const;
 
+        double computeBhpAtTHPConstraint(const Simulator& ebos_simulator) const;
+
         void updateWellStateWithTHPTarget(const Simulator& ebosSimulator,
-                                          const double thp_target,
                                           WellState& well_state) const;
 
         // TODO: it should be moved to WellInterface later most likely

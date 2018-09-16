@@ -1131,7 +1131,7 @@ namespace Opm
             break;
 
         case THP:
-            updateWellStateWithTHPTarget(ebosSimulator, target, well_state);
+            updateWellStateWithTHPTarget(ebosSimulator, well_state);
             break;
 
         case RESERVOIR_RATE: // intentional fall-through
@@ -1774,9 +1774,10 @@ namespace Opm
     std::vector<double>
     StandardWell<TypeTag>::
     computeWellPotentialWithTHP(const Simulator& ebosSimulator,
-                                const double initial_bhp, // bhp from BHP constraints
-                                const std::vector<double>& initial_potential) const
+                                const double /* initial_bhp */, // bhp from BHP constraints
+                                const std::vector<double>& /* initial_potential */) const
     {
+        /* 
         OpmLog::warning("OLD_TECHNIC_THP_POTENTIAL", "We should use new technique to calculate well potential with THP limit!!!");
         // TODO: pay attention to the situation that finally the potential is calculated based on the bhp control
         // TODO: should we consider the bhp constraints during the iterative process?
@@ -1854,7 +1855,7 @@ namespace Opm
                 for (int p = 0; p < np; ++p) {
                     // TODO: improve the interpolation, will it always be valid with the way below?
                     // TODO: finding better paramters, better iteration strategy for better convergence rate.
-                    const double potential_update_damping_factor = 0.001;
+                    const double potential_update_damping_factor = 0.05;
                     potentials[p] = potential_update_damping_factor * potentials[p] + (1.0 - potential_update_damping_factor) * old_potentials[p];
                     old_potentials[p] = potentials[p];
                 }
@@ -1866,7 +1867,11 @@ namespace Opm
         if (!converged) {
             OPM_THROW(std::runtime_error, "Failed in getting converged for the potential calculation for well " << name());
         }
-
+        */
+        assert(wellHasTHPConstraints());
+        const double bhp = computeBhpAtTHPConstraint(ebosSimulator);
+        std::vector<double> potentials(number_of_phases_);
+        computeWellRatesWithBhp(ebosSimulator, bhp, potentials);
         return potentials;
     }
 
@@ -2185,11 +2190,9 @@ namespace Opm
 
 
     template<typename TypeTag>
-    void
+    double
     StandardWell<TypeTag>::
-    updateWellStateWithTHPTarget(const Simulator& ebos_simulator,
-                                 const double thp_target,
-                                 WellState& well_state) const
+    computeBhpAtTHPConstraint(const Simulator& ebos_simulator) const
     {
         // TODO: this will be the big task here.
         // p_bhp = BHP(THP, rates(p_bhp))
@@ -2275,7 +2278,18 @@ namespace Opm
         std::cout << std::endl;
 #endif
 
-        const int control_index = well_controls_get_current(well_controls_);
+        // Function for finding THP constraint.
+        auto thpControlIndex = [this]()->int {
+            const int nwc = well_controls_get_num(well_controls_);
+            for (int ctrl_index = 0; ctrl_index < nwc; ++ctrl_index) {
+                if (well_controls_iget_type(well_controls_, ctrl_index) == THP) {
+                    return ctrl_index;
+                }
+            }
+            return -1;
+        };
+
+        const int control_index = thpControlIndex();
         const int table_id = well_controls_iget_vfp(well_controls_, control_index);
         const double thp    = well_controls_iget_target(well_controls_, control_index);
         const double alq    = well_controls_iget_alq(well_controls_, control_index);
@@ -2288,8 +2302,23 @@ namespace Opm
         vfp_properties_->getProd()->calculateRatesBhpWithTHPTarget(well_rates_middle, well_rate_bhp_limit,
                                                                        middle_pressure, bhp_limit,
                                                                        dp, table_id, thp, alq, obtain_bhp);
+        return obtain_bhp;
+    }
 
-        // TODO: it is possible to get rates based on the above function, for now, we use BHP value to re-calcualte the rates
+
+
+
+
+    template<typename TypeTag>
+    void
+    StandardWell<TypeTag>::
+    updateWellStateWithTHPTarget(const Simulator& ebos_simulator,
+                                 WellState& well_state) const
+    {
+        const double obtain_bhp = computeBhpAtTHPConstraint(ebos_simulator);
+
+        // TODO: it is possible to get rates based on the calculateRatesBhpWithTHPTarget function,
+        // for now, we use BHP value to re-calculate the rates
         std::vector<double> obtain_rates(3);
         computeWellRatesWithBhp(ebos_simulator, obtain_bhp, obtain_rates);
 
@@ -2299,7 +2328,7 @@ namespace Opm
             well_state.wellRates()[index_of_well_ * number_of_phases_ + p] = obtain_rates[p];
         }
 
-        well_state.thp()[index_of_well_] = thp_target;
+        well_state.thp()[index_of_well_] = this->getTHPConstraint();
     }
 
 
