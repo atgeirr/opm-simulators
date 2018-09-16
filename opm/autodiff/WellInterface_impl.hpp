@@ -382,6 +382,26 @@ namespace Opm
 
 
     template<typename TypeTag>
+    double
+    WellInterface<TypeTag>::
+    getTHPConstraint() const
+    {
+        const int nwc = well_controls_get_num(well_controls_);
+        for (int ctrl_index = 0; ctrl_index < nwc; ++ctrl_index) {
+            if (well_controls_iget_type(well_controls_, ctrl_index) == THP) {
+                return well_controls_iget_target(well_controls_, ctrl_index);
+            }
+        }
+        // Should not get here, it's an error.
+        return -1e100;
+    }
+
+
+
+
+
+
+    template<typename TypeTag>
     void
     WellInterface<TypeTag>::
     updateWellControl(const Simulator& ebosSimulator,
