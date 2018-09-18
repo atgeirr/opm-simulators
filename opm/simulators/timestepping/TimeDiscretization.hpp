@@ -97,6 +97,12 @@ namespace Opm
             return outer_timer_.done();
         }
 
+        /// Whether the current step is the first step.
+        virtual bool initialStep() const
+        {
+            return outer_timer_.initialStep();
+        }
+
         /// Return start date of simulation
         virtual boost::posix_time::ptime startDateTime() const
         {
@@ -185,15 +191,10 @@ namespace Opm
         }
 
 
-        template <class ReservoirState, class WellState>
         SimulatorReport
-        step(SimulatorTimerInterface& timer,
-             ReservoirState& reservoir_state,
-             WellState& well_state)
+        step(SimulatorTimerInterface& timer)
         {
-            return solver_.step(timer,
-                                reservoir_state,
-                                well_state);
+            return solver_.step(timer);
         }
 
 
@@ -203,11 +204,10 @@ namespace Opm
         }
 
 
-        template <class ReservoirState>
         std::vector<std::vector<double> >
-        computeFluidInPlace(const ReservoirState& x, const std::vector<int>& fipnum) const
+        computeFluidInPlace(const std::vector<int>& fipnum) const
         {
-            return solver_.model().computeFluidInPlace(x, fipnum);
+            return solver_.computeFluidInPlace(fipnum);
         }
 
 
@@ -234,22 +234,15 @@ namespace Opm
         {
         }
 
-        template <class ReservoirState, class WellState>
         SimulatorReport
-        step(SimulatorTimerInterface& timer,
-             ReservoirState& reservoir_state,
-             WellState& well_state)
+        step(SimulatorTimerInterface& timer)
         {
             SubStepSimulatorTimer sub_timer(timer);
             const double dt = timer.currentStepLength();
             sub_timer.setSteps({dt/2.0, dt/2.0});
-            SimulatorReport rep = solver_.step(sub_timer,
-                                               reservoir_state,
-                                               well_state);
+            SimulatorReport rep = solver_.step(sub_timer);
             sub_timer.advance();
-            rep += solver_.step(sub_timer,
-                                reservoir_state,
-                                well_state);
+            rep += solver_.step(sub_timer);
             return rep;
         }
 
@@ -260,11 +253,10 @@ namespace Opm
         }
 
 
-        template <class ReservoirState>
         std::vector<std::vector<double> >
-        computeFluidInPlace(const ReservoirState& x, const std::vector<int>& fipnum) const
+        computeFluidInPlace(const std::vector<int>& fipnum) const
         {
-            return solver_.model().computeFluidInPlace(x, fipnum);
+            return solver_.computeFluidInPlace(fipnum);
         }
 
 
