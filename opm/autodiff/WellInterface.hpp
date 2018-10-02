@@ -207,6 +207,8 @@ namespace Opm
                          const WellTestConfig::Reason testing_reason, const WellState& well_state,
                          WellTestState& welltest_state);
 
+        bool isWellOperable() const;
+
     protected:
 
         // to indicate a invalid completion
@@ -271,8 +273,6 @@ namespace Opm
 
         const PhaseUsage* phase_usage_;
 
-        bool getAllowCrossFlow() const;
-
         const VFPProperties* vfp_properties_;
 
         double gravity_;
@@ -285,6 +285,14 @@ namespace Opm
         const int pvtRegionIdx_;
 
         const int num_components_;
+
+        // whether the well is operable under current control setup and reservoir condition
+        bool is_well_operable_;
+
+
+        // private functions
+
+        bool getAllowCrossFlow() const;
 
         const PhaseUsage& phaseUsage() const;
 
