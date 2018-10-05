@@ -2385,6 +2385,27 @@ namespace Opm
                 }
             }
 
+            // checking whether running under BHP limit will violate THP limit
+            if (operable_under_bhp_limit && this->wellHasTHPConstraints()) {
+                // option 1: calculate well rates based on the BHP limit.
+                // option 2: stick with the above IPR curve
+                std::vector<double> well_rates_bhp_limit;
+                computeWellRatesWithBhp(ebos_simulator, bhp_limit, well_rates_bhp_limit);
+
+                const int thp_control_index = this->getTHPControlIndex();
+
+                const double thp = calculateThpFromBhp(well_rates_bhp_limit, thp_control_index, bhp_limit);
+
+                const double thp_limit = this->getTHPConstraint();
+
+                if (thp < thp_limit) {
+                    std::cout << " well " << name() << " violate the THP limit " << thp_limit
+                              << " when running under bhp limit " << bhp_limit << " with thp value " <<  thp << std::endl;
+
+                    operable_under_bhp_limit = false;
+                }
+            }
+
             if (!operable_under_bhp_limit) {
                 std::cout << " well " << name() << " not operatable under BHP limit " << bhp_limit << std::endl;
                 well_operable = false;
@@ -2394,7 +2415,7 @@ namespace Opm
         }
 
         // checking whether operable with current bhp value
-        if (well_operable) {
+        /* if (well_operable) {
 
             bool operable_under_bhp = true;
             const double current_bhp = getBhp().value();
@@ -2412,7 +2433,7 @@ namespace Opm
             } else {
                 // std::cout << " well " << name() << " working well with current BHP value " << current_bhp << std::endl;
             }
-        }
+        } */
 
         if (!well_operable) {
             if (is_well_operable_) {
