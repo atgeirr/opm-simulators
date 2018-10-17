@@ -173,9 +173,11 @@ namespace Opm
                                            const WellState& well_state,
                                            std::vector<double>& well_potentials) = 0;
 
-        virtual void updateWellStateWithTarget(WellState& well_state) const = 0;
+        virtual void updateWellStateWithTarget(const Simulator& ebos_simulator,
+                                               WellState& well_state) const = 0;
 
-        void updateWellControl(WellState& well_state,
+        void updateWellControl(const Simulator& ebos_simulator,
+                               WellState& well_state,
                                wellhelpers::WellSwitchingLogger& logger) const;
 
         virtual void updatePrimaryVariables(const WellState& well_state) const = 0;
@@ -207,7 +209,9 @@ namespace Opm
                          const WellTestConfig::Reason testing_reason, const WellState& well_state,
                          WellTestState& welltest_state);
 
-        bool isWellOperable() const;
+        virtual void checkWellOperatability(const Simulator& ebos_simulator) = 0;
+
+        bool isOperable() const;
 
     protected:
 
@@ -286,9 +290,6 @@ namespace Opm
 
         const int num_components_;
 
-        // whether the well is operable under current control setup and reservoir condition
-        bool is_well_operable_;
-
 
         // private functions
 
@@ -345,6 +346,45 @@ namespace Opm
 
         void solveWellForTesting(Simulator& ebosSimulator, WellState& well_state, const std::vector<double>& B_avg, bool terminal_output);
 
+        // the well operability status for this well
+        struct OperabilityStatus {
+            bool isOperable() const {
+                if (!operable_under_only_bhp_limit) {
+                    return false;
+                } else {
+                    return isOperableUnderBHP() || isOperableUnderTHP();
+                }
+            }
+
+            bool isOperableUnderBHP() const {
+                return operable_under_only_bhp_limit && !violate_thp_limit_under_bhp_limit;
+            }
+
+            bool isOperableUnderTHP() const {
+                return obtain_solution_with_thp_limit && !violate_bhp_limit_with_thp_limit;
+            }
+
+            void reset() {
+                operable_under_only_bhp_limit = true;
+                violate_thp_limit_under_bhp_limit = false;
+                obtain_solution_with_thp_limit = true;
+                violate_bhp_limit_with_thp_limit = false;
+            }
+
+            // whether the well can be operated under bhp limit
+            // without considering other limits.
+            // if it is false, then the well is not operable for sure.
+            bool operable_under_only_bhp_limit = true;
+            // if the well can be operated under bhp limit, will it violate
+            // the thp limit when operated under bhp limit
+            bool violate_thp_limit_under_bhp_limit = false;
+            // whether the well operate under the thp limit only
+            bool obtain_solution_with_thp_limit = true;
+            // whether the well violate bhp limit when operated under thp limit
+            bool violate_bhp_limit_with_thp_limit = false;
+        };
+
+        OperabilityStatus operability_status_;
     };
 
 }
