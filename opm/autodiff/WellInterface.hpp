@@ -347,6 +347,9 @@ namespace Opm
                                          WellTestState& well_test_state) const;
 
         void solveWellForTesting(Simulator& ebosSimulator, WellState& well_state, const std::vector<double>& B_avg, bool terminal_output);
+        // when a well is specified with a non-zero VFP table number
+        // it is supposed to calcualte the THP values even without THP target/limit there.
+        bool isVFPActive() const;
 
         // the well operability status for this well
         struct OperabilityStatus {
