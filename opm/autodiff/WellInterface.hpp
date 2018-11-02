@@ -152,16 +152,6 @@ namespace Opm
                                  const bool& writeMessageToOPMLog,
                                  WellTestState& wellTestState) const;
 
-        void updateWellTestStatePhysical(const WellState& well_state,
-                                         const double simulation_time,
-                                         const bool write_message_to_opmlog,
-                                         WellTestState& well_test_state) const;
-
-        void updateWellTestStateEconomic(const WellState& well_state,
-                                         const double simulation_time,
-                                         const bool write_message_to_opmlog,
-                                         WellTestState& well_test_state) const;
-
         void setWellEfficiencyFactor(const double efficiency_factor);
 
         void computeRepRadiusPerfLength(const Grid& grid, const std::map<int, int>& cartesian_to_compressed);
@@ -349,6 +339,11 @@ namespace Opm
         void wellTestingEconomic(Simulator& simulator, const std::vector<double>& B_avg,
                                  const double simulation_time, const int report_step, const bool terminal_output,
                                  const WellState& well_state, WellTestState& welltest_state);
+
+        void updateWellTestStatePhysical(const WellState& well_state,
+                                         const double simulation_time,
+                                         const bool write_message_to_opmlog,
+                                         WellTestState& well_test_state) const;
 
         void updateWellTestStateEconomic(const WellState& well_state,
                                          const double simulation_time,
