@@ -1006,8 +1006,6 @@ namespace Opm
             for (auto& completion : well_ecl_->getCompletions(report_step)) {
                 if (!welltest_state_temp.hasCompletion(name(), completion.first)) {
                     welltest_state.dropCompletion(name(), completion.first);
-=======
->>>>>>> splitting updateWellTestState to be two functions
                 }
             }
         }
