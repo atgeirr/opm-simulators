@@ -72,6 +72,7 @@ public:
         : simulator_(simulator)
     {
         parameters_.template init<TypeTag>();
+        extractParallelGridInformationToISTL(simulator_.vanguard().grid(), parallelInformation_);
     }
 
     void eraseMatrix()
@@ -118,6 +119,7 @@ protected:
     FlowLinearSolverParameters parameters_;
     VectorType rhs_;
     Dune::InverseOperatorResult res_;
+    boost::any parallelInformation_;
 }; // end ISTLSolverEbosFlexible
 
 } // namespace Opm
