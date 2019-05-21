@@ -92,9 +92,13 @@ public:
         return res_.converged;
     }
 
-    bool isParallel()
+    bool isParallel() const
     {
+#if HAVE_MPI
+        return parallelInformation_.type() == typeid(ParallelISTLInformation);
+#else
         return false;
+#endif
     }
 
     int iterations() const
