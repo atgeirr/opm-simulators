@@ -95,7 +95,7 @@ makeAmgPreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& l
         // smootherArgs.overlap=SmootherArgs::none;
         // smootherArgs.overlap=SmootherArgs::aggregate;
         smootherArgs.relaxationFactor = prm.get<double>("w");
-        return wrapPreconditioner<Dune::Amg::AMGCPR<OperatorType, VectorType, Smoother>>(linearoperator, criterion, smootherArgs);
+        return std::make_shared<Dune::Amg::AMGCPR<OperatorType, VectorType, Smoother>>(linearoperator, criterion, smootherArgs);
     }
 }
 
