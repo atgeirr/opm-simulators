@@ -22,6 +22,7 @@
 
 #include <opm/simulators/linalg/PressureSolverPolicy.hpp>
 #include <opm/simulators/linalg/PressureTransferPolicy.hpp>
+#include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
 #include <opm/simulators/linalg/getQuasiImpesWeights.hpp>
 
 #include <dune/common/fmatrix.hh>
@@ -39,7 +40,7 @@ namespace Dune
 // and OwningTwoLevelPreconditioner [which uses makePreconditioner() to choose the fine-level smoother]
 // must be broken, accomplished by forward-declaration here.
 template <class MatrixType, class VectorType>
-std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>>
+std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
 makePreconditioner(const Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
                    const boost::property_tree::ptree& prm);
 

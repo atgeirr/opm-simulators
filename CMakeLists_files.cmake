@@ -175,6 +175,7 @@ list (APPEND PUBLIC_HEADER_FILES
   opm/simulators/linalg/ParallelIstlInformation.hpp
   opm/simulators/linalg/PressureSolverPolicy.hpp
   opm/simulators/linalg/PressureTransferPolicy.hpp
+  opm/simulators/linalg/PreconditionerWithUpdate.hpp
   opm/simulators/linalg/makePreconditioner.hpp
   opm/simulators/linalg/setupPropertyTree.hpp
   opm/simulators/timestepping/AdaptiveSimulatorTimer.hpp
