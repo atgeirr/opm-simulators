@@ -23,6 +23,7 @@
 #include <opm/simulators/linalg/OwningTwoLevelPreconditioner.hpp>
 #include <opm/simulators/linalg/ParallelOverlappingILU0.hpp>
 #include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
+#include <opm/simulators/linalg/amgcpr.hh>
 
 #include <dune/istl/paamg/amg.hh>
 #include <dune/istl/paamg/fastamg.hh>
@@ -94,7 +95,7 @@ makeAmgPreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& l
         // smootherArgs.overlap=SmootherArgs::none;
         // smootherArgs.overlap=SmootherArgs::aggregate;
         smootherArgs.relaxationFactor = prm.get<double>("w");
-        return wrapPreconditioner<Dune::Amg::AMG<OperatorType, VectorType, Smoother>>(linearoperator, criterion, smootherArgs);
+        return wrapPreconditioner<Dune::Amg::AMGCPR<OperatorType, VectorType, Smoother>>(linearoperator, criterion, smootherArgs);
     }
 }
 
