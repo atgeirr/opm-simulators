@@ -72,6 +72,7 @@ public:
         : simulator_(simulator)
     {
         parameters_.template init<TypeTag>();
+        prm_ = setupPropertyTree(parameters_);
         extractParallelGridInformationToISTL(simulator_.vanguard().grid(), parallelInformation_);
     }
 
@@ -81,9 +82,32 @@ public:
 
     void prepare(const SparseMatrixAdapter& mat, VectorType& b)
     {
-        boost::property_tree::ptree prm = setupPropertyTree(parameters_);
-        solver_.reset(new SolverType(prm, mat.istlMatrix()));
-        rhs_ = b;
+        // Decide if we should recreate the solver or just do
+        // a minimal preconditioner update.
+        const int newton_iteration = this->simulator_.model().newtonMethod().numIterations();
+        bool recreate_solver = false;
+        if (this->parameters_.cpr_reuse_setup_ == 0) {
+            recreate_solver = true;
+        } else if (this->parameters_.cpr_reuse_setup_ == 1) {
+            if (newton_iteration == 0) {
+                recreate_solver = true;
+            }
+        } else if (this->parameters_.cpr_reuse_setup_ == 2) {
+            if (this->iterations() > 10) {
+                recreate_solver = true;
+            }
+        } else {
+            assert(this->parameters_.cpr_reuse_setup_ == 3);
+            assert(recreate_solver == false);
+        }
+
+        if (recreate_solver) {
+            solver_.reset(new SolverType(prm_, mat.istlMatrix()));
+            rhs_ = b;
+        } else {
+            solver_->updatePreconditioner();
+            rhs_ = b;
+        }
     }
 
     bool solve(VectorType& x)
@@ -121,6 +145,7 @@ protected:
 
     std::unique_ptr<SolverType> solver_;
     FlowLinearSolverParameters parameters_;
+    boost::property_tree::ptree prm_;
     VectorType rhs_;
     Dune::InverseOperatorResult res_;
     boost::any parallelInformation_;
