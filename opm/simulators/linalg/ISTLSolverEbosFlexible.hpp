@@ -101,7 +101,7 @@ public:
             assert(recreate_solver == false);
         }
 
-        if (recreate_solver) {
+        if (recreate_solver || !solver_) {
             solver_.reset(new SolverType(prm_, mat.istlMatrix()));
             rhs_ = b;
         } else {
