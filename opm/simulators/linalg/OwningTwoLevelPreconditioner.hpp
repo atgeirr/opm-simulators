@@ -62,10 +62,9 @@ public:
         : linear_operator_(linearoperator)
         , finesmoother_(makePreconditioner<MatrixType, VectorType>(linearoperator, prm.get_child("finesmoother")))
         , comm_()
-        , pressure_var_index_(prm.get<int>("pressure_var_index"))
         , weights_(Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(
-              linearoperator.getmat(), pressure_var_index_, transpose))
-        , levelTransferPolicy_(comm_, weights_, pressure_var_index_)
+              linearoperator.getmat(), prm.get<int>("pressure_var_index"), transpose))
+        , levelTransferPolicy_(comm_, weights_, prm.get<int>("pressure_var_index"))
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator,
                            finesmoother_,
@@ -73,6 +72,7 @@ public:
                            coarseSolverPolicy_,
                            transpose ? 1 : 0,
                            transpose ? 0 : 1)
+        , prm_(prm)
     {
         if (prm.get<int>("verbosity") > 10) {
             std::ofstream outfile(prm.get<std::string>("weights_filename"));
@@ -100,7 +100,8 @@ public:
 
     virtual void update() override
     {
-        Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linear_operator_.getmat(), pressure_var_index_, transpose, weights_);
+        Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linear_operator_.getmat(), prm_.get<int>("pressure_var_index"), transpose, weights_);
+        finesmoother_ = makePreconditioner<MatrixType, VectorType>(linear_operator_, prm_.get_child("finesmoother"));
         twolevel_method_.updatePreconditioner(finesmoother_, coarseSolverPolicy_);
     }
 
@@ -123,11 +124,11 @@ private:
     OperatorType& linear_operator_;
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> finesmoother_;
     Communication comm_;
-    int pressure_var_index_;
     VectorType weights_;
     LevelTransferPolicy levelTransferPolicy_;
     CoarseSolverPolicy coarseSolverPolicy_;
     TwoLevelMethod twolevel_method_;
+    boost::property_tree::ptree prm_;
 };
 
 } // namespace Dune
