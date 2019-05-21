@@ -59,11 +59,13 @@ public:
     using OperatorType = Dune::MatrixAdapter<MatrixType, VectorType, VectorType>;
 
     OwningTwoLevelPreconditioner(OperatorType& linearoperator, pt& prm)
-        : finesmoother_(makePreconditioner<MatrixType, VectorType>(linearoperator, prm.get_child("finesmoother")))
+        : linear_operator_(linearoperator)
+        , finesmoother_(makePreconditioner<MatrixType, VectorType>(linearoperator, prm.get_child("finesmoother")))
         , comm_()
+        , pressure_var_index_(prm.get<int>("pressure_var_index"))
         , weights_(Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(
-              linearoperator.getmat(), prm.get<int>("pressure_var_index"), transpose))
-        , levelTransferPolicy_(comm_, weights_, prm.get<int>("pressure_var_index"))
+              linearoperator.getmat(), pressure_var_index_, transpose))
+        , levelTransferPolicy_(comm_, weights_, pressure_var_index_)
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator,
                            finesmoother_,
@@ -98,6 +100,7 @@ public:
 
     virtual void update() override
     {
+        Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linear_operator_.getmat(), pressure_var_index_, transpose, weights_);
         twolevel_method_.updatePreconditioner(finesmoother_, coarseSolverPolicy_);
     }
 
@@ -117,8 +120,10 @@ private:
     using TwoLevelMethod
         = Dune::Amg::TwoLevelMethodCpr<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 
+    OperatorType& linear_operator_;
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> finesmoother_;
     Communication comm_;
+    int pressure_var_index_;
     VectorType weights_;
     LevelTransferPolicy levelTransferPolicy_;
     CoarseSolverPolicy coarseSolverPolicy_;
