@@ -57,6 +57,11 @@ public:
         linsolver_->apply(x, rhs, reduction, res);
     }
 
+    void updatePreconditioner()
+    {
+        preconditioner_->update();
+    }
+
     virtual Dune::SolverCategory::Category category() const override
     {
         return Dune::SolverCategory::sequential;
@@ -103,7 +108,7 @@ private:
         }
     }
 
-    std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> preconditioner_;
+    std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>> preconditioner_;
     std::shared_ptr<Dune::MatrixAdapter<MatrixType, VectorType, VectorType>> linearoperator_;
     std::shared_ptr<Dune::InverseOperator<VectorType, VectorType>> linsolver_;
 };

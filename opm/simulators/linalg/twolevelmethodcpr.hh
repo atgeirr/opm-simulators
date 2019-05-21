@@ -467,7 +467,7 @@ public:
     if (coarseSolver_) {
       policy_->calculateCoarseEntries(*operator_);
       coarsePolicy.setCoarseOperator(*policy_);
-      coarseSolver_->updateAmgPreconditioner(*(policy_->getCoarseLevelOperator()));
+      coarseSolver_->updatePreconditioner();
     } else {
       // we should probably not be heere
       policy_->createCoarseLevelSystem(*operator_);

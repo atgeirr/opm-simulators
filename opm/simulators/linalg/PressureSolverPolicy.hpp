@@ -75,8 +75,9 @@ namespace Amg
                 linsolver_->apply(x, b, res);
             }
 
-            void updateAmgPreconditioner(const Operator&)
+            void updatePreconditioner()
             {
+                linsolver_->updatePreconditioner();
             }
 
         private:
