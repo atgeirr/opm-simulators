@@ -75,6 +75,10 @@ namespace Amg
                 linsolver_->apply(x, b, res);
             }
 
+            void updateAmgPreconditioner(const Operator&)
+            {
+            }
+
         private:
             std::shared_ptr<Solver> linsolver_;
         };

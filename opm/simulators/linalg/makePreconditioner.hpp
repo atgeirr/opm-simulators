@@ -146,9 +146,9 @@ makeTwoLevelPreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorTyp
 {
     boost::property_tree::ptree prm = global_prm.get_child("cpr");
     if (global_prm.get<std::string>("preconditioner") == "cpr") {
-        return wrapPreconditioner<OwningTwoLevelPreconditioner<MatrixType, VectorType, false>>(linearoperator, prm);
+        return std::make_shared<OwningTwoLevelPreconditioner<MatrixType, VectorType, false>>(linearoperator, prm);
     } else if (global_prm.get<std::string>("preconditioner") == "cprt") {
-        return wrapPreconditioner<OwningTwoLevelPreconditioner<MatrixType, VectorType, true>>(linearoperator, prm);
+        return std::make_shared<OwningTwoLevelPreconditioner<MatrixType, VectorType, true>>(linearoperator, prm);
     } else {
         std::string msg("Wrong cpr Should not happen");
         throw std::runtime_error(msg);

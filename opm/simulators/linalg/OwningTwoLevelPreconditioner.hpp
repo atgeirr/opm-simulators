@@ -24,6 +24,7 @@
 #include <opm/simulators/linalg/PressureTransferPolicy.hpp>
 #include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
 #include <opm/simulators/linalg/getQuasiImpesWeights.hpp>
+#include <opm/simulators/linalg/twolevelmethodcpr.hh>
 
 #include <dune/common/fmatrix.hh>
 #include <dune/istl/bcrsmatrix.hh>
@@ -49,7 +50,7 @@ template <class MatrixTypeT, class VectorTypeT>
 class FlexibleSolver;
 
 template <class MatrixTypeT, class VectorTypeT, bool transpose = false>
-class OwningTwoLevelPreconditioner : public Dune::Preconditioner<VectorTypeT, VectorTypeT>
+class OwningTwoLevelPreconditioner : public Dune::PreconditionerWithUpdate<VectorTypeT, VectorTypeT>
 {
 public:
     using pt = boost::property_tree::ptree;
@@ -84,14 +85,22 @@ public:
     {
         twolevel_method_.pre(x, b);
     }
+
     virtual void apply(VectorType& v, const VectorType& d) override
     {
         twolevel_method_.apply(v, d);
     }
+
     virtual void post(VectorType& x) override
     {
         twolevel_method_.post(x);
     }
+
+    virtual void update() override
+    {
+        twolevel_method_.updatePreconditioner(finesmoother_, coarseSolverPolicy_);
+    }
+
     virtual Dune::SolverCategory::Category category() const override
     {
         return Dune::SolverCategory::sequential;
@@ -106,7 +115,7 @@ private:
     using CoarseSolverPolicy
         = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, FlexibleSolver<PressureMatrixType, PressureVectorType>>;
     using TwoLevelMethod
-        = Dune::Amg::TwoLevelMethod<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
+        = Dune::Amg::TwoLevelMethodCpr<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> finesmoother_;
     Communication comm_;
