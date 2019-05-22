@@ -300,7 +300,7 @@ makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& line
 
 template <class MatrixType, class VectorType, class Comm>
 std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+makePreconditioner(Dune::OverlappingSchwarzOperator<MatrixType, VectorType, VectorType, Comm>& linearoperator,
                    const boost::property_tree::ptree& prm,
                    const Comm& comm)
 {

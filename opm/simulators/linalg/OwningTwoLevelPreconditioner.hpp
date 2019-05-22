@@ -43,11 +43,18 @@ namespace Dune
 // must be broken, accomplished by forward-declaration here.
 template <class MatrixType, class VectorType>
 std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-makePreconditioner(const Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
                    const boost::property_tree::ptree& prm);
 
+template <class MatrixType, class VectorType, class Comm>
+std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
+makePreconditioner(Dune::OverlappingSchwarzOperator<MatrixType, VectorType, VectorType, Comm>& linearoperator,
+                   const boost::property_tree::ptree& prm,
+                   const Comm& comm);
+
+
 // Must forward-declare FlexibleSolver as we want to use it as solver for the pressure system.
-template <class MatrixTypeT, class VectorTypeT>
+template <class MatrixTypeT, class VectorTypeT, class Communication = Dune::Amg::SequentialInformation>
 class FlexibleSolver;
 
 template <class MatrixTypeT, class VectorTypeT, bool transpose = false, class Communication = Dune::Amg::SequentialInformation>
