@@ -169,6 +169,7 @@ list (APPEND PUBLIC_HEADER_FILES
   opm/simulators/linalg/ISTLSolverEbosFlexible.hpp
   opm/simulators/linalg/MatrixBlock.hpp
   opm/simulators/linalg/MatrixMarketUtils.hpp
+  opm/simulators/linalg/OwningBlockPreconditioner.hpp
   opm/simulators/linalg/OwningTwolevelPreconditioner.hpp
   opm/simulators/linalg/ParallelOverlappingILU0.hpp
   opm/simulators/linalg/ParallelRestrictedAdditiveSchwarz.hpp
