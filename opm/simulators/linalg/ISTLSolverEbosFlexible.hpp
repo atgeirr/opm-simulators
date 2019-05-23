@@ -58,9 +58,12 @@ class ISTLSolverEbosFlexible
     using VectorType = typename GET_PROP_TYPE(TypeTag, GlobalEqVector);
     using Simulator = typename GET_PROP_TYPE(TypeTag, Simulator);
     using MatrixType = typename SparseMatrixAdapter::IstlMatrix;
-    using POrComm = Dune::Amg::SequentialInformation;
-    using MatrixAdapterType = Dune::MatrixAdapter<MatrixType, VectorType, VectorType>;
-    using SolverType = Dune::FlexibleSolver<MatrixType, VectorType>;
+#if HAVE_MPI
+    using Communication = Dune::OwnerOverlapCopyCommunication<int, int>;
+#else
+    using Communication = Dune::CollectiveCommunication<int>;
+#endif
+    using SolverType = Dune::FlexibleSolver<MatrixType, VectorType, Communication>;
 
 public:
     static void registerParameters()
@@ -69,11 +72,17 @@ public:
     }
 
     explicit ISTLSolverEbosFlexible(const Simulator& simulator)
-        : simulator_(simulator)
+        : simulator_(simulator), comm_(nullptr)
     {
         parameters_.template init<TypeTag>();
         prm_ = setupPropertyTree(parameters_);
         extractParallelGridInformationToISTL(simulator_.vanguard().grid(), parallelInformation_);
+        if (parallelInformation_.type() == typeid(ParallelISTLInformation)) {
+            // Parallel case.
+            const ParallelISTLInformation* parinfo = boost::any_cast<ParallelISTLInformation>(&parallelInformation_);
+            assert(parinfo);
+            comm_.reset(new Communication(parinfo->communicator()));
+        }
     }
 
     void eraseMatrix()
@@ -102,7 +111,7 @@ public:
         }
 
         if (recreate_solver || !solver_) {
-            solver_.reset(new SolverType(prm_, mat.istlMatrix()));
+            solver_.reset(new SolverType(prm_, mat.istlMatrix(), *comm_));
             rhs_ = b;
         } else {
             solver_->updatePreconditioner();
@@ -149,6 +158,7 @@ protected:
     VectorType rhs_;
     Dune::InverseOperatorResult res_;
     boost::any parallelInformation_;
+    std::unique_ptr<Communication> comm_;
 }; // end ISTLSolverEbosFlexible
 
 } // namespace Opm

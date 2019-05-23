@@ -46,9 +46,9 @@ std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
 makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
                    const boost::property_tree::ptree& prm);
 
-template <class MatrixType, class VectorType, class Comm>
+template <class OperatorType, class VectorType, class Comm>
 std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-makePreconditioner(Dune::OverlappingSchwarzOperator<MatrixType, VectorType, VectorType, Comm>& linearoperator,
+makePreconditioner(OperatorType& linearoperator,
                    const boost::property_tree::ptree& prm,
                    const Comm& comm);
 

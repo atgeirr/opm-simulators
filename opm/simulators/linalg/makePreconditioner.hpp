@@ -65,31 +65,32 @@ makeSeqPreconditioner(const Dune::MatrixAdapter<MatrixType, VectorType, VectorTy
     }
 }
 
-template <class MatrixType, class VectorType, class Comm>
+template <class OperatorType, class VectorType, class Comm>
 std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-makeParPreconditioner(const Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+makeParPreconditioner(const OperatorType& linearoperator,
                       const boost::property_tree::ptree& prm,
                       const Comm& comm)
 {
     auto& matrix = linearoperator.getmat();
+    using MatrixType = typename OperatorType::matrix_type;
     double w = prm.get<double>("w");
     int n = prm.get<int>("n");
     std::string precond(prm.get<std::string>("preconditioner"));
     if (precond == "ILU0") {
-        return wrapBlockPreconditioner<Dune::SeqILU0<MatrixType, VectorType, VectorType>>(comm, matrix, w);
+        return wrapBlockPreconditioner<DummyUpdatePreconditioner<Dune::SeqILU0<MatrixType, VectorType, VectorType>>>(comm, matrix, w);
     } else if (precond == "ParOverILU0") {
         // Already a parallel preconditioner. Need to pass comm, but no need to wrap it in a BlockPreconditioner.
-        return wrapPreconditioner<Opm::ParallelOverlappingILU0<MatrixType, VectorType, VectorType, Comm>>(matrix, comm, n, w, Opm::MILU_VARIANT::ILU);
+        return wrapPreconditioner<DummyUpdatePreconditioner<Opm::ParallelOverlappingILU0<MatrixType, VectorType, VectorType, Comm>>>(matrix, comm, n, w, Opm::MILU_VARIANT::ILU);
     } else if (precond == "Jac") {
-        return wrapBlockPreconditioner<Dune::SeqJac<MatrixType, VectorType, VectorType>>(comm, matrix, n, w);
+        return wrapBlockPreconditioner<DummyUpdatePreconditioner<Dune::SeqJac<MatrixType, VectorType, VectorType>>>(comm, matrix, n, w);
     } else if (precond == "GS") {
-        return wrapBlockPreconditioner<Dune::SeqGS<MatrixType, VectorType, VectorType>>(comm, matrix, n, w);
+        return wrapBlockPreconditioner<DummyUpdatePreconditioner<Dune::SeqGS<MatrixType, VectorType, VectorType>>>(comm, matrix, n, w);
     } else if (precond == "SOR") {
-        return wrapBlockPreconditioner<Dune::SeqSOR<MatrixType, VectorType, VectorType>>(comm, matrix, n, w);
+        return wrapBlockPreconditioner<DummyUpdatePreconditioner<Dune::SeqSOR<MatrixType, VectorType, VectorType>>>(comm, matrix, n, w);
     } else if (precond == "SSOR") {
-        return wrapBlockPreconditioner<Dune::SeqSSOR<MatrixType, VectorType, VectorType>>(comm, matrix, n, w);
+        return wrapBlockPreconditioner<DummyUpdatePreconditioner<Dune::SeqSSOR<MatrixType, VectorType, VectorType>>>(comm, matrix, n, w);
     } else if (precond == "ILUn") {
-        return wrapBlockPreconditioner<Dune::SeqILUn<MatrixType, VectorType, VectorType>>(comm, matrix, n, w);
+        return wrapBlockPreconditioner<DummyUpdatePreconditioner<Dune::SeqILUn<MatrixType, VectorType, VectorType>>>(comm, matrix, n, w);
     } else {
         std::string msg("No such preconditioner : ");
         msg += precond;
@@ -298,9 +299,9 @@ makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& line
     }
 }
 
-template <class MatrixType, class VectorType, class Comm>
+template <class OperatorType, class VectorType, class Comm>
 std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-makePreconditioner(Dune::OverlappingSchwarzOperator<MatrixType, VectorType, VectorType, Comm>& linearoperator,
+makePreconditioner(OperatorType& linearoperator,
                    const boost::property_tree::ptree& prm,
                    const Comm& comm)
 {
@@ -310,7 +311,7 @@ makePreconditioner(Dune::OverlappingSchwarzOperator<MatrixType, VectorType, Vect
     //            or (prm.get<std::string>("preconditioner") == "cprt")) {
     //     return makeParTwoLevelPreconditioner<MatrixType, VectorType>(linearoperator, prm, comm);
     // } else {
-        return makeParPreconditioner<MatrixType, VectorType>(linearoperator, prm, comm);
+    return makeParPreconditioner<OperatorType, VectorType, Comm>(linearoperator, prm, comm);
     // }
 }
 

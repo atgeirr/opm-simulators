@@ -98,7 +98,7 @@ private:
                 const boost::property_tree::ptree& prm,
                 const Comm& comm)
     {
-        return Dune::makePreconditioner<MatrixType, VectorType>(op, prm, comm); // Parallel case.
+        return Dune::makePreconditioner<OperatorType, VectorType, Comm>(op, prm, comm); // Parallel case.
     }
     template <>
     std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
