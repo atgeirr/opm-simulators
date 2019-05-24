@@ -60,10 +60,9 @@ class ISTLSolverEbosFlexible
     using MatrixType = typename SparseMatrixAdapter::IstlMatrix;
 #if HAVE_MPI
     using Communication = Dune::OwnerOverlapCopyCommunication<int, int>;
-#else
-    using Communication = Dune::CollectiveCommunication<int>;
 #endif
-    using SolverType = Dune::FlexibleSolver<MatrixType, VectorType, Communication>;
+    using SolverType = Dune::FlexibleSolver<MatrixType, VectorType>;
+
 
 public:
     static void registerParameters()
@@ -77,12 +76,14 @@ public:
         parameters_.template init<TypeTag>();
         prm_ = setupPropertyTree(parameters_);
         extractParallelGridInformationToISTL(simulator_.vanguard().grid(), parallelInformation_);
+#if HAVE_MPI
         if (parallelInformation_.type() == typeid(ParallelISTLInformation)) {
             // Parallel case.
             const ParallelISTLInformation* parinfo = boost::any_cast<ParallelISTLInformation>(&parallelInformation_);
             assert(parinfo);
             comm_.reset(new Communication(parinfo->communicator()));
         }
+#endif
     }
 
     void eraseMatrix()
@@ -111,7 +112,11 @@ public:
         }
 
         if (recreate_solver || !solver_) {
-            solver_.reset(new SolverType(prm_, mat.istlMatrix(), *comm_));
+            if (isParallel()) {
+                solver_.reset(new SolverType(prm_, mat.istlMatrix(), *comm_));
+            } else {
+                solver_.reset(new SolverType(prm_, mat.istlMatrix()));
+            }
             rhs_ = b;
         } else {
             solver_->updatePreconditioner();

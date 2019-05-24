@@ -34,20 +34,30 @@ namespace Dune
 {
 
 
+template <class X, class Y>
+class SolverWithUpdate : public Dune::InverseOperator<X, Y>
+{
+public:
+    virtual void updatePreconditioner() = 0;
+};
 
-template <class MatrixTypeT, class VectorTypeT, class Communication>
-class FlexibleSolver : Dune::InverseOperator<VectorTypeT, VectorTypeT>
+
+template <class MatrixTypeT, class VectorTypeT>
+class FlexibleSolver : public Dune::SolverWithUpdate<VectorTypeT, VectorTypeT>
 {
 public:
     using MatrixType = MatrixTypeT;
     using VectorType = VectorTypeT;
 
+    /// Create a sequential solver.
     FlexibleSolver(const boost::property_tree::ptree& prm, const MatrixType& matrix)
     {
-        init(prm, matrix, Communication());
+        init(prm, matrix, Dune::Amg::SequentialInformation());
     }
 
-    FlexibleSolver(const boost::property_tree::ptree& prm, const MatrixType& matrix, const Communication& comm)
+    /// Create a parallel solver (if Comm is e.g. OwnerOverlapCommunication).
+    template <class Comm>
+    FlexibleSolver(const boost::property_tree::ptree& prm, const MatrixType& matrix, const Comm& comm)
     {
         init(prm, matrix, comm);
     }
@@ -62,58 +72,47 @@ public:
         linsolver_->apply(x, rhs, reduction, res);
     }
 
-    void updatePreconditioner()
+    virtual void updatePreconditioner() override
     {
         preconditioner_->update();
     }
 
     virtual Dune::SolverCategory::Category category() const override
     {
-        return IsSequential ? Dune::SolverCategory::sequential : Dune::SolverCategory::overlapping;
+        return linearoperator_->category();
     }
 
 private:
 
-    using SeqOperatorType = Dune::MatrixAdapter<MatrixType, VectorType, VectorType>;
-    using ParOperatorType = Dune::OverlappingSchwarzOperator<MatrixType, VectorType, VectorType, Communication>;
-    static constexpr bool IsSequential = std::is_same<Communication, Dune::Amg::SequentialInformation>::value;
-    using OperatorType = std::conditional_t<IsSequential, SeqOperatorType, ParOperatorType>;
+    using AbstractOperatorType = Dune::AssembledLinearOperator<MatrixType, VectorType, VectorType>;
+    using AbstractPrecondType = Dune::PreconditionerWithUpdate<VectorType, VectorType>;
+    using AbstractScalarProductType = Dune::ScalarProduct<VectorType>;
+    using AbstractSolverType = Dune::InverseOperator<VectorType, VectorType>;
 
-    // Machinery for making sequential or parallel operator.
+    // Machinery for making sequential or parallel operators/preconditioners/scalar products.
     template <class Comm>
-    std::shared_ptr<OperatorType> makeOperator(const MatrixType& matrix, const Comm& comm)
+    void initOpPrecSp(const MatrixType& matrix, const boost::property_tree::ptree& prm, const Comm& comm)
     {
-        return std::make_shared<OperatorType>(matrix, comm); // Parallel case.
+        // Parallel case.
+        using ParOperatorType = Dune::OverlappingSchwarzOperator<MatrixType, VectorType, VectorType, Comm>;
+        auto linop = std::make_shared<ParOperatorType>(matrix, comm);
+        linearoperator_ = linop;
+        preconditioner_ = Dune::makePreconditioner<ParOperatorType, VectorType, Comm>(*linop, prm, comm);
+        scalarproduct_ = Dune::createScalarProduct<VectorType, Comm>(comm, linearoperator_->category());
     }
     template <>
-    std::shared_ptr<OperatorType> makeOperator<Dune::Amg::SequentialInformation>(const MatrixType& matrix, const Dune::Amg::SequentialInformation&)
+    void initOpPrecSp<Dune::Amg::SequentialInformation>(const MatrixType& matrix, const boost::property_tree::ptree& prm, const Dune::Amg::SequentialInformation&)
     {
-        return std::make_shared<OperatorType>(matrix); // Sequential case.
+        // Sequential case.
+        using SeqOperatorType = Dune::MatrixAdapter<MatrixType, VectorType, VectorType>;
+        auto linop = std::make_shared<SeqOperatorType>(matrix);
+        linearoperator_ = linop;
+        preconditioner_ = Dune::makePreconditioner<MatrixType, VectorType>(*linop, prm);
+        scalarproduct_ = std::make_shared<Dune::SeqScalarProduct<VectorType>>();
     }
 
-    // Machinery for making sequential or parallel preconditioner.
-    template <class Comm>
-    std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-    makePrecond(OperatorType& op,
-                const boost::property_tree::ptree& prm,
-                const Comm& comm)
+    void initSolver(const boost::property_tree::ptree& prm)
     {
-        return Dune::makePreconditioner<OperatorType, VectorType, Comm>(op, prm, comm); // Parallel case.
-    }
-    template <>
-    std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-    makePrecond<Dune::Amg::SequentialInformation>(OperatorType& op,
-                                                  const boost::property_tree::ptree& prm,
-                                                  const Dune::Amg::SequentialInformation&)
-    {
-        return Dune::makePreconditioner<MatrixType, VectorType>(op, prm); // Sequential case.
-    }
-
-    void init(const boost::property_tree::ptree& prm, const MatrixType& matrix, const Communication& comm)
-    {
-        linearoperator_ = makeOperator(matrix, comm);
-        preconditioner_ = makePrecond(*linearoperator_, prm, comm);
-        scalarproduct_ = createScalarProduct<VectorType, Communication>(comm, category());
         const double tol = prm.get<double>("tol");
         const int maxiter = prm.get<int>("maxiter");
         const int verbosity = prm.get<int>("verbosity");
@@ -153,10 +152,20 @@ private:
         }
     }
 
-    std::shared_ptr<OperatorType> linearoperator_;
-    std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>> preconditioner_;
-    std::shared_ptr<Dune::ScalarProduct<VectorType>> scalarproduct_;
-    std::shared_ptr<Dune::InverseOperator<VectorType, VectorType>> linsolver_;
+
+    // Main initialization routine.
+    // Call with Comm == Dune::Amg::SequentialInformation to get a serial solver.
+    template <class Comm>
+    void init(const boost::property_tree::ptree& prm, const MatrixType& matrix, const Comm& comm)
+    {
+        initOpPrecSp(matrix, prm, comm);
+        initSolver(prm);
+    }
+
+    std::shared_ptr<AbstractOperatorType> linearoperator_;
+    std::shared_ptr<AbstractPrecondType> preconditioner_;
+    std::shared_ptr<AbstractScalarProductType> scalarproduct_;
+    std::shared_ptr<AbstractSolverType> linsolver_;
 };
 
 } // namespace Dune

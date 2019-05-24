@@ -54,7 +54,7 @@ makePreconditioner(OperatorType& linearoperator,
 
 
 // Must forward-declare FlexibleSolver as we want to use it as solver for the pressure system.
-template <class MatrixTypeT, class VectorTypeT, class Communication = Dune::Amg::SequentialInformation>
+template <class MatrixTypeT, class VectorTypeT>
 class FlexibleSolver;
 
 template <class MatrixTypeT, class VectorTypeT, bool transpose = false, class Communication = Dune::Amg::SequentialInformation>
