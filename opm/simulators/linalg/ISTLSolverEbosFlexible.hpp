@@ -92,6 +92,17 @@ public:
 
     void prepare(const SparseMatrixAdapter& mat, VectorType& b)
     {
+#if HAVE_MPI
+        static bool firstcall = true;
+        if (firstcall && parallelInformation_.type() == typeid(ParallelISTLInformation)) {
+            // Parallel case.
+            const ParallelISTLInformation* parinfo = boost::any_cast<ParallelISTLInformation>(&parallelInformation_);
+            assert(parinfo);
+            const size_t size = mat.istlMatrix().N();
+            parinfo->copyValuesTo(comm_->indexSet(), comm_->remoteIndices(), size, 1);
+            firstcall = false;
+        }
+#endif
         // Decide if we should recreate the solver or just do
         // a minimal preconditioner update.
         const int newton_iteration = this->simulator_.model().newtonMethod().numIterations();
