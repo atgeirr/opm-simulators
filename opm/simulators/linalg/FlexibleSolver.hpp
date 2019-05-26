@@ -107,7 +107,7 @@ private:
         using SeqOperatorType = Dune::MatrixAdapter<MatrixType, VectorType, VectorType>;
         auto linop = std::make_shared<SeqOperatorType>(matrix);
         linearoperator_ = linop;
-        preconditioner_ = Dune::makePreconditioner<MatrixType, VectorType>(*linop, prm);
+        preconditioner_ = Dune::makePreconditioner<SeqOperatorType, VectorType>(*linop, prm);
         scalarproduct_ = std::make_shared<Dune::SeqScalarProduct<VectorType>>();
     }
 

@@ -41,9 +41,9 @@ namespace Dune
 // Circular dependency between makePreconditioner() [which can make an OwningTwoLevelPreconditioner]
 // and OwningTwoLevelPreconditioner [which uses makePreconditioner() to choose the fine-level smoother]
 // must be broken, accomplished by forward-declaration here.
-template <class MatrixType, class VectorType>
+template <class OperatorType, class VectorType>
 std::shared_ptr<Dune::PreconditionerWithUpdate<VectorType, VectorType>>
-makePreconditioner(Dune::MatrixAdapter<MatrixType, VectorType, VectorType>& linearoperator,
+makePreconditioner(OperatorType& linearoperator,
                    const boost::property_tree::ptree& prm);
 
 template <class OperatorType, class VectorType, class Comm>
@@ -57,24 +57,20 @@ makePreconditioner(OperatorType& linearoperator,
 template <class MatrixTypeT, class VectorTypeT>
 class FlexibleSolver;
 
-template <class MatrixTypeT, class VectorTypeT, bool transpose = false, class Communication = Dune::Amg::SequentialInformation>
-class OwningTwoLevelPreconditioner : public Dune::PreconditionerWithUpdate<VectorTypeT, VectorTypeT>
+template <class OperatorType, class VectorType, bool transpose = false, class Communication = Dune::Amg::SequentialInformation>
+class OwningTwoLevelPreconditioner : public Dune::PreconditionerWithUpdate<VectorType, VectorType>
 {
 public:
     using pt = boost::property_tree::ptree;
-    using MatrixType = MatrixTypeT;
-    using VectorType = VectorTypeT;
-    using SeqOperatorType = Dune::MatrixAdapter<MatrixType, VectorType, VectorType>;
-    using ParOperatorType = Dune::OverlappingSchwarzOperator<MatrixType, VectorType, VectorType, Communication>;
-    using OperatorType = std::conditional_t<std::is_same<Communication, Dune::Amg::SequentialInformation>::value, SeqOperatorType, ParOperatorType>;
+    using MatrixType = typename OperatorType::matrix_type;
 
     OwningTwoLevelPreconditioner(OperatorType& linearoperator, pt& prm)
         : linear_operator_(linearoperator)
-        , finesmoother_(makePreconditioner<MatrixType, VectorType>(linearoperator, prm.get_child("finesmoother")))
-        , comm_()
+        , finesmoother_(makePreconditioner<OperatorType, VectorType>(linearoperator, prm.get_child("finesmoother")))
+        , comm_(nullptr)
         , weights_(Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(
               linearoperator.getmat(), prm.get<int>("pressure_var_index"), transpose))
-        , levelTransferPolicy_(comm_, weights_, prm.get<int>("pressure_var_index"))
+        , levelTransferPolicy_(*comm_, weights_, prm.get<int>("pressure_var_index"))
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator,
                            finesmoother_,
@@ -95,11 +91,11 @@ public:
 
     OwningTwoLevelPreconditioner(OperatorType& linearoperator, pt& prm, const Communication& comm)
         : linear_operator_(linearoperator)
-        , finesmoother_(makePreconditioner<MatrixType, VectorType, Communication>(linearoperator, prm.get_child("finesmoother"), comm))
-        , comm_(comm)
+        , finesmoother_(makePreconditioner<OperatorType, VectorType, Communication>(linearoperator, prm.get_child("finesmoother"), comm))
+        , comm_(&comm)
         , weights_(Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(
               linearoperator.getmat(), prm.get<int>("pressure_var_index"), transpose))
-        , levelTransferPolicy_(comm_, weights_, prm.get<int>("pressure_var_index"))
+        , levelTransferPolicy_(*comm_, weights_, prm.get<int>("pressure_var_index"))
         , coarseSolverPolicy_(prm.get_child("coarsesolver"))
         , twolevel_method_(linearoperator,
                            finesmoother_,
@@ -135,9 +131,7 @@ public:
 
     virtual void update() override
     {
-        Opm::Amg::getQuasiImpesWeights<MatrixType, VectorType>(linear_operator_.getmat(), prm_.get<int>("pressure_var_index"), transpose, weights_);
-        finesmoother_ = makePreconditioner<MatrixType, VectorType>(linear_operator_, prm_.get_child("finesmoother"));
-        twolevel_method_.updatePreconditioner(finesmoother_, coarseSolverPolicy_);
+        updateImpl<Communication>();
     }
 
     virtual Dune::SolverCategory::Category category() const override
@@ -153,13 +147,30 @@ private:
     using CoarseOperatorType = std::conditional_t<std::is_same<Communication, Dune::Amg::SequentialInformation>::value, SeqCoarseOperatorType, ParCoarseOperatorType>;
     using LevelTransferPolicy = Opm::PressureTransferPolicy<OperatorType, CoarseOperatorType, Communication, transpose>;
     using CoarseSolverPolicy
-        = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, FlexibleSolver<PressureMatrixType, PressureVectorType>>;
+        = Dune::Amg::PressureSolverPolicy<CoarseOperatorType, FlexibleSolver<PressureMatrixType, PressureVectorType>, LevelTransferPolicy>;
     using TwoLevelMethod
         = Dune::Amg::TwoLevelMethodCpr<OperatorType, CoarseSolverPolicy, Dune::Preconditioner<VectorType, VectorType>>;
 
+    // Handling parallel vs serial instantiation of makePreconditioner().
+    template <class Comm>
+    void updateImpl()
+    {
+        // Parallel case.
+        finesmoother_ = makePreconditioner<OperatorType, VectorType, Communication>(linear_operator_, prm_.get_child("finesmoother"), *comm_);
+        twolevel_method_.updatePreconditioner(finesmoother_, coarseSolverPolicy_);
+    }
+
+    template <>
+    void updateImpl<Dune::Amg::SequentialInformation>()
+    {
+        // Serial case.
+        finesmoother_ = makePreconditioner<OperatorType, VectorType>(linear_operator_, prm_.get_child("finesmoother"));
+        twolevel_method_.updatePreconditioner(finesmoother_, coarseSolverPolicy_);
+    }
+
     OperatorType& linear_operator_;
     std::shared_ptr<Dune::Preconditioner<VectorType, VectorType>> finesmoother_;
-    Communication comm_;
+    const Communication* comm_;
     VectorType weights_;
     LevelTransferPolicy levelTransferPolicy_;
     CoarseSolverPolicy coarseSolverPolicy_;
