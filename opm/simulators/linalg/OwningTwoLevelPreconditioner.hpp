@@ -136,7 +136,7 @@ public:
 
     virtual Dune::SolverCategory::Category category() const override
     {
-        return Dune::SolverCategory::sequential;
+        return linear_operator_.category();
     }
 
 private:
