@@ -1,4 +1,5 @@
 /*
+  Copyright 2016 Markus Blatt.
   Copyright 2019 SINTEF Digital, Mathematics and Cybernetics.
 
   This file is part of the Open Porous Media project (OPM).
@@ -19,6 +20,8 @@
 
 #include "config.h"
 
+#include <opm/simulators/linalg/FlexibleSolver.hpp>
+
 #include <dune/common/parallel/mpihelper.hh>
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/bvector.hh>
@@ -29,6 +32,8 @@
 #include <dune/istl/preconditioners.hh>
 #include <dune/istl/schwarz.hh>
 #include <dune/istl/solvers.hh>
+
+#include <boost/property_tree/json_parser.hpp>
 
 int
 main(int argc, char** argv)
@@ -83,25 +88,37 @@ main(int argc, char** argv)
     // solver components and call the apply method of the solver. Below we use the conjugate gradient method
     // preconditioned with hybrid SSOR:
 
+
+    // Read parameters.
+    boost::property_tree::ptree param;
+    {
+        std::ifstream file("options_flexiblesolver_parallel.json");
+        boost::property_tree::read_json(file, param);
+        boost::property_tree::write_json(std::cout, param);
+    }
+
     if (hasDofs) // if hasDofs is false we do not compute.
     {
         // the index set has changed. Rebuild the remote information
         comm_redist->remoteIndices().rebuild<false>();
-        typedef Dune::SeqSSOR<BCRSMat, BVector, BVector> Prec;
-        typedef Dune::BlockPreconditioner<BVector, BVector, Communication, Prec>
-            ParPrec; // type of parallel preconditioner
-        typedef Dune::OverlappingSchwarzScalarProduct<BVector, Communication>
-            ScalarProduct; // type of parallel scalar product
-        typedef Dune::OverlappingSchwarzOperator<BCRSMat, BVector, BVector, Communication>
-            Operator; // type of parallel linear operator
 
-        ScalarProduct sp(*comm_redist);
-        Operator op(parallel_A, *comm_redist);
-        Prec prec(parallel_A, 1, 1.0);
-        ParPrec pprec(prec, *comm_redist);
+        Dune::FlexibleSolver<BCRSMat, BVector> solver(param, parallel_A, *comm_redist);
+
+        // typedef Dune::SeqSSOR<BCRSMat, BVector, BVector> Prec;
+        // typedef Dune::BlockPreconditioner<BVector, BVector, Communication, Prec>
+        //     ParPrec; // type of parallel preconditioner
+        // typedef Dune::OverlappingSchwarzScalarProduct<BVector, Communication>
+        //     ScalarProduct; // type of parallel scalar product
+        // typedef Dune::OverlappingSchwarzOperator<BCRSMat, BVector, BVector, Communication>
+        //     Operator; // type of parallel linear operator
+
+        // ScalarProduct sp(*comm_redist);
+        // Operator op(parallel_A, *comm_redist);
+        // Prec prec(parallel_A, 1, 1.0);
+        // ParPrec pprec(prec, *comm_redist);
         Dune::InverseOperatorResult r;
-        Dune::BiCGSTABSolver<BVector> cg(op, sp, pprec, 10e-8, 80, world_comm.rank() == 0 ? 2 : 0);
-        cg.apply(parallel_x, parallel_b, r);
+        // Dune::BiCGSTABSolver<BVector> cg(op, sp, pprec, 10e-8, 80, world_comm.rank() == 0 ? 2 : 0);
+        solver.apply(parallel_x, parallel_b, r);
     }
     // If you really need to then you can also gather all the information on the master process afterwards:
 

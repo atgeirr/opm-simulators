@@ -116,6 +116,7 @@ list (APPEND TEST_DATA_FILES
   tests/matr33.txt
   tests/rhs3.txt
   tests/options_flexiblesolver.json
+  tests/options_flexiblesolver_parallel.json
   tests/sherman5.mtx
   tests/sherman5_rhs1.mtx
   )

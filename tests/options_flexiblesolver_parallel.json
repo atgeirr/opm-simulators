@@ -1,0 +1,9 @@
+{
+    "tol": "1e-7",
+    "maxiter": "80",
+    "verbosity": "2",
+    "solver": "bicgstab",
+    "preconditioner": "SSOR",
+    "w": "1.0",
+    "n": "1"
+}
