@@ -57,6 +57,7 @@ list (APPEND TEST_SOURCE_FILES
   tests/test_blackoil_amg.cpp
   tests/test_convergencereport.cpp
   tests/test_flexiblesolver.cpp
+  tests/test_flexiblesolver_parallel.cpp
   tests/test_graphcoloring.cpp
   tests/test_vfpproperties.cpp
   tests/test_milu.cpp
@@ -115,6 +116,8 @@ list (APPEND TEST_DATA_FILES
   tests/matr33.txt
   tests/rhs3.txt
   tests/options_flexiblesolver.json
+  tests/sherman5.mtx
+  tests/sherman5_rhs1.mtx
   )
 
 
