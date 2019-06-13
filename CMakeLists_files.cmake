@@ -170,7 +170,6 @@ list (APPEND PUBLIC_HEADER_FILES
   opm/simulators/linalg/PressureSolverPolicy.hpp
   opm/simulators/linalg/PressureTransferPolicy.hpp
   opm/simulators/linalg/PreconditionerFactory.hpp
-  opm/simulators/linalg/PreconditionerWithUpdate.hpp
   opm/simulators/linalg/findOverlapRowsAndColumns.hpp
   opm/simulators/linalg/getQuasiImpesWeights.hpp
   opm/simulators/linalg/setupPropertyTree.hpp

@@ -6,8 +6,6 @@
 // NOTE: This file is a modified version of dune/istl/paamg/amg.hh from
 // dune-istl release 2.6.0. Modifications have been kept as minimal as possible.
 
-#include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
-
 #include <dune/common/exceptions.hh>
 #include <dune/istl/paamg/smoother.hh>
 #include <dune/istl/paamg/transfer.hh>
@@ -133,7 +131,7 @@ namespace Dune
      */
     template<class M, class X, class S, class PI=SequentialInformation,
         class A=std::allocator<X> >
-    class AMGCPR : public PreconditionerWithUpdate<X,X>
+    class AMGCPR : public Preconditioner<X,X>
     {
       template<class M1, class X1, class S1, class P1, class K1, class A1>
       friend class KAMG;

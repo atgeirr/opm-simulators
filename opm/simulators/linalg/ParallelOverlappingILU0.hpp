@@ -639,16 +639,15 @@ public:
                              const int n, const field_type w,
                              MILU_VARIANT milu, bool redblack=false,
                              bool reorder_sphere=true)
-        : lower_(),
+        : A_(reinterpret_cast<const Matrix&>(A)), // BlockMatrix is a Subclass of FieldMatrix that just adds methods.
+                                                  // Therefore this cast should be safe.
+          lower_(),
           upper_(),
           inv_(),
           comm_(nullptr), w_(w),
           relaxation_( std::abs( w - 1.0 ) > 1e-15 )
     {
-        // BlockMatrix is a Subclass of FieldMatrix that just adds
-        // methods. Therefore this cast should be safe.
-        init( reinterpret_cast<const Matrix&>(A), n, milu, redblack,
-              reorder_sphere  );
+        init( n, milu, redblack, reorder_sphere );
     }
 
     /*! \brief Constructor gets all parameters to operate the prec.
@@ -668,16 +667,15 @@ public:
                              const ParallelInfo& comm, const int n, const field_type w,
                              MILU_VARIANT milu, bool redblack=false,
                              bool reorder_sphere=true)
-        : lower_(),
+        : A_(reinterpret_cast<const Matrix&>(A)), // BlockMatrix is a Subclass of FieldMatrix that just adds methods.
+                                                  // Therefore this cast should be safe.
+          lower_(),
           upper_(),
           inv_(),
           comm_(&comm), w_(w),
           relaxation_( std::abs( w - 1.0 ) > 1e-15 )
     {
-        // BlockMatrix is a Subclass of FieldMatrix that just adds
-        // methods. Therefore this cast should be safe.
-        init( reinterpret_cast<const Matrix&>(A), n, milu, redblack,
-              reorder_sphere );
+        init( n, milu, redblack, reorder_sphere );
     }
 
     /*! \brief Constructor.
@@ -718,7 +716,9 @@ public:
                              const ParallelInfo& comm, const field_type w,
                              MILU_VARIANT milu, bool redblack=false,
                              bool reorder_sphere=true)
-        : lower_(),
+        : A_(reinterpret_cast<const Matrix&>(A)), // BlockMatrix is a Subclass of FieldMatrix that just adds methods.
+                                                  // Therefore this cast should be safe.
+          lower_(),
           upper_(),
           inv_(),
           comm_(&comm), w_(w),
@@ -726,8 +726,7 @@ public:
     {
         // BlockMatrix is a Subclass of FieldMatrix that just adds
         // methods. Therefore this cast should be safe.
-        init( reinterpret_cast<const Matrix&>(A), 0, milu, redblack,
-              reorder_sphere );
+        init( 0, milu, redblack, reorder_sphere );
     }
 
     /*!
@@ -822,15 +821,25 @@ public:
         DUNE_UNUSED_PARAMETER(x);
     }
 
+    /*!
+       \brief Update preconditioner.
+
+       \copydoc Preconditioner::update()
+     */
+    virtual void update () override
+    {
+      // No-op for this preconditioner.
+    }
+
 protected:
-    void init( const Matrix& A, const int iluIteration, MILU_VARIANT milu, bool redBlack, bool reorderSpheres )
+    void init( const int iluIteration, MILU_VARIANT milu, bool redBlack, bool reorderSpheres )
     {
         // (For older DUNE versions the communicator might be
         // invalid if redistribution in AMG happened on the coarset level.
         // Therefore we check for nonzero size
         if ( comm_ && comm_->communicator().size()<=0 )
         {
-            if ( A.N() > 0 )
+            if ( A_.N() > 0 )
             {
                 OPM_THROW(std::logic_error, "Expected a matrix with zero rows for an invalid communicator.");
             }
@@ -850,7 +859,7 @@ protected:
         if ( redBlack )
         {
             using Graph = Dune::Amg::MatrixGraph<const Matrix>;
-            Graph graph(A);
+            Graph graph(A_);
             auto colorsTuple = colorVerticesWelshPowell(graph);
             const auto& colors = std::get<0>(colorsTuple);
             const auto& verticesPerColor = std::get<2>(colorsTuple);
@@ -880,23 +889,23 @@ protected:
                 // create ILU-0 decomposition
                 if ( ordering_.empty() )
                 {
-                    ILU.reset( new Matrix( A ) );
+                    ILU.reset( new Matrix( A_ ) );
                 }
                 else
                 {
-                    ILU.reset( new Matrix(A.N(), A.M(), A.nonzeroes(), Matrix::row_wise));
+                    ILU.reset( new Matrix(A_.N(), A_.M(), A_.nonzeroes(), Matrix::row_wise));
                     auto& newA = *ILU;
                     // Create sparsity pattern
                     for(auto iter=newA.createbegin(), iend = newA.createend(); iter != iend; ++iter)
                     {
-                        const auto& row = A[inverseOrdering[iter.index()]];
+                        const auto& row = A_[inverseOrdering[iter.index()]];
                         for(auto col = row.begin(), cend = row.end(); col != cend; ++col)
                         {
                             iter.insert(ordering_[col.index()]);
                         }
                     }
                     // Copy values
-                    for(auto iter = A.begin(), iend = A.end(); iter != iend; ++iter)
+                    for(auto iter = A_.begin(), iend = A_.end(); iter != iend; ++iter)
                     {
                         auto& newRow = newA[ordering_[iter.index()]];
                         for(auto col = iter->begin(), cend = iter->end(); col != cend; ++col)
@@ -930,7 +939,7 @@ protected:
             }
             else {
                 // create ILU-n decomposition
-                ILU.reset( new Matrix( A.N(), A.M(), Matrix::row_wise) );
+                ILU.reset( new Matrix( A_.N(), A_.M(), Matrix::row_wise) );
                 std::unique_ptr<detail::Reorderer> reorderer, inverseReorderer;
                 if ( ordering_.empty() )
                 {
@@ -943,7 +952,7 @@ protected:
                     inverseReorderer.reset(new detail::RealReorderer(inverseOrdering));
                 }
 
-                milun_decomposition( A, iluIteration, milu, *ILU, *reorderer, *inverseReorderer );
+                milun_decomposition( A_, iluIteration, milu, *ILU, *reorderer, *inverseReorderer );
             }
         }
         catch (const Dune::MatrixBlockError& error)
@@ -1021,6 +1030,9 @@ protected:
         }
     }
 protected:
+    //! \brief The matrix to precondition. Assumed valid for the lifetime of this object.
+    const Matrix& A_;
+
     //! \brief The ILU0 decomposition of the matrix.
     CRS lower_;
     CRS upper_;

@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(TestAddingPreconditioner)
 
     // Add preconditioner to factory for block size 1.
     PF<1>::addCreator("nothing", [](const O<1>&, const pt::ptree&) {
-            return Dune::wrapPreconditioner<NothingPreconditioner<V<1>>>();
+            return std::make_shared<NothingPreconditioner<V<1>>>();
         });
 
 
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(TestAddingPreconditioner)
 
     // Add preconditioner to factory for block size 3.
     PF<3>::addCreator("nothing", [](const O<3>&, const pt::ptree&) {
-            return Dune::wrapPreconditioner<NothingPreconditioner<V<3>>>();
+            return std::make_shared<NothingPreconditioner<V<3>>>();
         });
 
     // Test with 1x1 block solvers.

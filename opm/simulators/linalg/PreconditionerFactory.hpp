@@ -25,7 +25,6 @@
 #include <opm/simulators/linalg/OwningBlockPreconditioner.hpp>
 #include <opm/simulators/linalg/OwningTwoLevelPreconditioner.hpp>
 #include <opm/simulators/linalg/ParallelOverlappingILU0.hpp>
-#include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
 #include <opm/simulators/linalg/amgcpr.hh>
 
 #include <dune/istl/paamg/amg.hh>
@@ -54,7 +53,7 @@ public:
     using Vector = typename Operator::domain_type; // Assuming symmetry: that domain and range types are the same.
 
     /// The type of pointer returned by create().
-    using PrecPtr = std::shared_ptr<Dune::PreconditionerWithUpdate<Vector, Vector>>;
+    using PrecPtr = std::shared_ptr<Dune::Preconditioner<Vector, Vector>>;
 
     /// The type of creator functions passed to addCreator().
     using Creator = std::function<PrecPtr(const Operator&, const boost::property_tree::ptree&)>;
@@ -156,38 +155,38 @@ private:
         using C = Comm;
         doAddCreator("ILU0", [](const O& op, const P& prm, const C& comm) {
             const double w = prm.get<double>("relaxation");
-            return wrapBlockPreconditioner<DummyUpdatePreconditioner<SeqILU0<M, V, V>>>(comm, op.getmat(), w);
+            return wrapBlockPreconditioner<SeqILU<M, V, V>>(comm, op.getmat(), 0, w, true);
         });
         doAddCreator("ParOverILU0", [](const O& op, const P& prm, const C& comm) {
             const double w = prm.get<double>("relaxation");
             // Already a parallel preconditioner. Need to pass comm, but no need to wrap it in a BlockPreconditioner.
-            return wrapPreconditioner<Opm::ParallelOverlappingILU0<M, V, V, C>>(
+            return std::make_shared<Opm::ParallelOverlappingILU0<M, V, V, C>>(
                 op.getmat(), comm, 0, w, Opm::MILU_VARIANT::ILU);
         });
         doAddCreator("ILUn", [](const O& op, const P& prm, const C& comm) {
             const int n = prm.get<int>("ilulevel");
             const double w = prm.get<double>("relaxation");
-            return wrapBlockPreconditioner<DummyUpdatePreconditioner<SeqILUn<M, V, V>>>(comm, op.getmat(), n, w);
+            return wrapBlockPreconditioner<SeqILU<M, V, V>>(comm, op.getmat(), n, w, true);
         });
         doAddCreator("Jac", [](const O& op, const P& prm, const C& comm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapBlockPreconditioner<DummyUpdatePreconditioner<SeqJac<M, V, V>>>(comm, op.getmat(), n, w);
+            return wrapBlockPreconditioner<SeqJac<M, V, V>>(comm, op.getmat(), n, w);
         });
         doAddCreator("GS", [](const O& op, const P& prm, const C& comm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapBlockPreconditioner<DummyUpdatePreconditioner<SeqGS<M, V, V>>>(comm, op.getmat(), n, w);
+            return wrapBlockPreconditioner<SeqGS<M, V, V>>(comm, op.getmat(), n, w);
         });
         doAddCreator("SOR", [](const O& op, const P& prm, const C& comm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapBlockPreconditioner<DummyUpdatePreconditioner<SeqSOR<M, V, V>>>(comm, op.getmat(), n, w);
+            return wrapBlockPreconditioner<SeqSOR<M, V, V>>(comm, op.getmat(), n, w);
         });
         doAddCreator("SSOR", [](const O& op, const P& prm, const C& comm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapBlockPreconditioner<DummyUpdatePreconditioner<SeqSSOR<M, V, V>>>(comm, op.getmat(), n, w);
+            return wrapBlockPreconditioner<SeqSSOR<M, V, V>>(comm, op.getmat(), n, w);
         });
         doAddCreator("amg", [](const O& op, const P& prm, const C& comm) {
             const std::string smoother = prm.get<std::string>("smoother");
@@ -221,36 +220,36 @@ private:
         using P = boost::property_tree::ptree;
         doAddCreator("ILU0", [](const O& op, const P& prm) {
             const double w = prm.get<double>("relaxation");
-            return wrapPreconditioner<SeqILU0<M, V, V>>(op.getmat(), w);
+            return std::make_shared<SeqILU<M, V, V>>(op.getmat(), 0, w, true);
         });
         doAddCreator("ParOverILU0", [](const O& op, const P& prm) {
             const double w = prm.get<double>("relaxation");
-            return wrapPreconditioner<Opm::ParallelOverlappingILU0<M, V, V>>(op.getmat(), 0, w, Opm::MILU_VARIANT::ILU);
+            return std::make_shared<Opm::ParallelOverlappingILU0<M, V, V>>(op.getmat(), 0, w, Opm::MILU_VARIANT::ILU);
         });
         doAddCreator("ILUn", [](const O& op, const P& prm) {
             const int n = prm.get<int>("ilulevel");
             const double w = prm.get<double>("relaxation");
-            return wrapPreconditioner<SeqILUn<M, V, V>>(op.getmat(), n, w);
+            return std::make_shared<SeqILU<M, V, V>>(op.getmat(), n, w, true);
         });
         doAddCreator("Jac", [](const O& op, const P& prm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapPreconditioner<SeqJac<M, V, V>>(op.getmat(), n, w);
+            return std::make_shared<SeqJac<M, V, V>>(op.getmat(), n, w);
         });
         doAddCreator("GS", [](const O& op, const P& prm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapPreconditioner<SeqGS<M, V, V>>(op.getmat(), n, w);
+            return std::make_shared<SeqGS<M, V, V>>(op.getmat(), n, w);
         });
         doAddCreator("SOR", [](const O& op, const P& prm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapPreconditioner<SeqSOR<M, V, V>>(op.getmat(), n, w);
+            return std::make_shared<SeqSOR<M, V, V>>(op.getmat(), n, w);
         });
         doAddCreator("SSOR", [](const O& op, const P& prm) {
             const int n = prm.get<int>("repeats");
             const double w = prm.get<double>("relaxation");
-            return wrapPreconditioner<SeqSSOR<M, V, V>>(op.getmat(), n, w);
+            return std::make_shared<SeqSSOR<M, V, V>>(op.getmat(), n, w);
         });
         doAddCreator("amg", [](const O& op, const P& prm) {
             const std::string smoother = prm.get<std::string>("smoother");
@@ -280,7 +279,7 @@ private:
             Dune::Amg::Parameters parms;
             parms.setNoPreSmoothSteps(1);
             parms.setNoPostSmoothSteps(1);
-            return wrapPreconditioner<Dune::Amg::FastAMG<O, V>>(op, crit, parms);
+            return std::make_shared<Dune::Amg::FastAMG<O, V>>(op, crit, parms);
         });
         doAddCreator("cpr", [](const O& op, const P& prm) {
             return std::make_shared<OwningTwoLevelPreconditioner<O, V, false>>(op, prm);

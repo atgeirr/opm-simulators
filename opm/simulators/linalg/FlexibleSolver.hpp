@@ -69,7 +69,7 @@ public:
     }
 
     /// Type of the contained preconditioner.
-    using AbstractPrecondType = Dune::PreconditionerWithUpdate<VectorType, VectorType>;
+    using AbstractPrecondType = Dune::Preconditioner<VectorType, VectorType>;
 
     /// Access the contained preconditioner.
     AbstractPrecondType& preconditioner()

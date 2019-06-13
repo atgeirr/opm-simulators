@@ -20,7 +20,6 @@
 #ifndef OPM_OWNINGTWOLEVELPRECONDITIONER_HEADER_INCLUDED
 #define OPM_OWNINGTWOLEVELPRECONDITIONER_HEADER_INCLUDED
 
-#include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
 #include <opm/simulators/linalg/PressureSolverPolicy.hpp>
 #include <opm/simulators/linalg/PressureTransferPolicy.hpp>
 #include <opm/simulators/linalg/getQuasiImpesWeights.hpp>
@@ -58,7 +57,7 @@ template <class OperatorType,
           class VectorType,
           bool transpose = false,
           class Communication = Dune::Amg::SequentialInformation>
-class OwningTwoLevelPreconditioner : public Dune::PreconditionerWithUpdate<VectorType, VectorType>
+class OwningTwoLevelPreconditioner : public Dune::Preconditioner<VectorType, VectorType>
 {
 public:
     using pt = boost::property_tree::ptree;

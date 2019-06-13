@@ -20,16 +20,15 @@
 #ifndef OPM_OWNINGBLOCKPRECONDITIONER_HEADER_INCLUDED
 #define OPM_OWNINGBLOCKPRECONDITIONER_HEADER_INCLUDED
 
-#include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
-
+#include <dune/istl/preconditioner.hh>
 #include <dune/istl/schwarz.hh>
 
 namespace Dune
 {
 
 template <class OriginalPreconditioner, class Comm>
-class OwningBlockPreconditioner : public PreconditionerWithUpdate<typename OriginalPreconditioner::domain_type,
-                                                                  typename OriginalPreconditioner::range_type>
+class OwningBlockPreconditioner : public Preconditioner<typename OriginalPreconditioner::domain_type,
+                                                        typename OriginalPreconditioner::range_type>
 {
 public:
     template <class... Args>
@@ -62,7 +61,6 @@ public:
         return block_precond_.category();
     }
 
-    // The update() function does nothing for a wrapped preconditioner.
     virtual void update() override
     {
         orig_precond_.update();
