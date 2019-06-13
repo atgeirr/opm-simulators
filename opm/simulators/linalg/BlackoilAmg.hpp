@@ -761,10 +761,11 @@ public:
                                                 criterion_, true);
 
             using CommunicationArgs = typename Dune::Amg::ConstructionTraits<Communication>::Arguments;
-            CommunicationArgs commArgs(communication_->communicator(), communication_->getSolverCategory());
 #if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
+            CommunicationArgs commArgs(communication_->communicator(), communication_->category());
             coarseLevelCommunication_ = Dune::Amg::ConstructionTraits<Communication>::construct(commArgs);
 #else
+            CommunicationArgs commArgs(communication_->communicator(), communication_->getSolverCategory());
             coarseLevelCommunication_.reset(Dune::Amg::ConstructionTraits<Communication>::construct(commArgs));
 #endif
             using Iterator = typename std::vector<bool>::iterator;

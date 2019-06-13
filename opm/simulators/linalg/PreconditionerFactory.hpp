@@ -253,8 +253,10 @@ private:
         });
         doAddCreator("amg", [](const O& op, const P& prm) {
             const std::string smoother = prm.get<std::string>("smoother");
+            // if (smoother == "ILU0") {
+            //     using Smoother = SeqILU0<M, V, V>;
             if (smoother == "ILU0") {
-                using Smoother = SeqILU0<M, V, V>;
+                using Smoother = SeqILU<M, V, V>;
                 return makeAmgPreconditioner<Smoother>(op, prm);
             } else if (smoother == "Jac") {
                 using Smoother = SeqJac<M, V, V>;
@@ -266,7 +268,8 @@ private:
                 using Smoother = SeqSSOR<M, V, V>;
                 return makeAmgPreconditioner<Smoother>(op, prm);
             } else if (smoother == "ILUn") {
-                using Smoother = SeqILUn<M, V, V>;
+                // using Smoother = SeqILUn<M, V, V>;
+                using Smoother = SeqILU<M, V, V>;
                 return makeAmgPreconditioner<Smoother>(op, prm);
             } else {
                 std::string msg("No such smoother: ");
