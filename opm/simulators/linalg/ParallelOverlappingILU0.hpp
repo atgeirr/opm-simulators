@@ -947,7 +947,14 @@ protected:
                 if ( ordering_.empty() )
                 {
                     if (ILU_) {
-                        ILU_->assignValuesFrom(A_);
+                        // ILU_->assignValuesFrom(A_);
+                        auto ILUiter = ILU_->begin();
+                        for (auto iter = A_.begin(), iend = A_.end(); iter != iend; ++iter, ++ILUiter) {
+                            auto ILUcol = ILUiter->begin();
+                            for (auto col = iter->begin(), cend = iter->end(); col != cend; ++col, ++ILUcol) {
+                                *ILUcol = *col;
+                            }
+                        }
                     } else {
                         ILU_.reset( new Matrix( A_ ) );
                     }
