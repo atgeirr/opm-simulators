@@ -486,7 +486,7 @@ namespace Opm
                         inv[ row ] = (*j);
                         break;
                     } else if ( j.index() >= i.index() ) {
-                        assert(j.index = upper.cols_[elem]);
+                        assert(j.index() == upper.cols_[elem]);
                         upper.values_[elem] = (*j);
                         ++colcount;
                         ++elem;

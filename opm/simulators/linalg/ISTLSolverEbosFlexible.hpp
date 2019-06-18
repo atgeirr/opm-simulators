@@ -63,6 +63,9 @@ class ISTLSolverEbosFlexible
     using Communication = Dune::OwnerOverlapCopyCommunication<int, int>;
 #endif
     using SolverType = Dune::FlexibleSolver<MatrixType, VectorType>;
+    using FloatMatrixType = Dune::BCRSMatrix<Dune::FieldMatrix<float, 3, 3>>;
+    using FloatVectorType = Dune::BlockVector<Dune::FieldVector<float, 3>>;
+    using FloatSolverType = Dune::FlexibleSolver<FloatMatrixType, FloatVectorType>;
 
 
 public:
@@ -106,6 +109,10 @@ public:
         }
         makeOverlapRowsInvalid(mat.istlMatrix());
 #endif
+        if (floatA_.N() == 0) {
+            buildFloatMatrixStructure(mat.istlMatrix());
+        }
+
         // Decide if we should recreate the solver or just do
         // a minimal preconditioner update.
         const int newton_iteration = this->simulator_.model().newtonMethod().numIterations();
@@ -129,24 +136,59 @@ public:
             // Never recreate solver.
         }
 
-        if (recreate_solver || !solver_) {
-            if (isParallel()) {
+        const bool useFloat = true;
+        if (useFloat) {
+            copyValuesToFloatMatrix(mat.istlMatrix());
+            if (recreate_solver || !floatSolver_) {
+                if (isParallel()) {
 #if HAVE_MPI
-                solver_.reset(new SolverType(prm_, mat.istlMatrix(), *comm_));
+                    floatSolver_.reset(new FloatSolverType(prm_, floatA_, *comm_));
 #endif
+                } else {
+                    floatSolver_.reset(new FloatSolverType(prm_, floatA_));
+                }
             } else {
-                solver_.reset(new SolverType(prm_, mat.istlMatrix()));
+                floatSolver_->preconditioner().update();
             }
-            rhs_ = b;
+            const size_t n = b.size();
+            floatRhs_.resize(n);
+            for (size_t i = 0; i < n; ++i) {
+                floatRhs_[i] = b[i];
+            }
+            floatX_.resize(n);
         } else {
-            solver_->preconditioner().update();
-            rhs_ = b;
+            if (recreate_solver || !solver_) {
+                if (isParallel()) {
+#if HAVE_MPI
+                    solver_.reset(new SolverType(prm_, mat.istlMatrix(), *comm_));
+#endif
+                } else {
+                    solver_.reset(new SolverType(prm_, mat.istlMatrix()));
+                }
+                rhs_ = b;
+            } else {
+                solver_->preconditioner().update();
+                rhs_ = b;
+            }
         }
     }
 
     bool solve(VectorType& x)
     {
-        solver_->apply(x, rhs_, res_);
+        const bool useFloat = true;
+        if (useFloat) {
+            const size_t n = floatRhs_.size();
+            floatX_.resize(n);
+            for (size_t i = 0; i < n; ++i) {
+                floatX_[i] = x[i];
+            }
+            floatSolver_->apply(floatX_, floatRhs_, res_);
+            for (size_t i = 0; i < n; ++i) {
+                x[i] = floatX_[i];
+            }
+        } else {
+            solver_->apply(x, rhs_, res_);
+        }
         return res_.converged;
     }
 
@@ -200,13 +242,51 @@ protected:
         }
     }
 
+    template <class M>
+    void buildFloatMatrixStructure(const M& m)
+    {
+        // Create ISTL matrix with interleaved rows and columns (block structured).
+        floatA_.setSize(m.N(), m.M(), m.nonzeroes());
+        floatA_.setBuildMode(FloatMatrixType::row_wise);
+        auto frow = floatA_.createbegin();
+        auto row = m.begin();
+        auto endrow = m.end();
+        for (; row != endrow; ++row, ++frow) {
+            const int ri = row.index();
+            auto col = row->begin();
+            auto endcol = row->end();
+            for (; col != endcol; ++col) {
+                frow.insert(col.index());
+            }
+        }
+    }
+
+    template <class M>
+    void copyValuesToFloatMatrix(const M& m)
+    {
+        auto frow = floatA_.begin();
+        auto row = m.begin();
+        auto endrow = m.end();
+        for (; row != endrow; ++row, ++frow) {
+            auto fcol = frow->begin();
+            auto col = row->begin();
+            auto endcol = row->end();
+            for (; col != endcol; ++col, ++fcol) {
+                *fcol = *col;
+            }
+        }
+    }
 
     const Simulator& simulator_;
 
     std::unique_ptr<SolverType> solver_;
+    std::unique_ptr<FloatSolverType> floatSolver_;
     FlowLinearSolverParameters parameters_;
     boost::property_tree::ptree prm_;
     VectorType rhs_;
+    FloatMatrixType floatA_;
+    FloatVectorType floatRhs_;
+    FloatVectorType floatX_;
     Dune::InverseOperatorResult res_;
     boost::any parallelInformation_;
 #if HAVE_MPI
