@@ -225,7 +225,7 @@ protected:
         const int numEq = MatrixType::block_type::rows;
         typename MatrixType::block_type diag_block(0.0);
         for (int eq = 0; eq < numEq; ++eq)
-            diag_block[eq][eq] = 1.0e100;
+            diag_block[eq][eq] = 1.0e12;
 
         // loop over precalculated overlap rows and columns
         for (auto row = overlapRowAndColumns_.begin(); row != overlapRowAndColumns_.end(); row++) {
