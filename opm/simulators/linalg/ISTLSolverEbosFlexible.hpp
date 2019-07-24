@@ -136,7 +136,7 @@ public:
             // Never recreate solver.
         }
 
-        const bool useFloat = true;
+        const bool useFloat = false;
         if (useFloat) {
             copyValuesToFloatMatrix(mat.istlMatrix());
             if (recreate_solver || !floatSolver_) {
@@ -158,6 +158,7 @@ public:
             floatX_.resize(n);
         } else {
             if (recreate_solver || !solver_) {
+                OpmLog::info("Creating solver.");
                 if (isParallel()) {
 #if HAVE_MPI
                     solver_.reset(new SolverType(prm_, mat.istlMatrix(), *comm_));
@@ -167,6 +168,7 @@ public:
                 }
                 rhs_ = b;
             } else {
+                OpmLog::info("Updating solver.");
                 solver_->preconditioner().update();
                 rhs_ = b;
             }
@@ -175,7 +177,7 @@ public:
 
     bool solve(VectorType& x)
     {
-        const bool useFloat = true;
+        const bool useFloat = false;
         if (useFloat) {
             const size_t n = floatRhs_.size();
             floatX_.resize(n);
