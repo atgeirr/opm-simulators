@@ -505,9 +505,9 @@ namespace Opm {
 #if HAVE_MPI
                 using Communication = Dune::OwnerOverlapCopyCommunication<int, int>;
                 Communication comm;
-                if (parallelInformation_.type() == typeid(ParallelISTLInformation)) {
+                if (parallelInformation.type() == typeid(ParallelISTLInformation)) {
                     // Parallel case.
-                    const ParallelISTLInformation* parinfo = std::any_cast<ParallelISTLInformation>(&parallelInformation_);
+                    const ParallelISTLInformation* parinfo = std::any_cast<ParallelISTLInformation>(&parallelInformation);
                     assert(parinfo);
                     comm = Communication(parinfo->communicator());
                 }

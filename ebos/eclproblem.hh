@@ -1929,7 +1929,7 @@ public:
      * \brief update pressure and totalSaturation 
      * update copy of pressure and total saturation for sequential solve
      */
-    bool updatePressure(){
+    void updatePressure(){
         LinearizationType linearizationType = this->simulator().model().linearizer().getLinearizationType();
         // maybe use simulation type instead
         if(not(linearizationType.type == Opm::LinearizationType::implicit)){
