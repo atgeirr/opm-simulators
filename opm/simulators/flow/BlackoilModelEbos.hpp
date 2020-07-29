@@ -521,14 +521,21 @@ namespace Opm {
                     assert(parinfo);
                     comm.reset(new Communication(parinfo->communicator()));
                 }
+                using PressureOperatorType = Dune::OverlappingSchwarzOperator<PressureMatrixType,
+                                                                              PressureVectorType,
+                                                                              PressureVectorType,
+                                                                              Communication>;
+                PressureOperatorType op(pmatrix, *comm);
 #else
                 using Communication = Dune::Amg::SequentialInformation; // Dummy type
                 std::unique_ptr<Communication> comm;
+                using PressureOperatorType = Dune::MatrixAdapter<PressureMatrixType, PressureVectorType, PressureVectorType>;
+                PressureOperatorType op(pmatrix);
 #endif
 
 
                 std::function<PressureVectorType()> weightsCalculator;// dummy
-                Dune::FlexibleSolver<PressureMatrixType,PressureVectorType> pressureSolver(pmatrix, *comm, prm, weightsCalculator);
+                Dune::FlexibleSolver<PressureMatrixType, PressureVectorType> pressureSolver(op, *comm, prm, weightsCalculator);
                 PressureVectorType xp(x.size(),0);
                 Dune::InverseOperatorResult res;
                 pressureSolver.apply(xp,rhs, res);
