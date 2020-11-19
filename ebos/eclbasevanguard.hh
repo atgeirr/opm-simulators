@@ -444,7 +444,7 @@ protected:
 
     void updateCartesianToCompressedMapping_()
     {
-        size_t num_cells = asImp_().grid().leafGridView().size(0);
+        size_t num_cells = asImp_().equilGrid().leafGridView().size(0);
         is_interior_.resize(num_cells);
         
         ElementMapper elemMapper(this->gridView(), Dune::mcmgElementLayout());

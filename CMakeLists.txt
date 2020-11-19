@@ -457,6 +457,65 @@ opm_add_test(flow_distribute_z
   $<TARGET_OBJECTS:moduleVersion>
   )
 
+if (NOT BUILD_FLOW_ALU_GRID)
+  set(FLOW_ALUGRID_ONLY_DEFAULT_ENABLE_IF "FALSE")
+else()
+  set(FLOW_ALUGRID_ONLY_DEFAULT_ENABLE_IF "TRUE")
+endif()
+
+# the production oriented general-purpose ECL simulator
+opm_add_test(flow_alugrid
+  ONLY_COMPILE
+  ALWAYS_ENABLE
+  DEFAULT_ENABLE_IF ${FLOW_ALUGRID_ONLY_DEFAULT_ENABLE_IF}
+  DEPENDS opmsimulators
+  LIBRARIES opmsimulators
+  SOURCES
+  flow/flow_blackoil_alugrid.cpp
+  $<TARGET_OBJECTS:moduleVersion>)
+target_compile_definitions(flow_alugrid PRIVATE USE_ALUGRID)
+
+
+if (NOT BUILD_FLOW_VARIANTS)
+  set(FLOW_VARIANTS_DEFAULT_ENABLE_IF "FALSE")
+else()
+  set(FLOW_VARIANTS_DEFAULT_ENABLE_IF "TRUE")
+endif()
+
+# Variant versions of Flow.
+opm_add_test(flow_blackoil_dunecpr
+  ONLY_COMPILE
+  DEFAULT_ENABLE_IF ${FLOW_VARIANTS_DEFAULT_ENABLE_IF}
+  SOURCES
+  flow/flow_blackoil_dunecpr.cpp
+  $<TARGET_OBJECTS:moduleVersion>
+  EXE_NAME flow_blackoil_dunecpr
+  DEPENDS opmsimulators
+  LIBRARIES opmsimulators)
+
+opm_add_test(flow_onephase
+  ONLY_COMPILE
+  DEFAULT_ENABLE_IF ${FLOW_VARIANTS_DEFAULT_ENABLE_IF}
+  SOURCES
+  flow/flow_onephase.cpp
+  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:flow_libonephase>
+  EXE_NAME flow_onephase
+  DEPENDS opmsimulators
+  LIBRARIES opmsimulators)
+
+opm_add_test(flow_onephase_energy
+  ONLY_COMPILE
+  DEFAULT_ENABLE_IF ${FLOW_VARIANTS_DEFAULT_ENABLE_IF}
+  SOURCES
+  flow/flow_onephase_energy.cpp
+  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:flow_libonephase_energy>
+  EXE_NAME flow_onephase_energy
+  DEPENDS opmsimulators flow_libonephase_energy
+  LIBRARIES opmsimulators)
+
+>>>>>>> 16f98d693... WIP make it compile with dune-fem
 if (BUILD_FLOW)
   install(TARGETS flow DESTINATION bin)
   opm_add_bash_completion(flow)

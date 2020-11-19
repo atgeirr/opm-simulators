@@ -102,6 +102,18 @@ public:
     {
         this->callImplementationInit();
     }
+    
+     /*!
+     * \brief Return a reference to the simulation grid.
+     */
+    Grid& grid()
+    { return *grid_; }
+
+    /*!
+     * \brief Return a reference to the simulation grid.
+     */
+    const Grid& grid() const
+    { return *grid_; }
 
     /*!
      * \brief Free the memory occupied by the global transmissibility object.
@@ -149,6 +161,32 @@ public:
 #endif
     }
 
+    template<class DataHandle>
+    void scatterData(DataHandle& handle) const
+    {
+        grid().scatterData(handle);
+    }
+
+    template<class DataHandle>
+    void gatherData(DataHandle& handle) const
+    {
+        grid().gatherData(handle);
+    }
+
+    template<class DataHandle, class InterfaceType, class CommunicationDirection>
+    void communicate (DataHandle& data, InterfaceType iftype, CommunicationDirection dir) const
+    {
+        grid().communicate(data, iftype, dir);
+    }
+
+    unsigned int gridEquilIdxToGridIdx(unsigned int elemIndex) const {
+        return elemIndex;
+    }
+
+    unsigned int gridIdxToEquilGridIdx(unsigned int elemIndex) const {
+        return elemIndex;
+    }
+
     /*!
      * \brief Get function to query cell centroids for a distributed grid.
      *
@@ -161,6 +199,12 @@ public:
     {
         return this->cellCentroids_(this->cartesianIndexMapper());
     }
+
+    const std::vector<int>& globalCell()
+    {
+        return grid().globalCell();
+    }
+
 
 protected:
     void createGrids_()
@@ -191,6 +235,8 @@ protected:
         this->doFilterConnections_(this->schedule());
     }
 
+    std::unique_ptr<Grid> grid_;
+    std::unique_ptr<EquilGrid> equilGrid_;
     std::unique_ptr<TransmissibilityType> globalTrans_;
 };
 

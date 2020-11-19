@@ -1568,27 +1568,28 @@ class InitialStateComputer
     using GridView = GetPropType<TypeTag, Properties::GridView>;
     using Element = typename GridView::template Codim<0>::Entity;
     using ElementMapper = GetPropType<TypeTag, Properties::ElementMapper>;
+    using Vanguard = GetPropType<TypeTag, Properties::Vanguard>;
     using Grid = GetPropType<TypeTag, Properties::Grid>;
     using CartesianIndexMapper = Dune::CartesianIndexMapper<Grid>;
 
 public:
     template<class MaterialLawManager>
     InitialStateComputer(MaterialLawManager& materialLawManager,
-                         const EclipseState& eclipseState,
-                         const GridView& gridView,
+                         const Opm::EclipseState& eclipseState,
+                         const Vanguard& vanguard,
                          const CartesianIndexMapper& cartMapper,
-                         const double grav = unit::gravity,
+                         const double grav = Opm::unit::gravity,
                          const bool applySwatInit = true)
-        : temperature_(gridView.size(/*codim=*/0)),
-          saltConcentration_(gridView.size(/*codim=*/0)),
-          saltSaturation_(gridView.size(/*codim=*/0)),
+        : temperature_(vanguard.grid().size(/*codim=*/0)),
+          saltConcentration_(vanguard.grid().size(/*codim=*/0)),
+          saltSaturation_(vanguard.grid().size(/*codim=*/0)),
           pp_(FluidSystem::numPhases,
-          std::vector<double>(gridView.size(/*codim=*/0))),
+              std::vector<double>(vanguard.grid().size(/*codim=*/0))),
           sat_(FluidSystem::numPhases,
-          std::vector<double>(gridView.size(/*codim=*/0))),
-          rs_(gridView.size(/*codim=*/0)),
-          rv_(gridView.size(/*codim=*/0)),
-          cartesianIndexMapper_(cartMapper)
+               std::vector<double>(vanguard.grid().size(/*codim=*/0))),
+          rs_(vanguard.grid().size(/*codim=*/0)),
+          rv_(vanguard.grid().size(/*codim=*/0)),
+          cartesianIndexMapper_(vanguard.cartesianIndexMapper())
     {
         //Check for presence of kw SWATINIT
         if (applySwatInit) {
@@ -1600,13 +1601,15 @@ public:
         // Querry cell depth, cell top-bottom.
         // numerical aquifer cells might be specified with different depths.
         const auto& num_aquifers = eclipseState.aquifer().numericalAquifers();
-        updateCellProps_(gridView, num_aquifers);
+        updateCellProps_(vanguard, num_aquifers);
+
+        const Grid& grid = vanguard.grid();
 
         // Get the equilibration records.
         const std::vector<EquilRecord> rec = getEquil(eclipseState);
         const auto& tables = eclipseState.getTableManager();
         // Create (inverse) region mapping.
-        const RegionMapping<> eqlmap(equilnum(eclipseState, gridView));
+        const RegionMapping<> eqlmap(equilnum(eclipseState, grid));
         const int invalidRegion = -1;
         regionPvtIdx_.resize(rec.size(), invalidRegion);
         setRegionPvtIdx(eclipseState, eqlmap);
@@ -1717,11 +1720,11 @@ public:
         updateInitialSaltSaturation_(eclipseState, eqlmap);
 
         // Compute pressures, saturations, rs and rv factors.
-        const auto& comm = gridView.comm();
+        const auto& comm = grid.comm();
         calcPressSatRsRv(eqlmap, rec, materialLawManager, comm, grav);
 
         // modify the pressure and saturation for numerical aquifer cells
-        applyNumericalAquifers_(gridView, num_aquifers, eclipseState.runspec().co2Storage());
+        applyNumericalAquifers_(vanguard, num_aquifers, eclipseState.runspec().co2Storage());
 
         // Modify oil pressure in no-oil regions so that the pressures of present phases can
         // be recovered from the oil pressure and capillary relations.
@@ -1813,9 +1816,9 @@ private:
     std::vector<std::pair<double,double>> cellZSpan_;
     std::vector<std::pair<double,double>> cellZMinMax_;
 
-    void updateCellProps_(const GridView& gridView,
-                          const NumericalAquifers& aquifer)
+    void updateCellProps_(const Vanguard& vanguard, const NumericalAquifers& aquifer)
     {
+        const auto& gridView = vanguard.gridView();
         ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
         int numElements = gridView.size(/*codim=*/0);
         cellCenterDepth_.resize(numElements);
@@ -1829,7 +1832,8 @@ private:
             const Element& element = *elemIt;
             const unsigned int elemIdx = elemMapper.index(element);
             cellCenterDepth_[elemIdx] = Details::cellCenterDepth(element);
-            const auto cartIx = cartesianIndexMapper_.cartesianIndex(elemIdx);
+           // const auto& cartMapper = vanguard().cartesianIndexMapper();
+            const auto cartIx = vanguard.cartesianIndexMapper().cartesianIndex(elemIdx);
             if (!num_aqu_cells.empty()) {
                 const auto search = num_aqu_cells.find(cartIx);
                 if (search != num_aqu_cells.end()) {
@@ -1842,13 +1846,13 @@ private:
         }
     }
 
-    void applyNumericalAquifers_(const GridView& gridView,
+    void applyNumericalAquifers_(const Vanguard& vanguard,
                                  const NumericalAquifers& aquifer,
                                  const bool co2store)
     {
         const auto num_aqu_cells = aquifer.allAquiferCells();
         if (num_aqu_cells.empty()) return;
-
+        const auto& gridView = vanguard.gridView();
         ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
         auto elemIt = gridView.template begin</*codim=*/0>();
         const auto& elemEndIt = gridView.template end</*codim=*/0>();

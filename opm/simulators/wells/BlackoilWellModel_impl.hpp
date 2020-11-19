@@ -51,14 +51,17 @@ namespace Opm {
         // Number of cells the global grid view
         global_num_cells_ = ebosSimulator_.vanguard().globalNumCells();
 
-        // Set up parallel wells
-        auto& parallel_wells = ebosSimulator.vanguard().parallelWells();
+        // Set up cartesian mapping.
+        {
+            setupCartesianToCompressed_();
+
+            auto& parallel_wells = ebosSimulator.vanguard().parallelWells();
 
         this->parallel_well_info_.reserve(parallel_wells.size());
         for( const auto& name_bool: parallel_wells)
         {
             this->parallel_well_info_.emplace_back(name_bool,
-                                                   ebosSimulator_.gridView().comm());
+                                                   grid().comm());
         }
 
         this->alternative_well_rate_init_ =
@@ -113,6 +116,8 @@ namespace Opm {
 
         // Create cartesian to compressed mapping
         const auto& schedule_wells = schedule().getWellsatEnd();
+
+        const auto& cartesianSize = ebosSimulator_.vanguard().cartesianDimensions();
 
         // initialize the additional cell connections introduced by wells.
         for (const auto& well : schedule_wells)
@@ -1474,8 +1479,20 @@ namespace Opm {
         updatePrimaryVariables(deferred_logger);
     }
 
+    template<typename TypeTag>
+    void
+    BlackoilWellModel<TypeTag>::
+    setupCartesianToCompressed_()
+    {
+        const auto& cartMapper = ebosSimulator_.vanguard().cartesianIndexMapper();
+        const size_t cartesianSize = cartMapper.cartesianSize();
+        cartesian_to_compressed_.resize(cartesianSize, -1);
 
-
+        for (unsigned i = 0; i < local_num_cells_; ++i) {
+            unsigned cartesianCellIdx = cartMapper.cartesianIndex(i);
+            cartesian_to_compressed_[cartesianCellIdx] = i;
+        }
+    }
 
     template<typename TypeTag>
     void
@@ -1574,12 +1591,10 @@ namespace Opm {
     void
     BlackoilWellModel<TypeTag>::extractLegacyDepth_()
     {
-        const auto& grid = ebosSimulator_.vanguard().grid();
-        const unsigned numCells = grid.size(/*codim=*/0);
-
-        depth_.resize(numCells);
-        for (unsigned cellIdx = 0; cellIdx < numCells; ++cellIdx) {
-            depth_[cellIdx] = UgGridHelpers::cellCenterDepth( grid, cellIdx );
+        const auto& eclProblem = ebosSimulator_.problem();
+        depth_.resize(local_num_cells_);
+        for (unsigned cellIdx = 0; cellIdx < local_num_cells_; ++cellIdx) {
+            depth_[cellIdx] = eclProblem.dofCenterDepth(cellIdx);
         }
     }
 
