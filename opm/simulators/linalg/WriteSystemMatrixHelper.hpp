@@ -28,13 +28,16 @@ namespace Opm
 {
 namespace Helper
 {
-    template <class SimulatorType, class MatrixType, class VectorType, class Communicator>
-    void writeSystem(const SimulatorType& simulator,
+
+    template <class MatrixType, class VectorType, class Communicator>
+    void writeSystem(std::string dir,
+                     const int report_step,
+                     const double time,
+                     const int nit,
                      const MatrixType& matrix,
                      const VectorType& rhs,
                      [[maybe_unused]] const Communicator* comm)
     {
-        std::string dir = simulator.problem().outputDir();
         if (dir == ".") {
             dir = "";
         } else if (!dir.empty() && dir.back() != '/') {
@@ -49,9 +52,8 @@ namespace Helper
         }
         // Combine and return.
         std::ostringstream oss;
-        oss << "prob_" << simulator.episodeIndex() << "_time_";
-        oss << std::setprecision(15) << std::setw(12) << std::setfill('0') << simulator.time() << "_";
-        int nit = simulator.model().newtonMethod().numIterations();
+        oss << "prob_" << report_step << "_time_";
+        oss << std::setprecision(15) << std::setw(12) << std::setfill('0') << time << "_";
         oss << "_nit_" << nit << "_";
         std::string output_file(oss.str());
         fs::path full_path = output_dir / output_file;
@@ -80,6 +82,25 @@ namespace Helper
         }
     }
 
+
+
+
+    template <class SimulatorType, class MatrixType, class VectorType, class Communicator>
+    void writeSystem(const SimulatorType& simulator,
+                     const MatrixType& matrix,
+                     const VectorType& rhs,
+                     const Communicator* comm)
+    {
+
+        writeSystem(simulator.problem().outputDir(),
+                    simulator.episodeIndex(),
+                    simulator.time(),
+                    simulator.model().newtonMethod().numIterations(),
+                    matrix,
+                    rhs,
+                    comm);
+
+    }
 
 } // namespace Helper
 } // namespace Opm

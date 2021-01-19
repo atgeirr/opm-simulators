@@ -113,6 +113,9 @@ namespace Dune
                                                                                     comm);
         scalarproduct_ = Dune::createScalarProduct<VectorType, Comm>(comm, op.category());
         linearoperator_for_precond_ = op_prec;
+        if (write_system) {
+            Dune::storeMatrixMarket(matrix, filename, *comm, true);
+        }
     }
 
     template <class MatrixType, class VectorType>
@@ -134,6 +137,18 @@ namespace Dune
                                                                               weightsCalculator);
         scalarproduct_ = std::make_shared<Dune::SeqScalarProduct<VectorType>>();
         linearoperator_for_precond_ = op_prec;
+        const bool write_system = prm.get<bool>("write_system", false);
+        if (write_system) {
+
+                Dune::storeMatrixMarket(matrix, filename, *comm, true);
+                        if (comm != nullptr) { // comm is not set in serial runs
+            } else
+#endif
+            {
+                Dune::storeMatrixMarket(matrix, filename + ".mm");
+            }
+
+        }
     }
 
     template <class MatrixType, class VectorType>
