@@ -39,6 +39,7 @@ namespace Opm
           assemble_time(0.0),
           pre_post_time(0.0),
           assemble_time_well(0.0),
+          convergence_check_time(0.0),
           linear_solve_setup_time(0.0),
           linear_solve_time(0.0),
           update_time(0.0),
@@ -66,6 +67,7 @@ namespace Opm
         assemble_time += sr.assemble_time;
         pre_post_time += sr.pre_post_time;
         assemble_time_well += sr.assemble_time_well;
+        convergence_check_time += sr.convergence_check_time;
         update_time += sr.update_time;
         output_write_time += sr.output_write_time;
         total_time += sr.total_time;
@@ -123,6 +125,15 @@ namespace Opm
               os << fmt::format(" (Failed: {:2.1f}; {:2.1f}%)",
                                 failureReport->assemble_time_well,
                                 100*failureReport->assemble_time_well/t);
+            }
+            os << std::endl;
+
+            t = convergence_check_time + (failureReport ? failureReport->convergence_check_time : 0.0);
+            os << fmt::format(" Convergence check (seconds): {:7.2f}", t);
+            if (failureReport) {
+              os << fmt::format(" (Failed: {:2.1f}; {:2.1f}%)",
+                                failureReport->convergence_check_time,
+                                100*failureReport->convergence_check_time/t);
             }
             os << std::endl;
 

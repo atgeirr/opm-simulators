@@ -36,6 +36,7 @@ namespace Opm
         double assemble_time;
         double pre_post_time;
         double assemble_time_well;
+        double convergence_check_time;
         double linear_solve_setup_time;
         double linear_solve_time;
         double update_time;

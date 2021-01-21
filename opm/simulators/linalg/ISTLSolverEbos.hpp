@@ -113,23 +113,38 @@ namespace Opm
         }
 
         /// Construct a system solver.
-        /// \param[in] parallelInformation In the case of a parallel run
-        ///                                with dune-istl the information about the parallelization.
-        explicit ISTLSolverEbos(const Simulator& simulator)
+        explicit ISTLSolverEbos(const Simulator& simulator, const bool print_json_info = true)
             : simulator_(simulator),
               iterations_( 0 ),
               converged_(false),
               matrix_()
         {
-            const bool on_io_rank = (simulator.gridView().comm().rank() == 0);
+            parameters_.template init<TypeTag>();
+            initialize(print_json_info);
+        }
+
+        /// Construct a system solver passing explicit parameters instead of reading from properties.
+        explicit ISTLSolverEbos(const Simulator& simulator, const FlowLinearSolverParameters& parameters, const bool print_json_info = true)
+            : simulator_(simulator),
+              iterations_( 0 ),
+              converged_(false),
+              matrix_(),
+              parameters_(parameters)
+        {
+            initialize(print_json_info);
+        }
+
+        /// Initialize everything. This function exists to support the
+        /// two different constructors without repeating code.
+        void initialize(const bool print_json_info)
+        {
+            const bool on_io_rank = (simulator_.gridView().comm().rank() == 0);
 #if HAVE_MPI
             comm_.reset( new CommunicationType( simulator_.vanguard().grid().comm() ) );
 #endif
-            parameters_.template init<TypeTag>();
             prm_ = setupPropertyTree(parameters_,
                                      EWOMS_PARAM_IS_SET(TypeTag, int, LinearSolverMaxIter),
                                      EWOMS_PARAM_IS_SET(TypeTag, int, CprMaxEllIter));
-
 #if HAVE_CUDA || HAVE_OPENCL || HAVE_FPGA || HAVE_AMGCL
             {
                 std::string accelerator_mode = EWOMS_GET_PARAM(TypeTag, std::string, AcceleratorMode);
@@ -181,7 +196,7 @@ namespace Opm
             interiorCellNum_ = detail::numMatrixRowsToUseInSolver(simulator_.vanguard().grid(), true);
 
             // Print parameters to PRT/DBG logs.
-            if (on_io_rank) {
+            if (on_io_rank && print_json_info) {
                 std::ostringstream os;
                 os << "Property tree for linear solver:\n";
                 prm_.write_json(os, true);
@@ -193,15 +208,15 @@ namespace Opm
         void eraseMatrix() {
         }
 
-        void prepare(const SparseMatrixAdapter& M, Vector& b)
+        void prepare(const Matrix& M, Vector& b)
         {
-            static bool firstcall = true;
+            const bool firstcall = (matrix_ == nullptr);
 #if HAVE_MPI
             if (firstcall && parallelInformation_.type() == typeid(ParallelISTLInformation)) {
                 // Parallel case.
                 const ParallelISTLInformation* parinfo = std::any_cast<ParallelISTLInformation>(&parallelInformation_);
                 assert(parinfo);
-                const size_t size = M.istlMatrix().N();
+                const size_t size = M.N();
                 parinfo->copyValuesTo(comm_->indexSet(), comm_->remoteIndices(), size, 1);
             }
 #endif
@@ -211,12 +226,12 @@ namespace Opm
                 // ebos will not change the matrix object. Hence simply store a pointer
                 // to the original one with a deleter that does nothing.
                 // Outch! We need to be able to scale the linear system! Hence const_cast
-                matrix_ = const_cast<Matrix*>(&M.istlMatrix());
+                matrix_ = const_cast<Matrix*>(&M);
             } else {
                 // Pointers should not change
-                if ( &(M.istlMatrix()) != matrix_ ) {
+                if ( &(M) != matrix_ ) {
                         OPM_THROW(std::logic_error, "Matrix objects are expected to be reused when reassembling!"
-                                  <<" old pointer was " << matrix_ << ", new one is " << (&M.istlMatrix()) );
+                                  <<" old pointer was " << matrix_ << ", new one is " << (&M) );
                 }
             }
             rhs_ = &b;
@@ -225,7 +240,6 @@ namespace Opm
                 makeOverlapRowsInvalid(getMatrix());
             }
             prepareFlexibleSolver();
-            firstcall = false;
         }
 
 
@@ -237,8 +251,8 @@ namespace Opm
             b = *rhs_;
         }
 
-        void setMatrix(const SparseMatrixAdapter& /* M */) {
-            // matrix_ = &M.istlMatrix(); // Must be handled in prepare() instead.
+        void setMatrix(const Matrix& /* M */) {
+            // matrix_ = &M; // Must be handled in prepare() instead.
         }
 
         bool solve(Vector& x) {

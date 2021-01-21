@@ -177,6 +177,9 @@ public:
     bool changedToOpenThisStep() const {
         return this->changed_to_open_this_step_;
     }
+
+    const Well& scheduleWell() const;
+
 protected:
     bool getAllowCrossFlow() const;
     double mostStrictBhpFromBhpLimits(const SummaryState& summaryState) const;

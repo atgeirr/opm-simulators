@@ -41,6 +41,7 @@ list (APPEND MAIN_SOURCE_FILES
   opm/simulators/flow/KeywordValidation.cpp
   opm/simulators/flow/SimulatorFullyImplicitBlackoilEbos.cpp
   opm/simulators/flow/ValidationFunctions.cpp
+  opm/simulators/flow/aspinPartition.cpp
   opm/simulators/linalg/ExtractParallelGridInformationToISTL.cpp
   opm/simulators/linalg/FlexibleSolver1.cpp
   opm/simulators/linalg/FlexibleSolver2.cpp
@@ -161,6 +162,12 @@ list (APPEND TEST_SOURCE_FILES
   tests/test_wellmodel.cpp
   tests/test_wellprodindexcalculator.cpp
   tests/test_wellstate.cpp
+  tests/test_parallelwellinfo.cpp
+  tests/test_glift1.cpp
+  tests/test_keyword_validator.cpp
+  tests/test_GroupState.cpp
+  tests/test_ALQState.cpp
+  tests/test_aspinPartition.cpp
   )
 
 if(MPI_FOUND)
@@ -225,6 +232,7 @@ list (APPEND TEST_DATA_FILES
   tests/include/summary.inc
   tests/include/test1_20x30x10.grdecl
   tests/include/well_vfp.ecl
+  tests/partition.txt
   )
 
 
@@ -241,6 +249,8 @@ list (APPEND PUBLIC_HEADER_FILES
   opm/simulators/flow/SimulatorFullyImplicitBlackoilEbos.hpp
   opm/simulators/flow/KeywordValidation.hpp
   opm/simulators/flow/ValidationFunctions.hpp
+  opm/simulators/flow/aspinPartition.hpp
+  opm/simulators/flow/SubDomain.hpp
   opm/core/props/BlackoilPhases.hpp
   opm/core/props/phaseUsageFromDeck.hpp
   opm/core/props/satfunc/RelpermDiagnostics.hpp
@@ -300,6 +310,7 @@ list (APPEND PUBLIC_HEADER_FILES
   opm/simulators/linalg/PropertyTree.hpp
   opm/simulators/linalg/WellOperators.hpp
   opm/simulators/linalg/WriteSystemMatrixHelper.hpp
+  opm/simulators/linalg/extractMatrix.hpp
   opm/simulators/linalg/findOverlapRowsAndColumns.hpp
   opm/simulators/linalg/getQuasiImpesWeights.hpp
   opm/simulators/linalg/setupPropertyTree.hpp

@@ -333,11 +333,10 @@ updatePrimaryVariables(const WellState& well_state, DeferredLogger& deferred_log
         } else if (baseif_.isProducer()) { // producers
             // TODO: the following are not addressed for the solvent case yet
             if constexpr (has_wfrac_variable) {
-                primary_variables_[WFrac] = 1.0 / np;
+                primary_variables_[WFrac] = baseif_.scheduleWell().getPreferredPhase() == Phase::WATER ? 1.0 : 0.0;
             }
-
             if constexpr (has_gfrac_variable) {
-                primary_variables_[GFrac] = 1.0 / np;
+                primary_variables_[GFrac] = baseif_.scheduleWell().getPreferredPhase() == Phase::GAS ? 1.0 : 0.0;
             }
         } else {
             OPM_DEFLOG_THROW(std::logic_error, "Expected PRODUCER or INJECTOR type of well", deferred_logger);

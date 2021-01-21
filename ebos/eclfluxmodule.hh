@@ -324,16 +324,18 @@ protected:
             // of threshold pressure is a quite big hack that only makes sense for ECL
             // datasets. (and even there, its physical justification is quite
             // questionable IMO.)
-            if (std::abs(Toolbox::value(pressureDifference_[phaseIdx])) > thpres) {
-                if (pressureDifference_[phaseIdx] < 0.0)
-                    pressureDifference_[phaseIdx] += thpres;
-                else
-                    pressureDifference_[phaseIdx] -= thpres;
-            }
-            else {
-                pressureDifference_[phaseIdx] = 0.0;
-                volumeFlux_[phaseIdx] = 0.0;
-                continue;
+            if (thpres > 0.0) {
+                if (std::abs(Toolbox::value(pressureDifference_[phaseIdx])) > thpres) {
+                    if (pressureDifference_[phaseIdx] < 0.0)
+                        pressureDifference_[phaseIdx] += thpres;
+                    else
+                        pressureDifference_[phaseIdx] -= thpres;
+                }
+                else {
+                    pressureDifference_[phaseIdx] = 0.0;
+                    volumeFlux_[phaseIdx] = 0.0;
+                    continue;
+                }
             }
 
             // this is slightly hacky because in the automatic differentiation case, it

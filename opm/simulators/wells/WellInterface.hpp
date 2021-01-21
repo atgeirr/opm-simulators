@@ -275,6 +275,11 @@ public:
                            const GroupState& group_state,
                            DeferredLogger& deferred_logger);
 
+    virtual std::vector<double> getPrimaryVars() const
+    {
+        return {};
+    }
+
 protected:
 
     // simulation parameters

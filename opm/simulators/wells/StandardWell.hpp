@@ -241,6 +241,10 @@ namespace Opm
                                     DeferredLogger& deferred_logger) const;
 
 
+        std::vector<double> getPrimaryVars() const override
+        {
+            return this->primary_variables_;
+        }
     protected:
         // xw = inv(D)*(rw - C*x)
         void recoverSolutionWell(const BVector& x, BVectorWell& xw) const;
