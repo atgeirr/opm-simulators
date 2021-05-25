@@ -230,7 +230,6 @@ namespace Opm {
     {
         updatePerforationIntensiveQuantities();
         updateAverageFormationFactor();
-
         DeferredLogger local_deferredLogger;
 
         this->resetWGState();
@@ -281,8 +280,8 @@ namespace Opm {
             exc_type = ExceptionType::DEFAULT;
             exc_msg = e.what();
         }
-
-        logAndCheckForExceptionsAndThrow(local_deferredLogger, exc_type, "beginTimeStep() failed: " + exc_msg, terminal_output_);
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        logAndCheckForExceptionsAndThrow(local_deferredLogger, exc_type, "beginTimeStep() failed: " + exc_msg, terminal_output_, comm_);
 
         for (auto& well : well_container_) {
             well->setVFPProperties(vfp_properties_.get());
@@ -365,7 +364,7 @@ namespace Opm {
         }
 
         logAndCheckForExceptionsAndThrow(local_deferredLogger,
-            exc_type, "beginTimeStep() failed: " + exc_msg, terminal_output_);
+            exc_type, "beginTimeStep() failed: " + exc_msg, terminal_output_, cc);
 
     }
 
@@ -479,8 +478,9 @@ namespace Opm {
         this->calculateProductivityIndexValues(local_deferredLogger);
 
         this->commitWGState();
-
-        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger);
+ 
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger,cc);
         if (terminal_output_) {
             global_deferredLogger.logMessages();
         }
@@ -703,7 +703,8 @@ namespace Opm {
         }
 
         // Collect log messages and print.
-        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger);
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger,cc);
         if (terminal_output_) {
             global_deferredLogger.logMessages();
         }
@@ -846,7 +847,8 @@ namespace Opm {
             exc_type = ExceptionType::DEFAULT;
             exc_msg = e.what();
         }
-        logAndCheckForExceptionsAndThrow(local_deferredLogger, exc_type, "assemble() failed: " + exc_msg, terminal_output_);
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        logAndCheckForExceptionsAndThrow(local_deferredLogger, exc_type, "assemble() failed: " + exc_msg, terminal_output_, cc);
         last_report_.converged = true;
         last_report_.assemble_time_well += perfTimer.stop();
     }
@@ -1129,6 +1131,7 @@ namespace Opm {
     BlackoilWellModel<TypeTag>::
     recoverWellSolutionAndUpdateWellState(const BVector& x)
     {
+         
         DeferredLogger local_deferredLogger;
         auto exc_type = ExceptionType::NONE;
         std::string exc_msg;
@@ -1151,7 +1154,8 @@ namespace Opm {
             exc_type = ExceptionType::DEFAULT;
             exc_msg = e.what();
         }
-        logAndCheckForExceptionsAndThrow(local_deferredLogger, exc_type, "recoverWellSolutionAndUpdateWellState() failed: " + exc_msg, terminal_output_);
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        logAndCheckForExceptionsAndThrow(local_deferredLogger, exc_type, "recoverWellSolutionAndUpdateWellState() failed: " + exc_msg, terminal_output_,cc);
     }
 
 
@@ -1186,12 +1190,13 @@ namespace Opm {
                 local_report += well->getWellConvergence(this->wellState(), B_avg, local_deferredLogger);
             }
         }
-        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger);
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger, cc);
         if (terminal_output_) {
             global_deferredLogger.logMessages();
         }
 
-        ConvergenceReport report = gatherConvergenceReport(local_report);
+        ConvergenceReport report = gatherConvergenceReport(local_report, cc);
 
         // Log debug messages for NaN or too large residuals.
         if (terminal_output_) {
@@ -1305,8 +1310,8 @@ namespace Opm {
                 this->closed_this_step_.insert(well->name());
             }
         }
-
-        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger);
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        DeferredLogger global_deferredLogger = gatherDeferredLogger(local_deferredLogger, cc);
         if (terminal_output_) {
             global_deferredLogger.logMessages();
         }
@@ -1468,7 +1473,8 @@ namespace Opm {
             exc_type = ExceptionType::DEFAULT;
             exc_msg = e.what();
         }
-        logAndCheckForExceptionsAndThrow(deferred_logger, exc_type, "prepareTimestep() failed: " + exc_msg, terminal_output_);
+        const Dune::MPIHelper::MPICommunicator& cc = grid().comm();
+        logAndCheckForExceptionsAndThrow(deferred_logger, exc_type, "prepareTimestep() failed: " + exc_msg, terminal_output_, cc);
     }
 
 
