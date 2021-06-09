@@ -1953,4 +1953,24 @@ namespace Opm {
             this->wellState().update_temperature(wellID, weighted_temperature/total_weight);
         }
     }
+
+
+    template <typename TypeTag>
+    void
+    BlackoilWellModel<TypeTag>::
+    logPrimaryVars() const
+    {
+        std::ostringstream os;
+        for (const auto& w : well_container_) {
+            os << w->name() << ":";
+            auto pv = w->getPrimaryVars();
+            for (const double v : pv) {
+                os << ' ' << v;
+            }
+            os << '\n';
+        }
+        OpmLog::debug(os.str());
+    }
+
+
 } // namespace Opm
