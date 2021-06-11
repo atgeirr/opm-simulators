@@ -61,6 +61,11 @@ namespace Dune
     FlexibleSolver<MatrixType, VectorType>::
     apply(VectorType& x, VectorType& rhs, Dune::InverseOperatorResult& res)
     {
+#if HAVE_SUITESPARSE_UMFPACK
+        if (HACK_is_umfpack_) {
+            linsolver_.reset(new Dune::UMFPack<MatrixType>(linearoperator_for_solver_->getmat(), 0, false));
+        }
+#endif
         linsolver_->apply(x, rhs, res);
     }
 
@@ -69,6 +74,11 @@ namespace Dune
     FlexibleSolver<MatrixType, VectorType>::
     apply(VectorType& x, VectorType& rhs, double reduction, Dune::InverseOperatorResult& res)
     {
+#if HAVE_SUITESPARSE_UMFPACK
+        if (HACK_is_umfpack_) {
+            linsolver_.reset(new Dune::UMFPack<MatrixType>(linearoperator_for_solver_->getmat(), 0, false));
+        }
+#endif
         linsolver_->apply(x, rhs, reduction, res);
     }
 
@@ -166,8 +176,8 @@ namespace Dune
                                                                         verbosity));
 #if HAVE_SUITESPARSE_UMFPACK
         } else if (solver_type == "umfpack") {
-            bool dummy = false;
-            linsolver_.reset(new Dune::UMFPack<MatrixType>(linearoperator_for_solver_->getmat(), verbosity, dummy));
+            linsolver_.reset(new Dune::UMFPack<MatrixType>(linearoperator_for_solver_->getmat(), verbosity, false));
+            HACK_is_umfpack_ = true;
 #endif
         } else {
             OPM_THROW(std::invalid_argument, "Properties: Solver " << solver_type << " not known.");
