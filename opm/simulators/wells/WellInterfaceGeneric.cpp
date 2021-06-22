@@ -348,6 +348,11 @@ bool WellInterfaceGeneric::isVFPActive(DeferredLogger& deferred_logger) const
     }
 }
 
+const Well& WellInterfaceGeneric::scheduleWell() const
+{
+    return well_ecl_;
+}
+
 void WellInterfaceGeneric::updateWellTestStatePhysical(const WellState& /* well_state */,
                                                        const double simulation_time,
                                                        const bool write_message_to_opmlog,
