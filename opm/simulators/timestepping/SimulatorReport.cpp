@@ -133,7 +133,7 @@ namespace Opm
             if (failureReport) {
               os << fmt::format(" (Failed: {:2.1f}; {:2.1f}%)",
                                 failureReport->convergence_check_time,
-                                100*failureReport->convergence_check_time/t);
+                                t == 0.0 ? 0.0 : 100*failureReport->convergence_check_time/t);
             }
             os << std::endl;
 
