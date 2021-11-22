@@ -362,6 +362,10 @@ namespace Opm {
                 std::cout << "equation scaling not supported yet" << std::endl;
                 //updateEquationsScaling();
             }
+
+            // Setup domain->well mapping.
+            wellModel().setupDomains(domains_);
+
             report.pre_post_time += perfTimer.stop();
 
             return report;

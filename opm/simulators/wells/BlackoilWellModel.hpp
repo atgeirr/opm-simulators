@@ -327,6 +327,8 @@ namespace Opm {
 
             void logPrimaryVars() const;
 
+            void setupDomains(const std::vector<Domain>& domains);
+
         protected:
             Simulator& ebosSimulator_;
 
@@ -371,6 +373,9 @@ namespace Opm {
             mutable BVector scaleAddRes_{};
 
             std::vector<Scalar> B_avg_{};
+
+            // Keep track of the domain of each well, if using subdomains.
+            std::map<std::string, int> well_domain_;
 
             const Grid& grid() const
             { return ebosSimulator_.vanguard().grid(); }

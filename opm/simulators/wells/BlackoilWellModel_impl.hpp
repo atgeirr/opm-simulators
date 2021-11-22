@@ -170,16 +170,6 @@ namespace Opm {
     }
 
 
-    namespace {
-        template <typename TypeTag>
-        bool wellIsInDomain(const WellInterface<TypeTag>& well, const std::vector<int>& domain_cells)
-        {
-            const int first_well_cell = well.cells()[0];
-            return std::binary_search(domain_cells.begin(), domain_cells.end(), first_well_cell);
-        }
-    }
-
-
     template<typename TypeTag>
     void
     BlackoilWellModel<TypeTag>::
@@ -192,7 +182,7 @@ namespace Opm {
             // if the well contributions are not supposed to be included explicitly in
             // the matrix, we only apply the vector part of the Schur complement here.
             for (const auto& well: well_container_) {
-                if (wellIsInDomain(*well, domain.cells)) {
+                if (well_domain_.at(well->name()) == domain.index) {
                     // r = r - duneC_^T * invDuneD_ * resWell_
                     well->apply(res);
                 }
@@ -201,7 +191,7 @@ namespace Opm {
         }
 
         for (const auto& well: well_container_) {
-            if (wellIsInDomain(*well, domain.cells)) {
+            if (well_domain_.at(well->name()) == domain.index) {
                 well->addWellContributions(jacobian);
                 // applying the well residual to reservoir residuals
                 // r = r - duneC_^T * invDuneD_ * resWell_
@@ -1190,7 +1180,7 @@ namespace Opm {
     assembleWellEqLocal(const double dt, const Domain& domain, DeferredLogger& deferred_logger)
     {
         for (auto& well : well_container_) {
-            if (wellIsInDomain(*well, domain.cells)) {
+            if (well_domain_.at(well->name()) == domain.index) {
                 well->assembleWellEq(ebosSimulator_, dt, this->wellState(), this->groupState(), deferred_logger);
             }
         }
@@ -1322,7 +1312,7 @@ namespace Opm {
         {
             if (localWellsActive()) {
                 for (auto& well : well_container_) {
-                    if (wellIsInDomain(*well, domain.cells)) {
+                    if (well_domain_.at(well->name()) == domain.index) {
                         well->recoverWellSolutionAndUpdateWellState(x, this->wellState(), local_deferredLogger);
                     }
                 }
@@ -1352,7 +1342,7 @@ namespace Opm {
     initPrimaryVariablesEvaluationLocal(const Domain& domain) const
     {
         for (auto& well : well_container_) {
-            if (wellIsInDomain(*well, domain.cells)) {
+            if (well_domain_.at(well->name()) == domain.index) {
                 well->initPrimaryVariablesEvaluation();
             }
         }
@@ -1376,7 +1366,7 @@ namespace Opm {
         ConvergenceReport local_report;
         const int iterationIdx = ebosSimulator_.model().newtonMethod().numIterations();
         for (const auto& well : well_container_) {
-            if (wellIsInDomain(*well, domain.cells)) {
+            if (well_domain_.at(well->name()) == domain.index) {
                 if (well->isOperableAndSolvable() ) {
                     local_report += well->getWellConvergence(this->wellState(), B_avg, local_deferredLogger, iterationIdx > param_.strict_outer_iter_wells_);
                 }
@@ -1597,7 +1587,7 @@ namespace Opm {
 
         // Check individual well constraints and communicate.
         for (const auto& well : well_container_) {
-            if (switched_wells.count(well->name()) || !wellIsInDomain(*well, domain.cells)) {
+            if (switched_wells.count(well->name()) || well_domain_.at(well->name()) != domain.index) {
                 continue;
             }
             const auto mode = WellInterface<TypeTag>::IndividualOrGroup::Individual;
@@ -2067,7 +2057,23 @@ namespace Opm {
     }
 
 
-
-
+    template <typename TypeTag>
+    void
+    BlackoilWellModel<TypeTag>::
+    setupDomains(const std::vector<Domain>& domains)
+    {
+        for (const auto& wellPtr : this->well_container_) {
+            const int first_well_cell = wellPtr->cells()[0];
+            for (const auto& domain : domains) {
+                const bool found = std::binary_search(domain.cells.begin(), domain.cells.end(), first_well_cell);
+                if (found) {
+                    // Assuming that if the first well cell is found in a domain,
+                    // then all of that well's cells are in that same domain.
+                    // TODO verify assumption.
+                    well_domain_[wellPtr->name()] = domain.index;
+                }
+            }
+        }
+    }
 
 } // namespace Opm
