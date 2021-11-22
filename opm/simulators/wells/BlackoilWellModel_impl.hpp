@@ -1866,6 +1866,7 @@ namespace Opm {
     void
     BlackoilWellModel<TypeTag>::
     updatePerforationIntensiveQuantities() {
+#if 0
         ElementContext elemCtx(ebosSimulator_);
         const auto& gridView = ebosSimulator_.gridView();
         const auto& elemEndIt = gridView.template end</*codim=*/0, Dune::Interior_Partition>();
@@ -1884,6 +1885,7 @@ namespace Opm {
             elemCtx.updatePrimaryIntensiveQuantities(/*timeIdx=*/0);
         }
         OPM_END_PARALLEL_TRY_CATCH("BlackoilWellModel::updatePerforationIntensiveQuantities() failed: ", ebosSimulator_.vanguard().grid().comm());
+#endif
     }
 
 
