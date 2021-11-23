@@ -48,7 +48,7 @@ namespace Opm
         unsigned int total_linear_iterations;
         unsigned int min_linear_iterations;
         unsigned int max_linear_iterations;
-
+        unsigned int completed_timesteps;
 
         bool converged;
         int exit_status;

@@ -50,6 +50,7 @@ namespace Opm
           total_linear_iterations( 0 ),
           min_linear_iterations ( std::numeric_limits<unsigned int>::max() ),
           max_linear_iterations ( 0 ),
+          completed_timesteps( 0 ),
           converged(false),
           exit_status(EXIT_SUCCESS),
           global_time(0),
@@ -79,7 +80,7 @@ namespace Opm
             min_linear_iterations = std::min(min_linear_iterations, sr.total_linear_iterations);
         }
         max_linear_iterations = std::max(max_linear_iterations, sr.total_linear_iterations);
-
+        completed_timesteps += sr.completed_timesteps;
         // It makes no sense adding time points. Therefore, do not 
         // overwrite the value of global_time which gets set in 
         // NonlinearSolverEbos.hpp by the line:
@@ -102,7 +103,9 @@ namespace Opm
 
     void SimulatorReportSingle::reportFullyImplicit(std::ostream& os, const SimulatorReportSingle* failureReport) const
     {
-        os << fmt::format("Total time (seconds):       {:9.2f} \n", total_time);
+         os << fmt::format("Number of timesteps:        {:6} \n", completed_timesteps);
+
+         os << fmt::format("Total time (seconds):       {:9.2f} \n", total_time);
 
          os << fmt::format("Solver time (seconds):      {:9.2f} \n",
                           solver_time + (failureReport ? failureReport->solver_time : 0.0));

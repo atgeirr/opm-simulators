@@ -384,6 +384,16 @@ namespace Opm {
                                                  const SimulatorTimerInterface& timer,
                                                  NonlinearSolverType& nonlinear_solver)
         {
+            if (iteration == 0) {
+                // For each iteration we store in a vector the norms of the residual of
+                // the mass balance for each active phase, the well flux and the well equations.
+                residual_norms_history_.clear();
+                current_relaxation_ = 1.0;
+                dx_old_ = 0.0;
+                convergence_reports_.push_back({timer.reportStepNum(), timer.currentStepNum(), {}});
+                convergence_reports_.back().report.reserve(11);
+            }
+
             if (param_.nonlinear_solver_ == "aspin" || param_.nonlinear_solver_ == "nldd") {
                 return nonlinearIterationAspin(iteration, timer, nonlinear_solver);
             } else {
@@ -404,15 +414,6 @@ namespace Opm {
             Dune::Timer perfTimer;
 
             perfTimer.start();
-            if (iteration == 0) {
-                // For each iteration we store in a vector the norms of the residual of
-                // the mass balance for each active phase, the well flux and the well equations.
-                residual_norms_history_.clear();
-                current_relaxation_ = 1.0;
-                dx_old_ = 0.0;
-                convergence_reports_.push_back({timer.reportStepNum(), timer.currentStepNum(), {}});
-                convergence_reports_.back().report.reserve(11);
-            }
             report.total_linearizations = 1;
 
             // -----------   Assemble   -----------
@@ -445,7 +446,7 @@ namespace Opm {
                     OPM_THROW_NOLOG(NumericalIssue, "Too large residual found!");
                 }
             }
-            report.update_time += perfTimer.stop();
+            report.convergence_check_time += perfTimer.stop();
             residual_norms_history_.push_back(residual_norms);
 
             // -----------   If not converged, solve linear system   -----------
@@ -535,15 +536,6 @@ namespace Opm {
             wellModel().logPrimaryVars();
 
             perfTimer.start();
-            if (iteration == 0) {
-                // For each iteration we store in a vector the norms of the residual of
-                // the mass balance for each active phase, the well flux and the well equations.
-                residual_norms_history_.clear();
-                current_relaxation_ = 1.0;
-                dx_old_ = 0.0;
-                convergence_reports_.push_back({timer.reportStepNum(), timer.currentStepNum(), {}});
-                convergence_reports_.back().report.reserve(11);
-            }
             report.total_linearizations = 1;
 
             // -----------   Assemble   -----------
@@ -577,7 +569,7 @@ namespace Opm {
                     OPM_THROW_NOLOG(NumericalIssue, "Too large residual found!");
                 }
             }
-            report.update_time += perfTimer.stop();
+            report.convergence_check_time += perfTimer.stop();
             residual_norms_history_.push_back(residual_norms);
 
             if (report.converged) {
@@ -592,18 +584,14 @@ namespace Opm {
             //                       ebosSimulator().model().linearizer().residual());
 
             // Take a copy of the FI residual.
-            auto fully_implicit_residual = ebosSimulator().model().linearizer().residual();
+            // auto fully_implicit_residual = ebosSimulator().model().linearizer().residual();
             // ... and the Jacobian.
-            auto fully_implicit_jacobian = ebosSimulator().model().linearizer().jacobian().istlMatrix();
+            // auto fully_implicit_jacobian = ebosSimulator().model().linearizer().jacobian().istlMatrix();
             // ... and the solution state that generated it.
             auto& solution = ebosSimulator().model().solution(0);
             auto initial_solution = solution;
-            auto initial_wellstate = wellModel().wellState();
+            // auto initial_wellstate = wellModel().wellState();
             auto locally_solved = initial_solution;
-
-            perfTimer.reset();
-            perfTimer.start();
-            report.total_newton_iterations = 1;
 
             // -----------   Solve each domain separately   -----------
             std::vector<SimulatorReportSingle> domain_reports(domains_.size());
@@ -677,9 +665,12 @@ namespace Opm {
                     solution = locally_solved;
                 }
                 // Finish with a Newton step.
-                ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
-                return nonlinearIterationNewton(iteration, timer, nonlinear_solver);
+                // ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
+                auto rep = nonlinearIterationNewton(iteration, timer, nonlinear_solver);
+                report += rep;
+                return report;
             }
+            report.total_newton_iterations = 1;
 
             /*
             // HACK to check FI convergence
@@ -948,6 +939,7 @@ namespace Opm {
                 wellModel().postSolveLocal(x, domain);
                 report.linear_solve_time += detailTimer.stop();
                 report.linear_solve_setup_time += linear_solve_setup_time_;
+                report.total_linear_iterations = linearIterationsLastSolve();
 
 
                 // Update local solution. // TODO: x is still full size, should we optimize it?
@@ -997,6 +989,7 @@ namespace Opm {
 
             report.converged = convreport.converged();
             report.total_newton_iterations = iter;
+            report.total_linearizations = iter;
             report.total_time = solveTimer.stop();
             // TODO: set more info, timing etc.
             return report;
@@ -1024,6 +1017,7 @@ namespace Opm {
             perfTimer.start();
             ebosSimulator_.problem().endTimeStep();
             report.pre_post_time += perfTimer.stop();
+            report.completed_timesteps = 1;
             return report;
         }
 
