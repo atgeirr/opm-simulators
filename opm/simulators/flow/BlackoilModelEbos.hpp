@@ -1233,7 +1233,8 @@ namespace Opm {
             ebosNewtonMethod.update_(/*nextSolution=*/solution,
                                      /*curSolution=*/solution,
                                      /*update=*/dx,
-                                     /*resid=*/dx); // the update routines of the black
+                                     /*resid=*/dx,
+                                     domain.cells); // the update routines of the black
                                                     // oil model do not care about the
                                                     // residual
 
