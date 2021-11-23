@@ -651,6 +651,7 @@ namespace Opm {
                                   num_converged, domain_reports.size());
                 rep.reportFullyImplicit(os, nullptr);
                 OpmLog::debug(os.str());
+                local_reports_accumulated_ += rep;
             }
 
 #define ASPIN_EXTRA_WELL_OUTPUT 0
@@ -2042,6 +2043,10 @@ namespace Opm {
         const SimulatorReportSingle& failureReport() const
         { return failureReport_; }
 
+        /// return the statistics if the nonlinearIteration() method failed
+        const SimulatorReportSingle& localAccumulatedReports() const
+        { return local_reports_accumulated_; }
+
         struct StepReport
         {
             int report_step;
@@ -2071,6 +2076,7 @@ namespace Opm {
 
         ModelParameters                 param_;
         SimulatorReportSingle failureReport_;
+        SimulatorReportSingle local_reports_accumulated_;
 
         // Well Model
         BlackoilWellModel<TypeTag>& well_model_;

@@ -331,6 +331,9 @@ public:
     const Grid& grid() const
     { return ebosSimulator_.vanguard().grid(); }
 
+    const Model& model() const
+    { return solver_->model(); }
+
 protected:
 
     std::unique_ptr<Solver> createSolver(WellModel& wellModel)
