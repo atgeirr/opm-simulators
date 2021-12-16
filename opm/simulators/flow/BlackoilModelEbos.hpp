@@ -54,6 +54,8 @@
 #include <opm/input/eclipse/EclipseState/Tables/TableManager.hpp>
 
 #include <opm/simulators/linalg/ISTLSolverEbos.hpp>
+#include <dune/istl/matrixmarket.hh>
+#include <opm/simulators/linalg/MatrixMarketSpecializations.hpp>
 
 #include <dune/istl/owneroverlapcopy.hh>
 #if DUNE_VERSION_NEWER(DUNE_COMMON, 2, 7)
@@ -623,6 +625,23 @@ namespace Opm {
                 }
                 domain_reports[domain.index] = local_report;
             }
+
+#if 0
+            // DEBUG write solution vectors.
+            {
+                const int nc = UgGridHelpers::numCells(grid_);
+                BVector sol(nc);
+                for (int c = 0; c < nc; ++c) {
+                    sol[c] = solution[c];
+                }
+                BVector loc_sol(nc);
+                for (int c = 0; c < nc; ++c) {
+                    loc_sol[c] = locally_solved[c];
+                }
+                Dune::storeMatrixMarket(sol, param_.local_solve_approach_ + "-" + std::to_string(iteration) + ".mm");
+                Dune::storeMatrixMarket(loc_sol, param_.local_solve_approach_ + "-local-" + std::to_string(iteration) + ".mm");
+            }
+#endif
 
             // Print summary of local solve convergence.
             {
