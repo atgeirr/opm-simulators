@@ -63,7 +63,7 @@ namespace Opm {
             this->parallel_well_info_.emplace_back(name_bool,
                                                    grid().comm());
         }
-
+        }
         this->alternative_well_rate_init_ =
             EWOMS_GET_PARAM(TypeTag, bool, AlternativeWellRateInit);
     }

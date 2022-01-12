@@ -29,6 +29,7 @@ option(ENABLE_FPGA "Enable FPGA kernels integration?" OFF)
 option(USE_CHOW_PATEL_ILU "Use the iterative ILU by Chow and Patel?" OFF)
 option(USE_CHOW_PATEL_ILU_GPU "Run iterative ILU decomposition on GPU? Requires USE_CHOW_PATEL_ILU" OFF)
 option(USE_CHOW_PATEL_ILU_GPU_PARALLEL "Try to use more parallelism on the GPU during the iterative ILU decomposition? Requires USE_CHOW_PATEL_ILU_GPU" OFF)
+option(BUILD_FLOW_ALU_GRID "Build flow blackoil with alu grid" OFF)
 
 if(SIBLING_SEARCH AND NOT opm-common_DIR)
   # guess the sibling dir
@@ -456,7 +457,6 @@ opm_add_test(flow_distribute_z
   ${FLOW_TGTS}
   $<TARGET_OBJECTS:moduleVersion>
   )
-
 if (NOT BUILD_FLOW_ALU_GRID)
   set(FLOW_ALUGRID_ONLY_DEFAULT_ENABLE_IF "FALSE")
 else()
@@ -475,47 +475,6 @@ opm_add_test(flow_alugrid
   $<TARGET_OBJECTS:moduleVersion>)
 target_compile_definitions(flow_alugrid PRIVATE USE_ALUGRID)
 
-
-if (NOT BUILD_FLOW_VARIANTS)
-  set(FLOW_VARIANTS_DEFAULT_ENABLE_IF "FALSE")
-else()
-  set(FLOW_VARIANTS_DEFAULT_ENABLE_IF "TRUE")
-endif()
-
-# Variant versions of Flow.
-opm_add_test(flow_blackoil_dunecpr
-  ONLY_COMPILE
-  DEFAULT_ENABLE_IF ${FLOW_VARIANTS_DEFAULT_ENABLE_IF}
-  SOURCES
-  flow/flow_blackoil_dunecpr.cpp
-  $<TARGET_OBJECTS:moduleVersion>
-  EXE_NAME flow_blackoil_dunecpr
-  DEPENDS opmsimulators
-  LIBRARIES opmsimulators)
-
-opm_add_test(flow_onephase
-  ONLY_COMPILE
-  DEFAULT_ENABLE_IF ${FLOW_VARIANTS_DEFAULT_ENABLE_IF}
-  SOURCES
-  flow/flow_onephase.cpp
-  $<TARGET_OBJECTS:moduleVersion>
-  $<TARGET_OBJECTS:flow_libonephase>
-  EXE_NAME flow_onephase
-  DEPENDS opmsimulators
-  LIBRARIES opmsimulators)
-
-opm_add_test(flow_onephase_energy
-  ONLY_COMPILE
-  DEFAULT_ENABLE_IF ${FLOW_VARIANTS_DEFAULT_ENABLE_IF}
-  SOURCES
-  flow/flow_onephase_energy.cpp
-  $<TARGET_OBJECTS:moduleVersion>
-  $<TARGET_OBJECTS:flow_libonephase_energy>
-  EXE_NAME flow_onephase_energy
-  DEPENDS opmsimulators flow_libonephase_energy
-  LIBRARIES opmsimulators)
-
->>>>>>> 16f98d693... WIP make it compile with dune-fem
 if (BUILD_FLOW)
   install(TARGETS flow DESTINATION bin)
   opm_add_bash_completion(flow)

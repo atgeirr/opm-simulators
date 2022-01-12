@@ -231,7 +231,7 @@ namespace Opm {
             {
                 auto wsrpt = this->wellState()
                     .report(ebosSimulator_.vanguard().globalCell().data(),
-                            [this](const int well_ndex) -> bool
+                            [this](const int well_index) -> bool
                 {
                     return this->wasDynamicallyShutThisTimeStep(well_index);
                 });
@@ -306,6 +306,9 @@ namespace Opm {
 
             // a vector of all the wells.
             std::vector<WellInterfacePtr > well_container_{};
+ 
+            // map from logically cartesian cell indices to compressed ones
+            std::vector<int> cartesian_to_compressed_;
 
             std::vector<bool> is_cell_perforated_{};
 
