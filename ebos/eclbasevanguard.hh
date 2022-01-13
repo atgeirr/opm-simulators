@@ -446,9 +446,11 @@ protected:
     {
         size_t num_cells = asImp_().equilGrid().leafGridView().size(0);
         is_interior_.resize(num_cells);
+        const auto& grid = asImp_().equilGrid();
+        const auto& gridView = grid.leafGridView();
         
-        ElementMapper elemMapper(this->gridView(), Dune::mcmgElementLayout());
-        for (const auto& element : elements(this->gridView()))
+        ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
+        for (const auto& element : elements(gridView))
         {
             const auto elemIdx = elemMapper.index(element);
             unsigned cartesianCellIdx = cartesianIndex(elemIdx);
@@ -466,12 +468,14 @@ protected:
 
     void updateCellDepths_()
     {
-        int numCells = this->gridView().size(/*codim=*/0);
+        int numCells = asImp_().equilGrid().leafGridView().size(/*codim=*/0);
+        const auto& grid = asImp_().equilGrid();
+        const auto& gridView = grid.leafGridView();
         cellCenterDepth_.resize(numCells);
 
-        ElementMapper elemMapper(this->gridView(), Dune::mcmgElementLayout());
-        auto elemIt = this->gridView().template begin</*codim=*/0>();
-        const auto& elemEndIt = this->gridView().template end</*codim=*/0>();
+        ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
+        auto elemIt = gridView.template begin</*codim=*/0>();
+        const auto& elemEndIt = gridView.template end</*codim=*/0>();
 
         const auto num_aqu_cells = this->allAquiferCells();
 
@@ -492,16 +496,18 @@ protected:
     }
     void updateCellThickness_()
     {
+        const auto& grid = asImp_().equilGrid();
+        const auto& gridView = grid.leafGridView();
         if (!this->drsdtconEnabled())
             return;
 
-        ElementMapper elemMapper(this->gridView(), Dune::mcmgElementLayout());
+        ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
 
-        int numElements = this->gridView().size(/*codim=*/0);
+        int numElements = gridView.size(/*codim=*/0);
         cellThickness_.resize(numElements);
 
-        auto elemIt = this->gridView().template begin</*codim=*/0>();
-        const auto& elemEndIt = this->gridView().template end</*codim=*/0>();
+        auto elemIt = gridView.template begin</*codim=*/0>();
+        const auto& elemEndIt = gridView.template end</*codim=*/0>();
         for (; elemIt != elemEndIt; ++elemIt) {
             const Element& element = *elemIt;
             const unsigned int elemIdx = elemMapper.index(element);
