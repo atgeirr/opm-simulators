@@ -430,6 +430,26 @@ namespace Opm {
                 throw; // continue throwing the stick
             }
 
+#if 0
+            // DEBUG HACK
+            // Check if domain-diagonal parts are identical to stored subdomain matrices.
+            if (param_.nonlinear_solver_ == "nldd") {
+                const Mat& main_matrix = ebosSimulator_.model().linearizer().jacobian().istlMatrix();
+                for (const auto& domain : domains_) {
+                    if (domain_matrices_[domain.index]) {
+                        auto domain_diag_part = Details::extractMatrix(main_matrix, domain.cells);
+                        if (Details::matrixEqual(domain_diag_part, *domain_matrices_[domain.index])) {
+                            OpmLog::debug("  *** matrices IDENTICAL for domain " + std::to_string(domain.index));
+                        } else {
+                            OpmLog::debug("  *** matrices DIFFER for domain " + std::to_string(domain.index));
+                        }
+                    } else {
+                        OpmLog::debug("  *** no local matrix for domain " + std::to_string(domain.index));
+                    }
+                }
+            }
+#endif
+
             // -----------   Check if converged   -----------
             std::vector<double> residual_norms;
             perfTimer.reset();
