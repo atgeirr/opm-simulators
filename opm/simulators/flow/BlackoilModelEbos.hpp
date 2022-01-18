@@ -681,7 +681,7 @@ namespace Opm {
                 local_reports_accumulated_ += rep;
             }
 
-#define ASPIN_EXTRA_WELL_OUTPUT 0
+#define ASPIN_EXTRA_WELL_OUTPUT 1
 #if ASPIN_EXTRA_WELL_OUTPUT
             // Extra debug output.
             wellModel().logPrimaryVars();
@@ -792,8 +792,10 @@ namespace Opm {
             // The matrix is kept as is for now.
             // TODO: test with proper ASPIN (in what we have now, columns are updated outside the diagonal
             // domain-domain interaction blocks in a Gauss-Seidel-like manner), and other variations.
+            // NOTE: the above should no longer be true, the matrix is ASPIN now (should be).
+            //
             // Compute rhs.
-            // ...
+            // The modified residual is D * aspin_residual in each domain.
             auto& ebosResid = ebosSimulator_.model().linearizer().residual();
             for (const auto& domain : domains_) {
                 auto aspin_res_local = Details::extractVector(aspin_residual, domain.cells);
@@ -804,19 +806,41 @@ namespace Opm {
                 }
                 Details::setGlobal(aspin_res_mod, domain.cells, ebosResid);
             }
-            BVector x(nc);
+            // Add J_aspin * aspin_residual to the modified residual, so we solve for
+            // the difference from the local solution rather than from the very start
+            // of the iteration.
+            {
+                const auto& ebosJac = ebosSimulator_.model().linearizer().jacobian().istlMatrix();
+                BVector yy(nc);
+                ebosJac.mv(aspin_residual, yy);
+                ebosResid -= yy;
+            }
 
-            // -----------   Update solution   -----------
+            // Check convergence before solving.
+            {
+                auto convrep = getConvergence(timer, -iteration, residual_norms);
+                // report.converged = convrep.converged()  && iteration > nonlinear_solver.minIter();;
+                // ConvergenceReport::Severity severity = convrep.severityOfWorstFailure();
+                // convergence_reports_.back().report.push_back(std::move(convrep));
 
-            // Compute the nonlinear update.
+                // // Throw if any NaN or too large residual found.
+                // if (severity == ConvergenceReport::Severity::NotANumber) {
+                //     OPM_THROW(NumericalIssue, "NaN residual found!");
+                // } else if (severity == ConvergenceReport::Severity::TooLarge) {
+                //     OPM_THROW_NOLOG(NumericalIssue, "Too large residual found!");
+                // }
+            }
+            // report.convergence_check_time += perfTimer.stop();
+            // residual_norms_history_.push_back(residual_norms);
 
-            // apply the Schur compliment of the well model to the reservoir linearized
-            // equations
-            // wellModel().linearize(ebosSimulator().model().linearizer().jacobian(),
-            //                       ebosSimulator().model().linearizer().residual());
+            // if (report.converged) {
+            //     return report;
+            // }
+
 
             // Solve the linear system.
             linear_solve_setup_time_ = 0.0;
+            BVector x(nc);
             try {
                 solveJacobianSystem(x);
                 report.linear_solve_setup_time += linear_solve_setup_time_;
@@ -834,6 +858,16 @@ namespace Opm {
 
             perfTimer.reset();
             perfTimer.start();
+
+            // -----------   Update solution   -----------
+
+            // Compute the nonlinear update.
+
+            // apply the Schur compliment of the well model to the reservoir linearized
+            // equations
+            // wellModel().linearize(ebosSimulator().model().linearizer().jacobian(),
+            //                       ebosSimulator().model().linearizer().residual());
+
 
             // handling well state update before oscillation treatment is a decision based
             // on observation to avoid some big performance degeneration under some circumstances.
@@ -874,7 +908,7 @@ namespace Opm {
             // Apply the update, with considering model-dependent limitations and
             // chopping of the update. This update must be based on the initial solution,
             // not the solution after the local solve.
-            ebosSimulator().model().solution(0) = initial_solution;
+            // ebosSimulator().model().solution(0) = initial_solution;
             updateSolution(x);
 
 
@@ -886,12 +920,12 @@ namespace Opm {
             // Instead of passing x (where state_{i+1} = state_i - x, i.e. x is the
             // difference from one global iteration to the next) we should pass
             // y, with y = state_after_local_solve - state_{i+1}.
-            BVector y(nc);
-            for (int c = 0; c < nc; ++c) {
-                y[c] = locally_solved[c] - solution[c];
-            }
-            wellModel().postSolve(y);
-
+            // BVector y(nc);
+            // for (int c = 0; c < nc; ++c) {
+            //     y[c] = locally_solved[c] - solution[c];
+            // }
+            // wellModel().postSolve(y);
+            wellModel().postSolve(x);
 
 
 
@@ -979,7 +1013,6 @@ namespace Opm {
                 report.linear_solve_time += detailTimer.stop();
                 report.linear_solve_setup_time += linear_solve_setup_time_;
                 report.total_linear_iterations = linearIterationsLastSolve();
-
 
                 // Update local solution. // TODO: x is still full size, should we optimize it?
                 detailTimer.reset();
