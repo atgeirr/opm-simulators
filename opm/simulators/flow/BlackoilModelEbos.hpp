@@ -794,6 +794,7 @@ namespace Opm {
             // domain-domain interaction blocks in a Gauss-Seidel-like manner), and other variations.
             // NOTE: the above should no longer be true, the matrix is ASPIN now (should be).
             //
+#if 0
             // Compute rhs.
             // The modified residual is D * aspin_residual in each domain.
             auto& ebosResid = ebosSimulator_.model().linearizer().residual();
@@ -815,6 +816,32 @@ namespace Opm {
                 ebosJac.mv(aspin_residual, yy);
                 ebosResid -= yy;
             }
+#else
+            // Compute rhs.
+            {
+                auto Jcopy = ebosSimulator_.model().linearizer().jacobian().istlMatrix();
+                //Dune::storeMatrixMarket(Jcopy, "aspinjac.mm");
+                // Eliminate the domain diagonal blocks from Jcopy. Jcopy is then (J - D)
+                for (const auto& domain : domains_) {
+                    for (const int cell : domain.cells) {
+                        auto& row = Jcopy[cell];
+                        for (auto iter = row.begin(); iter != row.end(); ++iter) {
+                            int col = iter.index();
+                            auto lb = std::find(domain.cells.begin(), domain.cells.end(), col);
+                            if (lb != domain.cells.end()) {
+                                //std::cerr << "row = " << cell << "   col = " << col <<'\n';
+                                *iter = 0.0;
+                            }
+                        }
+                    }
+                }
+                //Dune::storeMatrixMarket(Jcopy, "aspinjacoffdiag.mm");
+                // Set the residual to -Jcopy * aspin_residual, which will then be (D - J)*(x^k - x^{k+1})
+                auto& ebosResid = ebosSimulator_.model().linearizer().residual();
+                ebosResid = 0.0;
+                Jcopy.mmv(aspin_residual, ebosResid);
+            }
+#endif
 
             // Check convergence before solving.
             {
