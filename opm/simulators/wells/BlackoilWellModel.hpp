@@ -326,6 +326,8 @@ namespace Opm {
                                          const Domain& domain);
 
             void logPrimaryVars() const;
+            std::vector<double> getPrimaryVarsDomain(const Domain& domain) const;
+            void setPrimaryVarsDomain(const Domain& domain, const std::vector<double>& vars);
 
             void setupDomains(const std::vector<Domain>& domains);
 

@@ -28,6 +28,7 @@
 #include <opm/simulators/wells/VFPProperties.hpp>
 
 #include <algorithm>
+#include <iomanip>
 #include <utility>
 
 #include <fmt/format.h>
@@ -2037,6 +2038,41 @@ namespace Opm {
 
 
     template <typename TypeTag>
+    std::vector<double>
+    BlackoilWellModel<TypeTag>::
+    getPrimaryVarsDomain(const Domain& domain) const
+    {
+        std::vector<double> ret;
+        for (const auto& well : well_container_) {
+            if (well_domain_.at(well->name()) == domain.index) {
+                const auto& pv = well->getPrimaryVars();
+                for (const double v : pv) {
+                    ret.push_back(v);
+                }
+            }
+        }
+        return ret;
+    }
+
+
+
+    template <typename TypeTag>
+    void
+    BlackoilWellModel<TypeTag>::
+    setPrimaryVarsDomain(const Domain& domain, const std::vector<double>& vars)
+    {
+        for (auto& well : well_container_) {
+            int offset = 0;
+            if (well_domain_.at(well->name()) == domain.index) {
+                int num_pri_vars = well->setPrimaryVars(vars.begin() + offset);
+                offset += num_pri_vars;
+            }
+        }
+    }
+
+
+
+    template <typename TypeTag>
     void
     BlackoilWellModel<TypeTag>::
     assignWellTracerRates(data::Wells& wsrpt) const
@@ -2076,6 +2112,13 @@ namespace Opm {
                 }
             }
         }
+        // TODO: ensure output on rank 0 only.
+        std::ostringstream os;
+        os << "Well name      Domain\n";
+        for (const auto& [wname, domain] : well_domain_) {
+            os << wname << std::setw(21 - wname.size()) << domain << '\n';
+        }
+        OpmLog::debug(os.str());
     }
 
 } // namespace Opm

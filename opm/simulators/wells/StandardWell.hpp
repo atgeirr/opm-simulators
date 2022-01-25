@@ -245,6 +245,14 @@ namespace Opm
         {
             return this->primary_variables_;
         }
+
+        int setPrimaryVars(std::vector<double>::const_iterator it) override
+        {
+            int num_pri_vars = this->numWellEq_;
+            std::copy_n(it, num_pri_vars, this->primary_variables_.begin());
+            return num_pri_vars;
+        }
+
     protected:
         // xw = inv(D)*(rw - C*x)
         void recoverSolutionWell(const BVector& x, BVectorWell& xw) const;
