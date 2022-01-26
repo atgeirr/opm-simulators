@@ -22,6 +22,7 @@
 #define OPM_CONVERGENCEREPORT_HEADER_INCLUDED
 
 #include <cassert>
+#include <iostream>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -45,10 +46,29 @@ namespace Opm
                                Normal     = 1,
                                TooLarge   = 2,
                                NotANumber = 3 };
+        static std::string stringify(const Severity s)
+        {
+            switch (s) {
+            case Severity::None: return "None";
+            case Severity::Normal: return "Normal";
+            case Severity::TooLarge: return "TooLarge";
+            case Severity::NotANumber: return "NotANumber";
+            }
+        }
+
         class ReservoirFailure
         {
         public:
             enum struct Type { Invalid, MassBalance, Cnv };
+            static std::string stringify(const Type t)
+            {
+                switch (t) {
+                case Type::Invalid: return "Invalid";
+                case Type::MassBalance: return "MassBalance";
+                case Type::Cnv: return "Cnv";
+                }
+            }
+
             ReservoirFailure(Type t, Severity s, int phase, int cell_number)
                 : type_(t), severity_(s), phase_(phase), cell_number_(cell_number)
             {
@@ -63,10 +83,22 @@ namespace Opm
             int phase_;
             int cell_number_;
         };
+
         class WellFailure
         {
         public:
             enum struct Type { Invalid, MassBalance, Pressure, ControlBHP, ControlTHP, ControlRate };
+            static std::string stringify(const Type t)
+            {
+                switch (t) {
+                case Type::Invalid: return "Invalid";
+                case Type::MassBalance: return "MassBalance";
+                case Type::Pressure: return "Pressure";
+                case Type::ControlBHP: return "ControlBHP";
+                case Type::ControlTHP: return "ControlTHP";
+                case Type::ControlRate: return "ControlRate";
+                }
+            }
             WellFailure(Type t, Severity s, int phase, const std::string& well_name)
                 : type_(t), severity_(s), phase_(phase), well_name_(well_name)
             {
@@ -144,6 +176,11 @@ namespace Opm
             return status_ & WellFailed;
         }
 
+        bool groupFailed() const
+        {
+            return !groupConverged_;
+        }
+
         const std::vector<ReservoirFailure>& reservoirFailures() const
         {
             return res_failures_;
@@ -178,6 +215,54 @@ namespace Opm
         std::vector<WellFailure> well_failures_;
         bool groupConverged_;
     };
+
+
+    inline std::ostream& operator<<(std::ostream& os, const ConvergenceReport::WellFailure& wf)
+    {
+        os << "||| Failure in well " << wf.wellName()
+           << " of type " << ConvergenceReport::WellFailure::stringify(wf.type())
+           << " and severity " << ConvergenceReport::stringify(wf.severity())
+           << " for phase " << wf.phase() << "\n";
+        return os;
+    }
+
+
+    inline std::ostream& operator<<(std::ostream& os, const ConvergenceReport::ReservoirFailure& rf)
+    {
+        os << "||| Failure of type " << ConvergenceReport::ReservoirFailure::stringify(rf.type())
+           << " and severity " << ConvergenceReport::stringify(rf.severity())
+           << " for phase " << rf.phase()
+           << " in cell " << rf.cellNumber() << "\n";
+        return os;
+    }
+
+
+
+
+    inline std::ostream& operator<<(std::ostream& os, const ConvergenceReport& cr)
+    {
+        os << "||| Convergence report: ";
+        if (cr.converged()) {
+            os << "All good, converged\n";
+        } else {
+            os << "Not converged\n";
+        }
+        if (cr.reservoirFailed()) {
+            for (const auto& rf : cr.reservoirFailures()) {
+                os << rf;
+            }
+        }
+        if (cr.wellFailed()) {
+            for (const auto& wf : cr.wellFailures()) {
+                os << wf;
+            }
+        }
+        if (cr.groupFailed()) {
+            os << "||| Well groups not converged.";
+        }
+        return os;
+    }
+
 
 } // namespace Opm
 
