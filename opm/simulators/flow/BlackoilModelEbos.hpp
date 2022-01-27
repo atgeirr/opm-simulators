@@ -620,20 +620,60 @@ namespace Opm {
             for (const auto& domain : domains_) {
                 SimulatorReportSingle local_report;
                 if (param_.local_solve_approach_ == "jacobi") {
+                    auto initial_local_well_primary_vars = wellModel().getPrimaryVarsDomain(domain);
                     auto initial_local_solution = Details::extractVector(solution, domain.cells);
                     local_report = solveLocal(domain, timer, iteration);
+#if 1
                     auto local_solution = Details::extractVector(solution, domain.cells);
                     Details::setGlobal(local_solution, domain.cells, locally_solved);
                     Details::setGlobal(initial_local_solution, domain.cells, solution);
+                   // ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
+#else
+                    if (!local_report.converged) {
+                        // Try again with a less strict tolerance.
+                        wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
+                        Details::setGlobal(initial_local_solution, domain.cells, solution);
+                        ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
+                        auto param_orig = param_;
+                        param_.local_tolerance_scaling_cnv_ *= 10.0;
+                        param_.local_tolerance_scaling_mb_ *= 10.0;
+                        local_report = solveLocal(domain, timer, iteration, true);
+                        param_ = param_orig;
+                    }
+                    if (local_report.converged) {
+                        auto local_solution = Details::extractVector(solution, domain.cells);
+                        Details::setGlobal(local_solution, domain.cells, locally_solved);
+                        Details::setGlobal(initial_local_solution, domain.cells, solution);
+                        ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
+                    } else {
+                        wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
+                        Details::setGlobal(initial_local_solution, domain.cells, solution);
+                        ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
+                    }
+#endif
                 } else {
                     assert(param_.local_solve_approach_ == "gauss-seidel");
+                    auto initial_local_well_primary_vars = wellModel().getPrimaryVarsDomain(domain);
                     auto initial_local_solution = Details::extractVector(solution, domain.cells);
                     local_report = solveLocal(domain, timer, iteration);
+                    if (/*!local_report.converged*/ true) {
+                        // Try again with a less strict tolerance.
+                        wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
+                        Details::setGlobal(initial_local_solution, domain.cells, solution);
+                        ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
+                        // auto param_orig = param_;
+                        // param_.local_tolerance_scaling_cnv_ = 50.0;
+                        // param_.local_tolerance_scaling_mb_ = 50.0;
+                        local_report = solveLocal(domain, timer, iteration, true);
+                        // param_ = param_orig;
+                    }
                     if (local_report.converged) {
                         auto local_solution = Details::extractVector(solution, domain.cells);
                         Details::setGlobal(local_solution, domain.cells, locally_solved);
                     } else {
+                        wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
                         Details::setGlobal(initial_local_solution, domain.cells, solution);
+                        ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
                     }
                 }
                 // This should have updated the global matrix to be
@@ -820,7 +860,7 @@ namespace Opm {
             // Compute rhs.
             {
                 auto Jcopy = ebosSimulator_.model().linearizer().jacobian().istlMatrix();
-                //Dune::storeMatrixMarket(Jcopy, "aspinjac.mm");
+                Dune::storeMatrixMarket(Jcopy, "aspinjac.mm");
                 // Eliminate the domain diagonal blocks from Jcopy. Jcopy is then (J - D)
                 for (const auto& domain : domains_) {
                     for (const int cell : domain.cells) {
@@ -835,7 +875,7 @@ namespace Opm {
                         }
                     }
                 }
-                //Dune::storeMatrixMarket(Jcopy, "aspinjacoffdiag.mm");
+                Dune::storeMatrixMarket(Jcopy, "aspinjacoffdiag.mm");
                 // Set the residual to -Jcopy * aspin_residual, which will then be (D - J)*(x^k - x^{k+1})
                 auto& ebosResid = ebosSimulator_.model().linearizer().residual();
                 ebosResid = 0.0;
@@ -984,7 +1024,8 @@ namespace Opm {
 
         SimulatorReportSingle solveLocal(const Domain& domain,
                                          const SimulatorTimerInterface& timer,
-                                         const int global_iteration)
+                                         const int global_iteration,
+                                         const bool initial_assembly_required = false)
         {
             SimulatorReportSingle report;
             Dune::Timer solveTimer;
@@ -996,9 +1037,26 @@ namespace Opm {
             ebosSimulator_.model().newtonMethod().setIterationIndex(0);
             //ebosSimulator_.problem().beginIteration();
 
-            // When called, assembly has already been performed
+            // When called, if assembly has already been performed
             // with the initial values, we only need to check
-            // for local convergence.
+            // for local convergence. Otherwise, we must do a local
+            // assembly.
+            int iter = 0;
+            if (initial_assembly_required) {
+                detailTimer.start();
+                ebosSimulator_.model().newtonMethod().setIterationIndex(iter);
+                // TODO: we should have a beginIterationLocal function()
+                // only handling the well model for now
+                // ebosSimulator_.problem().beginIteration();
+                ebosSimulator_.problem().wellModel().assembleLocal(ebosSimulator_.model().newtonMethod().numIterations(),
+                                                                   ebosSimulator_.timeStepSize(),
+                                                                   domain);
+                // Assemble reservoir locally.
+                report += assembleReservoirLocal(domain, iter);
+                report.assemble_time += detailTimer.stop();
+                detailTimer.stop();
+            }
+            detailTimer.reset();
             detailTimer.start();
             std::vector<double> resnorms;
             auto convreport = getLocalConvergence(domain, timer, 0, resnorms);
@@ -1010,6 +1068,11 @@ namespace Opm {
                 if (global_iteration > 0) {
                     return report;
                 }
+            } else {
+                std::ostringstream os;
+                os << "Convergence data for first local iteration:\n"
+                   << convreport;
+                OpmLog::debug(os.str());
             }
             report.convergence_check_time += detailTimer.stop();
 
@@ -1026,7 +1089,6 @@ namespace Opm {
 
             // Local Newton loop.
             const int max_iter = param_.max_local_solve_iterations_;
-            int iter = 0;
             bool converged = false;
             do {
                 // Solve local linear system.
@@ -1085,6 +1147,13 @@ namespace Opm {
             } while (!convreport.converged() && iter <= max_iter);
 
             ebosSimulator_.problem().endIteration();
+
+            if (!convreport.converged()) {
+                std::ostringstream os;
+                os << "Convergence data for unconverged local solution:\n"
+                   << convreport;
+                OpmLog::debug(os.str());
+            }
 
             report.converged = convreport.converged();
             report.total_newton_iterations = iter;
