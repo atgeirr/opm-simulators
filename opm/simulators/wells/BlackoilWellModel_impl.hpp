@@ -2061,8 +2061,8 @@ namespace Opm {
     BlackoilWellModel<TypeTag>::
     setPrimaryVarsDomain(const Domain& domain, const std::vector<double>& vars)
     {
+        int offset = 0;
         for (auto& well : well_container_) {
-            int offset = 0;
             if (well_domain_.at(well->name()) == domain.index) {
                 int num_pri_vars = well->setPrimaryVars(vars.begin() + offset);
                 offset += num_pri_vars;
