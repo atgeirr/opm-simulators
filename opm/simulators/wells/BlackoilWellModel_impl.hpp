@@ -923,10 +923,10 @@ namespace Opm {
         auto exc_type = ExceptionType::NONE;
         std::string exc_msg;
         try {
-            if (iterationIdx == 0) {
-                calculateExplicitQuantities(local_deferredLogger);
-                prepareTimeStep(local_deferredLogger);
-            }
+            // if (iterationIdx == 0) {
+            //     calculateExplicitQuantities(local_deferredLogger);
+            //     prepareTimeStep(local_deferredLogger);
+            // }
             updateWellControlsLocal(local_deferredLogger, /* check group controls */ false, domain);
 
             // Set the well primary variables based on the value of well solutions
