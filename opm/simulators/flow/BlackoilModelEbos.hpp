@@ -457,6 +457,14 @@ namespace Opm {
             // the step is not considered converged until at least minIter iterations is done
             {
                 auto convrep = getConvergence(timer, iteration, residual_norms);
+                if (!convrep.converged()) {
+                    std::ostringstream os;
+                    os << "Convergence data for Newton iteration " << iteration << "\n"
+                       << convrep;
+                    OpmLog::debug(os.str());
+                }
+                wellModel().logPrimaryVars();
+
                 report.converged = convrep.converged()  && iteration > nonlinear_solver.minIter();;
                 ConvergenceReport::Severity severity = convrep.severityOfWorstFailure();
                 convergence_reports_.back().report.push_back(std::move(convrep));
@@ -580,6 +588,12 @@ namespace Opm {
             // the step is not considered converged until at least minIter iterations is done
             {
                 auto convrep = getConvergence(timer, iteration, residual_norms);
+                if (!convrep.converged()) {
+                    std::ostringstream os;
+                    os << "Convergence data for first global iteration:\n"
+                       << convrep;
+                    OpmLog::debug(os.str());
+                }
                 report.converged = convrep.converged()  && iteration > nonlinear_solver.minIter();;
                 ConvergenceReport::Severity severity = convrep.severityOfWorstFailure();
                 convergence_reports_.back().report.push_back(std::move(convrep));
@@ -1043,6 +1057,8 @@ namespace Opm {
             // assembly.
             int iter = 0;
             if (initial_assembly_required) {
+                OpmLog::debug("solveLocal() initial assembly START");
+                wellModel().logPrimaryVars();
                 detailTimer.start();
                 ebosSimulator_.model().newtonMethod().setIterationIndex(iter);
                 // TODO: we should have a beginIterationLocal function()
@@ -1054,7 +1070,8 @@ namespace Opm {
                 // Assemble reservoir locally.
                 report += assembleReservoirLocal(domain, iter);
                 report.assemble_time += detailTimer.stop();
-                detailTimer.stop();
+                OpmLog::debug("solveLocal() initial assembly END");
+                wellModel().logPrimaryVars();
             }
             detailTimer.reset();
             detailTimer.start();
