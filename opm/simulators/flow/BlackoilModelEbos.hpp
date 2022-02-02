@@ -637,22 +637,22 @@ namespace Opm {
                     auto initial_local_well_primary_vars = wellModel().getPrimaryVarsDomain(domain);
                     auto initial_local_solution = Details::extractVector(solution, domain.cells);
                     local_report = solveLocal(domain, timer, iteration);
-#if 1
+#if 0
                     auto local_solution = Details::extractVector(solution, domain.cells);
                     Details::setGlobal(local_solution, domain.cells, locally_solved);
                     Details::setGlobal(initial_local_solution, domain.cells, solution);
                    // ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
 #else
-                    if (!local_report.converged) {
+                    if (/*!local_report.converged*/ true) {
                         // Try again with a less strict tolerance.
                         wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
                         Details::setGlobal(initial_local_solution, domain.cells, solution);
                         ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
-                        auto param_orig = param_;
-                        param_.local_tolerance_scaling_cnv_ *= 10.0;
-                        param_.local_tolerance_scaling_mb_ *= 10.0;
+                        // auto param_orig = param_;
+                        // param_.local_tolerance_scaling_cnv_ *= 10.0;
+                        // param_.local_tolerance_scaling_mb_ *= 10.0;
                         local_report = solveLocal(domain, timer, iteration, true);
-                        param_ = param_orig;
+                        // param_ = param_orig;
                     }
                     if (local_report.converged) {
                         auto local_solution = Details::extractVector(solution, domain.cells);
@@ -756,6 +756,7 @@ namespace Opm {
             if (param_.nonlinear_solver_ == "nldd") {
                 if (param_.local_solve_approach_ == "jacobi") {
                     solution = locally_solved;
+                    ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
                 }
                 // Finish with a Newton step.
                 // ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
