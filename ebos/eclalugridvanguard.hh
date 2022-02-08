@@ -30,6 +30,7 @@
 #include "eclbasevanguard.hh"
 #include "ecltransmissibility.hh"
 #include "alucartesianindexmapper.hh"
+#include <opm/models/common/multiphasebaseproperties.hh>
 
 #include <dune/alugrid/grid.hh>
 #include <dune/alugrid/common/fromtogridfactory.hh>
@@ -85,20 +86,20 @@ class EclAluGridVanguard : public EclBaseVanguard<TypeTag>
     friend class EclBaseVanguard<TypeTag>;
     typedef EclBaseVanguard<TypeTag> ParentType;
 
+    using ElementMapper = GetPropType<TypeTag, Properties::ElementMapper>;
     using Scalar = GetPropType<TypeTag, Properties::Scalar>;
     using Simulator = GetPropType<TypeTag, Properties::Simulator>;
-
+       
 public:
     using Grid = GetPropType<TypeTag, Properties::Grid>;
     using EquilGrid = GetPropType<TypeTag, Properties::EquilGrid>;
-    using GridView = GetPropType<TypeTag, Properties::GridView>;
-
-private:
+    using GridView = GetPropType<TypeTag, Properties::GridView>;        
     typedef Opm::AluCartesianIndexMapper<Grid> CartesianIndexMapper;
     typedef Dune::CartesianIndexMapper<EquilGrid> EquilCartesianIndexMapper;
+    using TransmissibilityType = EclTransmissibility<Grid, GridView, ElementMapper, CartesianIndexMapper, Scalar>;
 
     static const int dimension = Grid::dimension;
-
+    static const int dimensionworld = Grid::dimensionworld;
 public:
     EclAluGridVanguard(Simulator& simulator)
         : EclBaseVanguard<TypeTag>(simulator), mpiRank()
@@ -160,27 +161,28 @@ public:
      * (For parallel simulation runs.)
      */
     void loadBalance()
-    {
-        auto gridView = grid().leafGridView();
-        auto dataHandle = cartesianIndexMapper_->dataHandle(gridView);
-        grid().loadBalance(*dataHandle);
+    { /* do nothing: PolyhedralGrid is not parallel! */ }
+//    {
+ //       auto gridView = grid().leafGridView();
+//        auto dataHandle = cartesianIndexMapper_->dataHandle(gridView);
+//        grid().loadBalance(*dataHandle);
 
         // communicate non-interior cells values
-        grid().communicate(*dataHandle,
-                           Dune::InteriorBorder_All_Interface,
-                           Dune::ForwardCommunication );
+//        grid().communicate(*dataHandle,
+//                           Dune::InteriorBorder_All_Interface,
+//                           Dune::ForwardCommunication );
 
-        if (grid().size(0))
-        {
-            globalTrans_.reset(new EclTransmissibility<TypeTag>(*this));
-            globalTrans_->update(false);
-        }
+ //       if (grid().size(0))
+ //       {
+//            globalTrans_.reset(new EclTransmissibility<TypeTag>(*this));
+//            globalTrans_->update(false);
+//        }
 
-        auto& parallelEclState = dynamic_cast<ParallelEclipseState&>(this->eclState());
-        // reset cartesian index mapper for auto creation of field properties
-        parallelEclState.resetCartesianMapper(cartesianIndexMapper_.get());
-        parallelEclState.switchToDistributedProps();
-    }
+//        auto& parallelEclState = dynamic_cast<ParallelEclipseState&>(this->eclState());
+//        // reset cartesian index mapper for auto creation of field properties
+//        parallelEclState.resetCartesianMapper(cartesianIndexMapper_.get());
+//        parallelEclState.switchToDistributedProps();
+//    }
 
     template<class DataHandle>
     void scatterData(DataHandle& handle) const
@@ -236,7 +238,7 @@ public:
         return this->cellCentroids_(cartesianIndexMapper_.get());
     }
 
-    const EclTransmissibility<TypeTag>& globalTransmissibility() const
+    const TransmissibilityType& globalTransmissibility() const
     {
         assert( globalTrans_ != nullptr );
         return *globalTrans_;
@@ -316,7 +318,7 @@ protected:
     std::array<int,dimension> cartesianDimension_;
     std::unique_ptr<CartesianIndexMapper> cartesianIndexMapper_;
     EquilCartesianIndexMapper* equilCartesianIndexMapper_;
-    std::unique_ptr<EclTransmissibility<TypeTag> > globalTrans_;
+    std::unique_ptr<TransmissibilityType> globalTrans_;
     int mpiRank;
 
 };

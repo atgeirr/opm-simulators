@@ -46,7 +46,7 @@ class EclipseState;
 struct NNCdata;
 class TransMult;
 
-template<class Grid, class GridView, class ElementMapper, class Scalar>
+template<class Grid, class GridView, class ElementMapper, class CartesianIndexMapper, class Scalar>
 class EclTransmissibility {
     // Grid and world dimension
     enum { dimWorld = GridView::dimensionworld };

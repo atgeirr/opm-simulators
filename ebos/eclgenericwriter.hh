@@ -30,7 +30,7 @@
 
 #include "collecttoiorank.hh"
 #include <ebos/ecltransmissibility.hh>
-
+#include "alucartesianindexmapper.hh"
 #include <opm/models/parallel/tasklets.hh>
 #include <opm/simulators/timestepping/SimulatorReport.hpp>
 
@@ -52,11 +52,15 @@ class SummaryConfig;
 class SummaryState;
 class UDQState;
 
-template <class Grid, class EquilGrid, class GridView, class ElementMapper, class Scalar>
+
+template <class Grid, class EquilGrid, class GridView, class ElementMapper,   class Scalar>
 class EclGenericWriter
-{
+{ 
+
+    typedef Opm::AluCartesianIndexMapper<Grid> CartesianIndexMapper;
+    typedef Dune::CartesianIndexMapper<EquilGrid> EquilCartesianIndexMapper; 
     using CollectDataToIORankType = CollectDataToIORank<Grid,EquilGrid,GridView>;
-    using TransmissibilityType = EclTransmissibility<Grid,GridView,ElementMapper,Scalar>;
+    using TransmissibilityType = EclTransmissibility<Grid,GridView,ElementMapper,    CartesianIndexMapper,Scalar>;
 
 public:
     // The Simulator object should preferably have been const - the

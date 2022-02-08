@@ -406,9 +406,10 @@ doWriteOutput(const int                     reportStepNum,
               bool doublePrecision)
 {
     const auto isParallel = this->collectToIORank_.isParallel();
+    const bool needsReordring = this->collectToIORank_.doesNeedReordering();
 
     RestartValue restartValue {
-        isParallel ? this->collectToIORank_.globalCellData()
+        (isParallel || needsReordring) ? this->collectToIORank_.globalCellData()
                    : std::move(localCellData),
 
         isParallel ? this->collectToIORank_.globalWellData()

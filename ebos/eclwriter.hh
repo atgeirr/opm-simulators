@@ -274,7 +274,7 @@ public:
             this->eclOutputModule_->addRftDataToWells(localWellData, reportStepNum);
         }
 
-        if (this->collectToIORank_.isParallel()) {
+       if (this->collectToIORank_.isParallel()|| this->collectToIORank_.doesNeedReordering()) {
             this->collectToIORank_.collect(localCellData,
                                            eclOutputModule_->getBlockData(),
                                            eclOutputModule_->getWBPData(),
@@ -350,6 +350,7 @@ public:
             Action::State& actionState = simulator_.vanguard().actionState();
             auto restartValues = loadParallelRestart(this->eclIO_.get(), actionState, summaryState, solutionKeys, extraKeys,
                                                      gridView.grid().comm());
+            const auto& cartMapper = simulator_.vanguard().cartesianIndexMapper();
             for (unsigned elemIdx = 0; elemIdx < numElements; ++elemIdx) {
                 unsigned globalIdx = this->collectToIORank_.localIdxToGlobalIdx(elemIdx);
                 eclOutputModule_->setRestart(restartValues.solution, elemIdx, globalIdx);

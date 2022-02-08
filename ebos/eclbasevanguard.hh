@@ -449,7 +449,7 @@ protected:
         const auto& grid = asImp_().equilGrid();
         const auto& gridView = grid.leafGridView();
         
-        ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
+        ElementMapper elemMapper(this->gridView(), Dune::mcmgElementLayout());
         for (const auto& element : elements(gridView))
         {
             const auto elemIdx = elemMapper.index(element);
@@ -473,7 +473,7 @@ protected:
         const auto& gridView = grid.leafGridView();
         cellCenterDepth_.resize(numCells);
 
-        ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
+        ElementMapper elemMapper(this->gridView(), Dune::mcmgElementLayout());
         auto elemIt = gridView.template begin</*codim=*/0>();
         const auto& elemEndIt = gridView.template end</*codim=*/0>();
 
@@ -501,7 +501,7 @@ protected:
         if (!this->drsdtconEnabled())
             return;
 
-        ElementMapper elemMapper(gridView, Dune::mcmgElementLayout());
+        ElementMapper elemMapper(this->gridView(), Dune::mcmgElementLayout());
 
         int numElements = gridView.size(/*codim=*/0);
         cellThickness_.resize(numElements);
