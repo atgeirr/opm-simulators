@@ -478,6 +478,7 @@ namespace Opm {
             }
             report.convergence_check_time += perfTimer.stop();
             residual_norms_history_.push_back(residual_norms);
+            // Dune::writeMatrixToMatlab(ebosSimulator_.model().linearizer().jacobian().istlMatrix(), "beforeWellModelLinearize.matlab");
 
             // -----------   If not converged, solve linear system   -----------
             if (!report.converged) {
@@ -500,6 +501,7 @@ namespace Opm {
                     // Note that linearize may throw for MSwells.
                     wellModel().linearize(ebosSimulator().model().linearizer().jacobian(),
                                           ebosSimulator().model().linearizer().residual());
+                    wellModel().logPrimaryVars();
 
                     solveJacobianSystem(x);
                     report.linear_solve_setup_time += linear_solve_setup_time_;
@@ -522,6 +524,7 @@ namespace Opm {
                 // on observation to avoid some big performance degeneration under some circumstances.
                 // there is no theorectical explanation which way is better for sure.
                 wellModel().postSolve(x);
+                wellModel().logPrimaryVars();
 
                 if (param_.use_update_stabilization_) {
                     // Stabilize the nonlinear update.
@@ -1104,6 +1107,7 @@ namespace Opm {
             const double tt1 = detailTimer.stop();
             report.assemble_time += tt1;
             report.assemble_time_well += tt1;
+            wellModel().logPrimaryVars();
 
             // Local Newton loop.
             const int max_iter = param_.max_local_solve_iterations_;
@@ -1120,6 +1124,7 @@ namespace Opm {
                 report.linear_solve_time += detailTimer.stop();
                 report.linear_solve_setup_time += linear_solve_setup_time_;
                 report.total_linear_iterations = linearIterationsLastSolve();
+                wellModel().logPrimaryVars();
 
                 // Update local solution. // TODO: x is still full size, should we optimize it?
                 detailTimer.reset();
@@ -1137,10 +1142,10 @@ namespace Opm {
                 // TODO: we should have a beginIterationLocal function()
                 // only handling the well model for now
                 // ebosSimulator_.problem().beginIteration();
+                // Assemble reservoir locally.
                 ebosSimulator_.problem().wellModel().assembleLocal(ebosSimulator_.model().newtonMethod().numIterations(),
                                                                    ebosSimulator_.timeStepSize(),
                                                                    domain);
-                // Assemble reservoir locally.
                 report += assembleReservoirLocal(domain, iter);
                 report.assemble_time += detailTimer.stop();
 
@@ -1150,6 +1155,8 @@ namespace Opm {
                 detailTimer.start();
                 convreport = getLocalConvergence(domain, timer, iter, resnorms);
                 report.convergence_check_time += detailTimer.stop();
+                wellModel().logPrimaryVars();
+                // Dune::writeMatrixToMatlab(ebosSimulator_.model().linearizer().jacobian().istlMatrix(), "beforeWellModelLinearize.matlab");
 
                 // apply the Schur compliment of the well model to the reservoir linearized
                 // equations
@@ -1161,6 +1168,7 @@ namespace Opm {
                 const double tt2 = detailTimer.stop();
                 report.assemble_time += tt2;
                 report.assemble_time_well += tt2;
+                wellModel().logPrimaryVars();
 
             } while (!convreport.converged() && iter <= max_iter);
 
