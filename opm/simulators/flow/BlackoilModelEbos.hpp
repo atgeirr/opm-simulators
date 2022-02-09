@@ -463,7 +463,7 @@ namespace Opm {
                        << convrep;
                     OpmLog::debug(os.str());
                 }
-                wellModel().logPrimaryVars();
+                ////wellModel().logPrimaryVars();
 
                 report.converged = convrep.converged()  && iteration > nonlinear_solver.minIter();;
                 ConvergenceReport::Severity severity = convrep.severityOfWorstFailure();
@@ -501,7 +501,7 @@ namespace Opm {
                     // Note that linearize may throw for MSwells.
                     wellModel().linearize(ebosSimulator().model().linearizer().jacobian(),
                                           ebosSimulator().model().linearizer().residual());
-                    wellModel().logPrimaryVars();
+                    //wellModel().logPrimaryVars();
 
                     solveJacobianSystem(x);
                     report.linear_solve_setup_time += linear_solve_setup_time_;
@@ -524,7 +524,7 @@ namespace Opm {
                 // on observation to avoid some big performance degeneration under some circumstances.
                 // there is no theorectical explanation which way is better for sure.
                 wellModel().postSolve(x);
-                wellModel().logPrimaryVars();
+                //wellModel().logPrimaryVars();
 
                 if (param_.use_update_stabilization_) {
                     // Stabilize the nonlinear update.
@@ -566,7 +566,7 @@ namespace Opm {
             failureReport_ = SimulatorReportSingle();
             Dune::Timer perfTimer;
 
-            wellModel().logPrimaryVars();
+            //wellModel().logPrimaryVars();
 
             perfTimer.start();
             report.total_linearizations = 1;
@@ -582,7 +582,7 @@ namespace Opm {
                 // todo (?): make the report an attribute of the class
                 throw; // continue throwing the stick
             }
-            wellModel().logPrimaryVars();
+            //wellModel().logPrimaryVars();
 
             // -----------   Check if converged   -----------
             std::vector<double> residual_norms;
@@ -741,7 +741,7 @@ namespace Opm {
 #define ASPIN_EXTRA_WELL_OUTPUT 1
 #if ASPIN_EXTRA_WELL_OUTPUT
             // Extra debug output.
-            wellModel().logPrimaryVars();
+            //wellModel().logPrimaryVars();
             {
                 std::ostringstream os;
                 os << "   ** Well rates:";
@@ -763,7 +763,7 @@ namespace Opm {
                 }
                 // Finish with a Newton step.
                 // ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
-                auto rep = nonlinearIterationNewton(iteration, timer, nonlinear_solver);
+                auto rep = nonlinearIterationNewton(iteration + 100, timer, nonlinear_solver);
                 report += rep;
                 return report;
             }
@@ -790,7 +790,7 @@ namespace Opm {
                 // todo (?): make the report an attribute of the class
                 throw; // continue throwing the stick
             }
-            wellModel().logPrimaryVars();
+            //wellModel().logPrimaryVars();
 
             // -----------   Check if converged   -----------
             perfTimer.reset();
@@ -1017,7 +1017,7 @@ namespace Opm {
 
             report.update_time += perfTimer.stop();
 
-            wellModel().logPrimaryVars();
+            //wellModel().logPrimaryVars();
 
             // Extra debug output.
             {
@@ -1062,7 +1062,7 @@ namespace Opm {
             int iter = 0;
             if (initial_assembly_required) {
                 OpmLog::debug("solveLocal() initial assembly START");
-                wellModel().logPrimaryVars();
+                //wellModel().logPrimaryVars();
                 detailTimer.start();
                 ebosSimulator_.model().newtonMethod().setIterationIndex(iter);
                 // TODO: we should have a beginIterationLocal function()
@@ -1075,7 +1075,7 @@ namespace Opm {
                 report += assembleReservoirLocal(domain, iter);
                 report.assemble_time += detailTimer.stop();
                 OpmLog::debug("solveLocal() initial assembly END");
-                wellModel().logPrimaryVars();
+                //wellModel().logPrimaryVars();
             }
             detailTimer.reset();
             detailTimer.start();
@@ -1107,7 +1107,7 @@ namespace Opm {
             const double tt1 = detailTimer.stop();
             report.assemble_time += tt1;
             report.assemble_time_well += tt1;
-            wellModel().logPrimaryVars();
+            //wellModel().logPrimaryVars();
 
             // Local Newton loop.
             const int max_iter = param_.max_local_solve_iterations_;
@@ -1124,7 +1124,7 @@ namespace Opm {
                 report.linear_solve_time += detailTimer.stop();
                 report.linear_solve_setup_time += linear_solve_setup_time_;
                 report.total_linear_iterations = linearIterationsLastSolve();
-                wellModel().logPrimaryVars();
+                //wellModel().logPrimaryVars();
 
                 // Update local solution. // TODO: x is still full size, should we optimize it?
                 detailTimer.reset();
@@ -1155,7 +1155,7 @@ namespace Opm {
                 detailTimer.start();
                 convreport = getLocalConvergence(domain, timer, iter, resnorms);
                 report.convergence_check_time += detailTimer.stop();
-                wellModel().logPrimaryVars();
+                //wellModel().logPrimaryVars();
                 // Dune::writeMatrixToMatlab(ebosSimulator_.model().linearizer().jacobian().istlMatrix(), "beforeWellModelLinearize.matlab");
 
                 // apply the Schur compliment of the well model to the reservoir linearized
@@ -1168,7 +1168,7 @@ namespace Opm {
                 const double tt2 = detailTimer.stop();
                 report.assemble_time += tt2;
                 report.assemble_time_well += tt2;
-                wellModel().logPrimaryVars();
+                //wellModel().logPrimaryVars();
 
             } while (!convreport.converged() && iter <= max_iter);
 
