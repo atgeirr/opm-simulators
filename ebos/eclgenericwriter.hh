@@ -57,7 +57,7 @@ template <class Grid, class EquilGrid, class GridView, class ElementMapper,   cl
 class EclGenericWriter
 { 
 
-    typedef Opm::AluCartesianIndexMapper<Grid> CartesianIndexMapper;
+    typedef Dune::CartesianIndexMapper<Grid> CartesianIndexMapper;
     typedef Dune::CartesianIndexMapper<EquilGrid> EquilCartesianIndexMapper; 
     using CollectDataToIORankType = CollectDataToIORank<Grid,EquilGrid,GridView>;
     using TransmissibilityType = EclTransmissibility<Grid,GridView,ElementMapper,    CartesianIndexMapper,Scalar>;
