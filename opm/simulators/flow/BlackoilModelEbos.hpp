@@ -646,7 +646,7 @@ namespace Opm {
                     Details::setGlobal(initial_local_solution, domain.cells, solution);
                    // ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0, domain.view);
 #else
-                    if (/*!local_report.converged*/ true) {
+                    if (/*!local_report.converged*/ false) {
                         // Try again with a less strict tolerance.
                         wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
                         Details::setGlobal(initial_local_solution, domain.cells, solution);
@@ -765,6 +765,9 @@ namespace Opm {
                 // ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
                 auto rep = nonlinearIterationNewton(iteration + 100, timer, nonlinear_solver);
                 report += rep;
+                if (rep.converged) {
+                    report.converged = true;
+                }
                 return report;
             }
             report.total_newton_iterations = 1;
