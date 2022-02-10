@@ -35,7 +35,12 @@
 #include <dune/fem/gridpart/adaptiveleafgridpart.hh>
 #include <dune/fem/gridpart/common/gridpart2gridview.hh>
 #include <ebos/femcpgridcompat.hh>
-#endif
+
+#if HAVE_DUNE_ALUGRID
+#include <dune/alugrid/grid.hh>
+#endif // HAVE_DUNE_ALUGRID
+
+#endif // HAVE_DUNE_FEM
 
 #include <algorithm>
 #include <cassert>
@@ -998,11 +1003,29 @@ template class CollectDataToIORank<Dune::CpGrid,
                                            Dune::CpGrid,
                                            Dune::PartitionIteratorType(4),
                                            false> > >;
-#else
+#if HAVE_DUNE_ALUGRID
+
+using AluGrid3cn = Dune::ALUGrid<3, 3, Dune::cube, Dune::nonconforming>;
+
+template class CollectDataToIORank<AluGrid3cn,
+                                   Dune::CpGrid,
+                                   Dune::GridView<Dune::Fem::GridPart2GridViewTraits<Dune::Fem::AdaptiveLeafGridPart<AluGrid3cn, Dune::PartitionIteratorType(4), false>>>>;
+template class CollectDataToIORank<AluGrid3cn,
+                                   Dune::CpGrid,
+                                   Dune::Fem::GridPart2GridViewImpl<
+                                       Dune::Fem::AdaptiveLeafGridPart<
+                                           AluGrid3cn,
+                                           Dune::PartitionIteratorType(4),
+                                           false> > >;
+
+#endif HAVE_DUNE_ALUGRID
+
+
+#else // ! HAVE_DUNE_FEM
 template class CollectDataToIORank<Dune::CpGrid,
                                    Dune::CpGrid,
                                    Dune::GridView<Dune::DefaultLeafGridViewTraits<Dune::CpGrid>>>;
-#endif
+#endif // ! HAVE_DUNE_FEM
 template class CollectDataToIORank<Dune::PolyhedralGrid<3,3,double>,
                                    Dune::PolyhedralGrid<3,3,double>,
                                    Dune::GridView<Dune::PolyhedralGridViewTraits<3,3,double,Dune::PartitionIteratorType(4)>>>;

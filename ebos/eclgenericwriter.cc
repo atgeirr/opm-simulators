@@ -46,7 +46,12 @@
 #include <dune/fem/gridpart/adaptiveleafgridpart.hh>
 #include <dune/fem/gridpart/common/gridpart2gridview.hh>
 #include <ebos/femcpgridcompat.hh>
-#endif
+
+#if HAVE_DUNE_ALUGRID
+#include <dune/alugrid/grid.hh>
+#endif // HAVE_DUNE_ALUGRID
+
+#endif // HAVE_DUNE_FEM
 
 #if HAVE_MPI
 #include <mpi.h>
@@ -555,13 +560,43 @@ template class EclGenericWriter<Dune::CpGrid,
                                             Dune::PartitionIteratorType(4),
                                             false>>>,
                                 double>;
-#else
+
+
+#if HAVE_DUNE_ALUGRID
+
+using AluGrid3cn = Dune::ALUGrid<3, 3, Dune::cube, Dune::nonconforming>;
+
+template class EclGenericWriter<AluGrid3cn,
+                                Dune::CpGrid,
+                                Dune::GridView<Dune::Fem::GridPart2GridViewTraits<Dune::Fem::AdaptiveLeafGridPart<AluGrid3cn, Dune::PartitionIteratorType(4), false>>>,
+                                Dune::MultipleCodimMultipleGeomTypeMapper<Dune::GridView<Dune::Fem::GridPart2GridViewTraits<Dune::Fem::AdaptiveLeafGridPart<AluGrid3cn, Dune::PartitionIteratorType(4), false>>>>,
+                                double>;
+
+template class EclGenericWriter<AluGrid3cn,
+                                Dune::CpGrid,
+                                Dune::Fem::GridPart2GridViewImpl<
+                                    Dune::Fem::AdaptiveLeafGridPart<
+                                        AluGrid3cn,
+                                        Dune::PartitionIteratorType(4),
+                                        false>>,
+                                Dune::MultipleCodimMultipleGeomTypeMapper<
+                                    Dune::Fem::GridPart2GridViewImpl<
+                                        Dune::Fem::AdaptiveLeafGridPart<
+                                            AluGrid3cn,
+                                            Dune::PartitionIteratorType(4),
+                                            false>>>,
+                                double>;
+
+
+#endif // HAVE_DUNE_ALUGRID
+
+#else // !HAVE_DUNE_FEM
 template class EclGenericWriter<Dune::CpGrid,
                                 Dune::CpGrid,
                                 Dune::GridView<Dune::DefaultLeafGridViewTraits<Dune::CpGrid>>,
                                 Dune::MultipleCodimMultipleGeomTypeMapper<Dune::GridView<Dune::DefaultLeafGridViewTraits<Dune::CpGrid>>>,
                                 double>;
-#endif
+#endif // !HAVE_DUNE_FEM
 
 template class EclGenericWriter<Dune::PolyhedralGrid<3,3,double>,
                                 Dune::PolyhedralGrid<3,3,double>,
