@@ -30,6 +30,8 @@
 
 #include <dune/grid/common/datahandleif.hh>
 #include <dune/grid/utility/persistentcontainer.hh>
+#include <dune/alugrid/grid.hh>
+#include <opm/grid/common/CartesianIndexMapper.hpp>
 
 #include <array>
 #include <memory>
@@ -37,16 +39,18 @@
 #include <vector>
 #include <cassert>
 
-namespace Opm {
+namespace Dune {
 
 /*!
  * \brief Interface class to access the logical Cartesian grid as used in industry
  *        standard simulator decks.
  */
-template <class Grid>
-class AluCartesianIndexMapper
+template <>
+class CartesianIndexMapper<Dune::ALUGrid<3, 3, Dune::cube, Dune::nonconforming>>
 {
 public:
+    using Grid = Dune::ALUGrid<3, 3, Dune::cube, Dune::nonconforming>;
+
     // data handle for communicating global ids during load balance and communication
     template <class GridView>
     class GlobalIndexDataHandle : public Dune::CommDataHandleIF<GlobalIndexDataHandle<GridView>, int>
@@ -164,9 +168,9 @@ public:
     static const int dimension = Grid::dimension ;
 
     /** \brief constructor taking grid */
-    AluCartesianIndexMapper(const Grid& grid,
-                             const std::array<int, dimension>& cartDims,
-                             const std::vector<int>& cartesianIndex)
+    CartesianIndexMapper(const Grid& grid,
+                         const std::array<int, dimension>& cartDims,
+                         const std::vector<int>& cartesianIndex)
         : grid_(grid)
         , cartesianDimensions_(cartDims)
         , cartesianIndex_(cartesianIndex)
@@ -248,6 +252,6 @@ protected:
     const int cartesianSize_ ;
 };
 
-} // end namespace Opm
+} // end namespace Dune
 
 #endif

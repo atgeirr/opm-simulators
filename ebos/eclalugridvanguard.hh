@@ -94,7 +94,7 @@ public:
     using Grid = GetPropType<TypeTag, Properties::Grid>;
     using EquilGrid = GetPropType<TypeTag, Properties::EquilGrid>;
     using GridView = GetPropType<TypeTag, Properties::GridView>;        
-    typedef Opm::AluCartesianIndexMapper<Grid> CartesianIndexMapper;
+    typedef Dune::CartesianIndexMapper<Grid> CartesianIndexMapper;
     typedef Dune::CartesianIndexMapper<EquilGrid> EquilCartesianIndexMapper;
     using TransmissibilityType = EclTransmissibility<Grid, GridView, ElementMapper, CartesianIndexMapper, Scalar>;
 
@@ -105,14 +105,6 @@ public:
         : EclBaseVanguard<TypeTag>(simulator), mpiRank()
     {
         this->callImplementationInit();
-    }
-
-    ~EclAluGridVanguard()
-    {
-        //delete cartesianIndexMapper_;
-        delete equilCartesianIndexMapper_;
-        delete grid_;
-        delete equilGrid_;
     }
 
     /*!
@@ -235,7 +227,7 @@ public:
     std::function<std::array<double,dimensionworld>(int)>
     cellCentroids() const
     {
-        return this->cellCentroids_(cartesianIndexMapper_.get());
+        return this->cellCentroids_(*cartesianIndexMapper_);
     }
 
     const TransmissibilityType& globalTransmissibility() const
@@ -274,22 +266,37 @@ protected:
         /////
         // create the EQUIL grid
         /////
-        equilGrid_ = new EquilGrid();
-        equilGrid_->processEclipseFormat(mpiRank == 0 ? &this->eclState().getInputGrid()
-                                                 : nullptr,
-                                    /*isPeriodic=*/false,
-                                    /*flipNormals=*/false,
-                                    /*clipZ=*/false,
-                                    mpiRank == 0 ? this->eclState().fieldProps().porv(true)
-                                                 : std::vector<double>(),
-                                    this->eclState().getInputNNC());
+        const EclipseGrid* input_grid = nullptr;
+        std::vector<double> global_porv;
+        // At this stage the ParallelEclipseState instance is still in global
+        // view; on rank 0 we have undistributed data for the entire grid, on
+        // the other ranks the EclipseState is empty.
+        if (mpiRank == 0) {
+            input_grid = &this->eclState().getInputGrid();
+            global_porv = this->eclState().fieldProps().porv(true);
+            OpmLog::info("\nProcessing grid");
+        }
+
+#if HAVE_MPI
+        this->equilGrid_ = std::make_unique<Dune::CpGrid>(EclGenericVanguard::comm());
+#else
+        this->equilGrid_ = std::make_unique<Dune::CpGrid>();
+#endif
+
+        // Note: removed_cells is guaranteed to be empty on ranks other than 0.
+        auto removed_cells =
+            this->equilGrid_->processEclipseFormat(input_grid,
+                                                   &this->eclState(),
+                                                   /*isPeriodic=*/false,
+                                                   /*flipNormals=*/false,
+                                                   /*clipZ=*/false);
 
         cartesianCellId_ = equilGrid_->globalCell();
 
         for (unsigned i = 0; i < dimension; ++i)
             cartesianDimension_[i] = equilGrid_->logicalCartesianSize()[i];
 
-        equilCartesianIndexMapper_ = new EquilCartesianIndexMapper(*equilGrid_);
+        equilCartesianIndexMapper_ = std::make_unique<EquilCartesianIndexMapper>(*equilGrid_);
 
         /////
         // create the simulation grid
@@ -302,7 +309,7 @@ protected:
             equilGridToGrid_[ordering_[index]] = index;
         }
 
-        cartesianIndexMapper_.reset(std::make_unique<CartesianIndexMapper>(*grid_, cartesianDimension_, cartesianCellId_));
+        cartesianIndexMapper_ = std::make_unique<CartesianIndexMapper>(*grid_, cartesianDimension_, cartesianCellId_);
     }
 
     void filterConnections_()
@@ -310,14 +317,14 @@ protected:
         // not handling the removal of completions for this type of grid yet.
     }
 
-    Grid* grid_;
-    EquilGrid* equilGrid_;
+    std::unique_ptr<Grid> grid_;
+    std::unique_ptr<EquilGrid> equilGrid_;
     std::vector<int> cartesianCellId_;
     std::vector<unsigned int> ordering_;
     std::vector<unsigned int> equilGridToGrid_;
     std::array<int,dimension> cartesianDimension_;
     std::unique_ptr<CartesianIndexMapper> cartesianIndexMapper_;
-    EquilCartesianIndexMapper* equilCartesianIndexMapper_;
+    std::unique_ptr<EquilCartesianIndexMapper> equilCartesianIndexMapper_;
     std::unique_ptr<TransmissibilityType> globalTrans_;
     int mpiRank;
 

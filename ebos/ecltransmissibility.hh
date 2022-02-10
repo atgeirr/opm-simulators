@@ -57,7 +57,7 @@ public:
 
     EclTransmissibility(const EclipseState& eclState,
                         const GridView& gridView,
-                        const Dune::CartesianIndexMapper<Grid>& cartMapper,
+                        const CartesianIndexMapper& cartMapper,
                         const Grid& grid,
                         std::function<std::array<double,dimWorld>(int)> centroids,
                         bool enableEnergy,
@@ -235,7 +235,7 @@ protected:
     std::unordered_map<std::uint64_t, Scalar> trans_;
     const EclipseState& eclState_;
     const GridView& gridView_;
-    const Dune::CartesianIndexMapper<Grid>& cartMapper_;
+    const CartesianIndexMapper& cartMapper_;
     const Grid& grid_;
     std::function<std::array<double,dimWorld>(int)> centroids_;
     Scalar transmissibilityThreshold_;

@@ -223,7 +223,7 @@ namespace Opm {
             {
                 initFromRestartFile(restartValues,
                                     this->ebosSimulator_.vanguard().transferWTestState(),
-                                    UgGridHelpers::numCells(grid()),
+                                    grid().size(0),
                                     param_.use_multisegment_well_);
             }
 

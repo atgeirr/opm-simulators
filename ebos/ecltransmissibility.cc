@@ -86,7 +86,7 @@ template<class Grid, class GridView, class ElementMapper, class CartesianIndexMa
 EclTransmissibility<Grid,GridView,ElementMapper,CartesianIndexMapper,Scalar>::
 EclTransmissibility(const EclipseState& eclState,
                     const GridView& gridView,
-                    const Dune::CartesianIndexMapper<Grid>& cartMapper,
+                    const CartesianIndexMapper& cartMapper,
                     const Grid& grid,
                     std::function<std::array<double,dimWorld>(int)> centroids,
                     bool enableEnergy,
