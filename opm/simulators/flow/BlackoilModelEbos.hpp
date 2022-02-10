@@ -530,7 +530,7 @@ namespace Opm {
                     // Stabilize the nonlinear update.
                     bool isOscillate = false;
                     bool isStagnate = false;
-                    nonlinear_solver.detectOscillations(residual_norms_history_, iteration, isOscillate, isStagnate);
+                    nonlinear_solver.detectOscillations(residual_norms_history_, residual_norms_history_.size() - 1, isOscillate, isStagnate);
                     if (isOscillate) {
                         current_relaxation_ -= nonlinear_solver.relaxIncrement();
                         current_relaxation_ = std::max(current_relaxation_, nonlinear_solver.relaxMax());
