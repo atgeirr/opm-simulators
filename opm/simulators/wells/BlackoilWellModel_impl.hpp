@@ -2109,6 +2109,14 @@ namespace Opm {
                     // then all of that well's cells are in that same domain.
                     // TODO verify assumption.
                     well_domain_[wellPtr->name()] = domain.index;
+
+                    // Verify that all of that well's cells are in that same domain.
+                    for (int well_cell : wellPtr->cells()) {
+                        if (!std::binary_search(domain.cells.begin(), domain.cells.end(), well_cell)) {
+                            // TODO: ensure proper exit in parallel.
+                            OPM_THROW(std::runtime_error, "Well found on multiple domains.");
+                        }
+                    }
                 }
             }
         }
