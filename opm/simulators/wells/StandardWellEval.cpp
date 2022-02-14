@@ -808,13 +808,13 @@ getWellConvergence(const WellState& well_state,
         const int compIdx = Indices::canonicalToActiveComponentIndex(canonicalCompIdx);
 
         if (std::isnan(well_flux_residual[compIdx])) {
-            report.setWellFailed({type, CR::Severity::NotANumber, compIdx, baseif_.name()});
+            report.setWellFailed({type, CR::Severity::NotANumber, compIdx, baseif_.name(), well_flux_residual[compIdx]});
         } else if (well_flux_residual[compIdx] > maxResidualAllowed) {
-            report.setWellFailed({type, CR::Severity::TooLarge, compIdx, baseif_.name()});
+            report.setWellFailed({type, CR::Severity::TooLarge, compIdx, baseif_.name(), well_flux_residual[compIdx]});
         } else if (!relax_tolerance && well_flux_residual[compIdx] > tol_wells) {
-            report.setWellFailed({type, CR::Severity::Normal, compIdx, baseif_.name()});
+            report.setWellFailed({type, CR::Severity::Normal, compIdx, baseif_.name(), well_flux_residual[compIdx]});
         } else if (well_flux_residual[compIdx] > relaxed_tolerance_flow) {
-            report.setWellFailed({type, CR::Severity::Normal, compIdx, baseif_.name()});
+            report.setWellFailed({type, CR::Severity::Normal, compIdx, baseif_.name(), well_flux_residual[compIdx]});
         }
     }
 

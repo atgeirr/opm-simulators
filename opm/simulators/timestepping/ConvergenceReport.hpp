@@ -69,19 +69,21 @@ namespace Opm
                 }
             }
 
-            ReservoirFailure(Type t, Severity s, int phase, int cell_number)
-                : type_(t), severity_(s), phase_(phase), cell_number_(cell_number)
+            ReservoirFailure(Type t, Severity s, int phase, int cell_number, double magnitude)
+                : type_(t), severity_(s), phase_(phase), cell_number_(cell_number), magnitude_(magnitude)
             {
             }
             Type type() const { return type_; }
             Severity severity() const { return severity_; }
             int phase() const { return phase_; }
             int cellNumber() const { return cell_number_; }
+            double magnitude() const { return magnitude_; }
         private:
             Type type_;
             Severity severity_;
             int phase_;
             int cell_number_;
+            double magnitude_;
         };
 
         class WellFailure
@@ -99,19 +101,21 @@ namespace Opm
                 case Type::ControlRate: return "ControlRate";
                 }
             }
-            WellFailure(Type t, Severity s, int phase, const std::string& well_name)
-                : type_(t), severity_(s), phase_(phase), well_name_(well_name)
+            WellFailure(Type t, Severity s, int phase, const std::string& well_name, double magnitude)
+                : type_(t), severity_(s), phase_(phase), well_name_(well_name), magnitude_(magnitude)
             {
             }
             Type type() const { return type_; }
             Severity severity() const { return severity_; }
             int phase() const { return phase_; }
             const std::string& wellName() const { return well_name_; }
+            double magnitude() const { return magnitude_; }
         private:
             Type type_;
             Severity severity_;
             int phase_;
             std::string well_name_;
+            double magnitude_;
         };
 
         // ----------- Mutating member functions -----------
@@ -222,7 +226,8 @@ namespace Opm
         os << "||| Failure in well " << wf.wellName()
            << " of type " << ConvergenceReport::WellFailure::stringify(wf.type())
            << " and severity " << ConvergenceReport::stringify(wf.severity())
-           << " for phase " << wf.phase() << "\n";
+           << " for phase " << wf.phase()
+           << " with magnitude " << wf.magnitude() << "\n";
         return os;
     }
 
@@ -232,7 +237,8 @@ namespace Opm
         os << "||| Failure of type " << ConvergenceReport::ReservoirFailure::stringify(rf.type())
            << " and severity " << ConvergenceReport::stringify(rf.severity())
            << " for phase " << rf.phase()
-           << " in cell " << rf.cellNumber() << "\n";
+           << " in cell " << rf.cellNumber()
+           << " with magnitude " << rf.magnitude() << "\n";
         return os;
     }
 

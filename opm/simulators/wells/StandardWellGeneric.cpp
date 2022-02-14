@@ -651,11 +651,11 @@ checkConvergenceControlEq(const WellState& well_state,
     const double well_control_residual = std::abs(this->resWell_[0][Bhp_]);
     const int dummy_component = -1;
     if (std::isnan(well_control_residual)) {
-        report.setWellFailed({ctrltype, CR::Severity::NotANumber, dummy_component, baseif_.name()});
+        report.setWellFailed({ctrltype, CR::Severity::NotANumber, dummy_component, baseif_.name(), well_control_residual});
     } else if (well_control_residual > max_residual_allowed * 10.) {
-        report.setWellFailed({ctrltype, CR::Severity::TooLarge, dummy_component, baseif_.name()});
+        report.setWellFailed({ctrltype, CR::Severity::TooLarge, dummy_component, baseif_.name(), well_control_residual});
     } else if ( well_control_residual > control_tolerance) {
-        report.setWellFailed({ctrltype, CR::Severity::Normal, dummy_component, baseif_.name()});
+        report.setWellFailed({ctrltype, CR::Severity::Normal, dummy_component, baseif_.name(), well_control_residual});
     }
 }
 
@@ -675,11 +675,11 @@ checkConvergencePolyMW(const std::vector<double>& res,
       for (int perf = 0; perf < baseif_.numPerfs(); ++perf) {
           const double wat_vel_residual = res[Bhp_ + 1 + perf];
           if (std::isnan(wat_vel_residual)) {
-              report.setWellFailed({wat_vel_failure_type, CR::Severity::NotANumber, dummy_component, baseif_.name()});
+              report.setWellFailed({wat_vel_failure_type, CR::Severity::NotANumber, dummy_component, baseif_.name(), wat_vel_residual});
           } else if (wat_vel_residual > maxResidualAllowed * 10.) {
-              report.setWellFailed({wat_vel_failure_type, CR::Severity::TooLarge, dummy_component, baseif_.name()});
+              report.setWellFailed({wat_vel_failure_type, CR::Severity::TooLarge, dummy_component, baseif_.name(), wat_vel_residual});
           } else if (wat_vel_residual > wat_vel_tol) {
-              report.setWellFailed({wat_vel_failure_type, CR::Severity::Normal, dummy_component, baseif_.name()});
+              report.setWellFailed({wat_vel_failure_type, CR::Severity::Normal, dummy_component, baseif_.name(), wat_vel_residual});
           }
       }
 
@@ -689,11 +689,11 @@ checkConvergencePolyMW(const std::vector<double>& res,
       for (int perf = 0; perf < baseif_.numPerfs(); ++perf) {
           const double pskin_residual = res[Bhp_ + 1 + perf + baseif_.numPerfs()];
           if (std::isnan(pskin_residual)) {
-              report.setWellFailed({pskin_failure_type, CR::Severity::NotANumber, dummy_component, baseif_.name()});
+              report.setWellFailed({pskin_failure_type, CR::Severity::NotANumber, dummy_component, baseif_.name(), pskin_residual});
           } else if (pskin_residual > maxResidualAllowed * 10.) {
-              report.setWellFailed({pskin_failure_type, CR::Severity::TooLarge, dummy_component, baseif_.name()});
+              report.setWellFailed({pskin_failure_type, CR::Severity::TooLarge, dummy_component, baseif_.name(), pskin_residual});
           } else if (pskin_residual > pskin_tol) {
-              report.setWellFailed({pskin_failure_type, CR::Severity::Normal, dummy_component, baseif_.name()});
+              report.setWellFailed({pskin_failure_type, CR::Severity::Normal, dummy_component, baseif_.name(), pskin_residual});
           }
       }
   }

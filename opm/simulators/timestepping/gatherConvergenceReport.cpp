@@ -39,10 +39,12 @@ namespace
         int severity = static_cast<int>(f.severity());
         int phase = f.phase();
         int cell_number = f.cellNumber();
+        double magnitude = f.magnitude();
         MPI_Pack(&type, 1, MPI_INT, buf.data(), buf.size(), &offset, mpi_communicator);
         MPI_Pack(&severity, 1, MPI_INT, buf.data(), buf.size(), &offset, mpi_communicator);
         MPI_Pack(&phase, 1, MPI_INT, buf.data(), buf.size(), &offset, mpi_communicator);
         MPI_Pack(&cell_number, 1, MPI_INT, buf.data(), buf.size(), &offset, mpi_communicator);
+        MPI_Pack(&magnitude, 1, MPI_DOUBLE, buf.data(), buf.size(), &offset, mpi_communicator);
     }
 
     void packWellFailure(const ConvergenceReport::WellFailure& f,
@@ -58,6 +60,8 @@ namespace
         int name_length = f.wellName().size() + 1; // Adding 1 for the null terminator.
         MPI_Pack(&name_length, 1, MPI_INT, buf.data(), buf.size(), &offset, mpi_communicator);
         MPI_Pack(const_cast<char*>(f.wellName().c_str()), name_length, MPI_CHAR, buf.data(), buf.size(), &offset, mpi_communicator);
+        double magnitude = f.magnitude();
+        MPI_Pack(&magnitude, 1, MPI_DOUBLE, buf.data(), buf.size(), &offset, mpi_communicator);
     }
 
     void packConvergenceReport(const ConvergenceReport& local_report,
@@ -86,13 +90,15 @@ namespace
     {
         int int_pack_size = 0;
         MPI_Pack_size(1, MPI_INT, mpi_communicator, &int_pack_size);
+        int double_pack_size = 0;
+        MPI_Pack_size(1, MPI_DOUBLE, mpi_communicator, &double_pack_size);
         const int num_rf = local_report.reservoirFailures().size();
         const int num_wf = local_report.wellFailures().size();
         int wellnames_length = 0;
         for (const auto& f : local_report.wellFailures()) {
             wellnames_length += (f.wellName().size() + 1);
         }
-        return (2 + 4*num_rf + 4*num_wf) * int_pack_size + wellnames_length;
+        return (2 + 4*num_rf + 4*num_wf) * int_pack_size + (num_rf + num_wf) * double_pack_size * wellnames_length;
     }
 
     ConvergenceReport::ReservoirFailure unpackReservoirFailure(const std::vector<char>& recv_buffer, int& offset, MPI_Comm mpi_communicator)
@@ -101,15 +107,18 @@ namespace
         int severity = -1;
         int phase = -1;
         int cell_number = -1;
+        double magnitude = -1e100;
         auto* data = const_cast<char*>(recv_buffer.data());
         MPI_Unpack(data, recv_buffer.size(), &offset, &type, 1, MPI_INT, mpi_communicator);
         MPI_Unpack(data, recv_buffer.size(), &offset, &severity, 1, MPI_INT, mpi_communicator);
         MPI_Unpack(data, recv_buffer.size(), &offset, &phase, 1, MPI_INT, mpi_communicator);
         MPI_Unpack(data, recv_buffer.size(), &offset, &cell_number, 1, MPI_INT, mpi_communicator);
+        MPI_Unpack(data, recv_buffer.size(), &offset, &magnitude, 1, MPI_DOUBLE, mpi_communicator);
         return ConvergenceReport::ReservoirFailure(static_cast<ConvergenceReport::ReservoirFailure::Type>(type),
                                                    static_cast<ConvergenceReport::Severity>(severity),
                                                    phase,
-                                                   cell_number);
+                                                   cell_number,
+                                                   magnitude);
     }
 
     ConvergenceReport::WellFailure unpackWellFailure(const std::vector<char>& recv_buffer, int& offset, MPI_Comm mpi_communicator)
@@ -126,10 +135,13 @@ namespace
         std::vector<char> namechars(name_length);
         MPI_Unpack(data, recv_buffer.size(), &offset, namechars.data(), name_length, MPI_CHAR, mpi_communicator);
         std::string name(namechars.data());
+        double magnitude = -1e100;
+        MPI_Unpack(data, recv_buffer.size(), &offset, &magnitude, 1, MPI_DOUBLE, mpi_communicator);
         return ConvergenceReport::WellFailure(static_cast<ConvergenceReport::WellFailure::Type>(type),
                                               static_cast<ConvergenceReport::Severity>(severity),
                                               phase,
-                                              name);
+                                              name,
+                                              magnitude);
     }
 
     ConvergenceReport unpackSingleConvergenceReport(const std::vector<char>& recv_buffer, int& offset, MPI_Comm mpi_communicator)

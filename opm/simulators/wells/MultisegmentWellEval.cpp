@@ -215,11 +215,11 @@ checkConvergenceControlEq(const WellState& well_state,
     const double well_control_residual = std::abs(resWell_[0][SPres]);
     const int dummy_component = -1;
     if (std::isnan(well_control_residual)) {
-        report.setWellFailed({ctrltype, CR::Severity::NotANumber, dummy_component, baseif_.name()});
+        report.setWellFailed({ctrltype, CR::Severity::NotANumber, dummy_component, baseif_.name(), well_control_residual});
     } else if (well_control_residual > max_residual_allowed * 10.) {
-        report.setWellFailed({ctrltype, CR::Severity::TooLarge, dummy_component, baseif_.name()});
+        report.setWellFailed({ctrltype, CR::Severity::TooLarge, dummy_component, baseif_.name(), well_control_residual});
     } else if ( well_control_residual > control_tolerance) {
-        report.setWellFailed({ctrltype, CR::Severity::Normal, dummy_component, baseif_.name()});
+        report.setWellFailed({ctrltype, CR::Severity::Normal, dummy_component, baseif_.name(), well_control_residual});
     }
 }
 
@@ -277,25 +277,25 @@ getWellConvergence(const WellState& well_state,
             // TODO: the report can not handle the segment number yet.
 
             if (std::isnan(flux_residual)) {
-                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::NotANumber, eq_idx, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::NotANumber, eq_idx, baseif_.name(), flux_residual});
             } else if (flux_residual > max_residual_allowed) {
-                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::TooLarge, eq_idx, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::TooLarge, eq_idx, baseif_.name(), flux_residual});
             } else if (!relax_tolerance && flux_residual > tolerance_wells) {
-                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::Normal, eq_idx, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::Normal, eq_idx, baseif_.name(), flux_residual});
             } else if (flux_residual > relaxed_inner_tolerance_flow_ms_well) {
-                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::Normal, eq_idx, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::MassBalance, CR::Severity::Normal, eq_idx, baseif_.name(), flux_residual});
             }
         } else { // pressure equation
             const double pressure_residual = maximum_residual[eq_idx];
             const int dummy_component = -1;
             if (std::isnan(pressure_residual)) {
-                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::NotANumber, dummy_component, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::NotANumber, dummy_component, baseif_.name(), pressure_residual});
             } else if (std::isinf(pressure_residual)) {
-                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::TooLarge, dummy_component, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::TooLarge, dummy_component, baseif_.name(), pressure_residual});
             } else if (!relax_tolerance && pressure_residual > tolerance_pressure_ms_wells) {
-                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::Normal, dummy_component, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::Normal, dummy_component, baseif_.name(), pressure_residual});
             } else if (pressure_residual > relaxed_inner_tolerance_pressure_ms_well) {
-                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::Normal, dummy_component, baseif_.name()});
+                report.setWellFailed({CR::WellFailure::Type::Pressure, CR::Severity::Normal, dummy_component, baseif_.name(), pressure_residual});
             }
         }
     }

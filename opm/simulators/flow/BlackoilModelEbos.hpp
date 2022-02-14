@@ -1961,22 +1961,22 @@ namespace Opm {
                 int cell[2] = { -1, maxCoeffCell[compIdx] }; // No cell associated with MB failures.
                 for (int ii : {0, 1}) {
                     if (std::isnan(res[ii])) {
-                        report.setReservoirFailed({types[ii], CR::Severity::NotANumber, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::NotANumber, compIdx, cell[ii], res[ii]});
                         if ( terminal_output_ ) {
                             OpmLog::debug("NaN residual for " + compNames[compIdx] + " equation.");
                         }
                     } else if (res[ii] > maxResidualAllowed()) {
-                        report.setReservoirFailed({types[ii], CR::Severity::TooLarge, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::TooLarge, compIdx, cell[ii], res[ii]});
                         if ( terminal_output_ ) {
                             OpmLog::debug("Too large residual for " + compNames[compIdx] + " equation.");
                         }
                     } else if (res[ii] < 0.0) {
-                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii], res[ii]});
                         if ( terminal_output_ ) {
                             OpmLog::debug("Negative residual for " + compNames[compIdx] + " equation.");
                         }
                     } else if (res[ii] > tol[ii]) {
-                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii], res[ii]});
                     }
                 }
             }
@@ -2115,22 +2115,22 @@ namespace Opm {
                 int cell[2] = { -1, maxCoeffCell[compIdx] }; // No cell associated with MB failures.
                 for (int ii : {0, 1}) {
                     if (std::isnan(res[ii])) {
-                        report.setReservoirFailed({types[ii], CR::Severity::NotANumber, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::NotANumber, compIdx, cell[ii], res[ii]});
                         if ( terminal_output_ ) {
                             OpmLog::debug("NaN residual for " + compNames[compIdx] + " equation.");
                         }
                     } else if (res[ii] > maxResidualAllowed()) {
-                        report.setReservoirFailed({types[ii], CR::Severity::TooLarge, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::TooLarge, compIdx, cell[ii], res[ii]});
                         if ( terminal_output_ ) {
                             OpmLog::debug("Too large residual for " + compNames[compIdx] + " equation.");
                         }
                     } else if (res[ii] < 0.0) {
-                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii], res[ii]});
                         if ( terminal_output_ ) {
                             OpmLog::debug("Negative residual for " + compNames[compIdx] + " equation.");
                         }
                     } else if (res[ii] > tol[ii]) {
-                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii]});
+                        report.setReservoirFailed({types[ii], CR::Severity::Normal, compIdx, cell[ii], res[ii]});
                     }
                 }
             }
