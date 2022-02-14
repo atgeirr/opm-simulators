@@ -1089,9 +1089,9 @@ namespace Opm {
                 report.converged = true;
                 // Exit, but not if we are on the first global iteration
                 // (if so, we require at least one iteration).
-                if (global_iteration > 0) {
+                //if (global_iteration > 0) {
                     return report;
-                }
+                //}
             } else {
                 std::ostringstream os;
                 os << "Convergence data for first local iteration:\n"
