@@ -98,7 +98,7 @@ namespace
         for (const auto& f : local_report.wellFailures()) {
             wellnames_length += (f.wellName().size() + 1);
         }
-        return (2 + 4*num_rf + 4*num_wf) * int_pack_size + (num_rf + num_wf) * double_pack_size * wellnames_length;
+        return (2 + 4*num_rf + 4*num_wf) * int_pack_size + (num_rf + num_wf) * double_pack_size + wellnames_length;
     }
 
     ConvergenceReport::ReservoirFailure unpackReservoirFailure(const std::vector<char>& recv_buffer, int& offset, MPI_Comm mpi_communicator)
