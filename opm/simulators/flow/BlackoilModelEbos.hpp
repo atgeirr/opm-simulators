@@ -457,12 +457,12 @@ namespace Opm {
             // the step is not considered converged until at least minIter iterations is done
             {
                 auto convrep = getConvergence(timer, iteration, residual_norms);
-                if (!convrep.converged()) {
-                    std::ostringstream os;
-                    os << "Convergence data for Newton iteration " << iteration << "\n"
-                       << convrep;
-                    OpmLog::debug(os.str());
-                }
+                // if (!convrep.converged()) {
+                //     std::ostringstream os;
+                //     os << "Convergence data for Newton iteration " << iteration << "\n"
+                //        << convrep;
+                //     OpmLog::debug(os.str());
+                // }
                 ////wellModel().logPrimaryVars();
 
                 report.converged = convrep.converged()  && iteration > nonlinear_solver.minIter();;
@@ -673,7 +673,7 @@ namespace Opm {
                     auto initial_local_well_primary_vars = wellModel().getPrimaryVarsDomain(domain);
                     auto initial_local_solution = Details::extractVector(solution, domain.cells);
                     local_report = solveLocal(domain, timer, iteration);
-                    if (/*!local_report.converged*/ true) {
+                    if (/*!local_report.converged*/ false) {
                         // Try again with a less strict tolerance.
                         wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
                         Details::setGlobal(initial_local_solution, domain.cells, solution);
@@ -1093,10 +1093,10 @@ namespace Opm {
                     return report;
                 //}
             } else {
-                std::ostringstream os;
-                os << "Convergence data for first local iteration:\n"
-                   << convreport;
-                OpmLog::debug(os.str());
+                // std::ostringstream os;
+                // os << "Convergence data for first local iteration:\n"
+                //    << convreport;
+                // OpmLog::debug(os.str());
             }
             report.convergence_check_time += detailTimer.stop();
 
