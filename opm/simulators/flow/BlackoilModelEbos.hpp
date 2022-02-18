@@ -664,7 +664,8 @@ namespace Opm {
                 if (param_.local_solve_approach_ == "jacobi") {
                     auto initial_local_well_primary_vars = wellModel().getPrimaryVarsDomain(domain);
                     auto initial_local_solution = Details::extractVector(solution, domain.cells);
-                    local_report = solveLocal(domain, timer, iteration);
+                    auto res = solveLocal(domain, timer, iteration);
+                    local_report = res.first;
 #if 0
                     auto local_solution = Details::extractVector(solution, domain.cells);
                     Details::setGlobal(local_solution, domain.cells, locally_solved);
@@ -679,7 +680,8 @@ namespace Opm {
                         // auto param_orig = param_;
                         // param_.local_tolerance_scaling_cnv_ *= 10.0;
                         // param_.local_tolerance_scaling_mb_ *= 10.0;
-                        local_report = solveLocal(domain, timer, iteration, true);
+                        auto res = solveLocal(domain, timer, iteration);
+                        local_report = res.first;
                         // param_ = param_orig;
                     }
                     if (local_report.converged) {
@@ -697,7 +699,8 @@ namespace Opm {
                     assert(param_.local_solve_approach_ == "gauss-seidel");
                     auto initial_local_well_primary_vars = wellModel().getPrimaryVarsDomain(domain);
                     auto initial_local_solution = Details::extractVector(solution, domain.cells);
-                    local_report = solveLocal(domain, timer, iteration);
+                    auto res = solveLocal(domain, timer, iteration);
+                    local_report = res.first;
                     if (/*!local_report.converged*/ false) {
                         // Try again with a less strict tolerance.
                         wellModel().setPrimaryVarsDomain(domain, initial_local_well_primary_vars);
@@ -706,8 +709,32 @@ namespace Opm {
                         // auto param_orig = param_;
                         // param_.local_tolerance_scaling_cnv_ = 50.0;
                         // param_.local_tolerance_scaling_mb_ = 50.0;
-                        local_report = solveLocal(domain, timer, iteration, true);
+                        auto res = solveLocal(domain, timer, iteration);
+                        local_report = res.first;
                         // param_ = param_orig;
+                    }
+                    if (!local_report.converged) {
+                        // We look at the detailed convergence report to evaluate
+                        // if we should accept the unconverged solution.
+                        const auto& convrep = res.second;
+                        // We do not accept a solution if the wells are unconverged.
+                        if (!convrep.wellFailed()) {
+                            // Calculare the sums of the mb and cnv failures.
+                            double mb_sum = 0.0;
+                            double cnv_sum = 0.0;
+                            for (const auto& rf : convrep.reservoirFailures()) {
+                                if (rf.type() == ConvergenceReport::ReservoirFailure::Type::MassBalance) {
+                                    mb_sum += rf.magnitude();
+                                } else if (rf.type() == ConvergenceReport::ReservoirFailure::Type::Cnv) {
+                                    cnv_sum += rf.magnitude();
+                                }
+                            }
+                            // If not too high, we overrule the convergence failure.
+                            if (mb_sum < 1e-3 && cnv_sum < 1.0) {
+                                local_report.converged = true;
+                                OpmLog::debug("Accepting solution in unconverged domain " + std::to_string(domain.index));
+                            }
+                        }
                     }
                     if (local_report.converged) {
                         auto local_solution = Details::extractVector(solution, domain.cells);
@@ -723,7 +750,7 @@ namespace Opm {
                 // i == j, at old solution for i != j.
                 if (!local_report.converged) {
                     // TODO: more proper treatment, including in parallel.
-                    OpmLog::debug("Convergence failure in ASPIN domain containing cell " + std::to_string(domain.cells[0]));
+                    OpmLog::debug("Convergence failure in domain " + std::to_string(domain.index));
                 }
                 domain_reports[domain.index] = local_report;
             }
@@ -1075,10 +1102,11 @@ namespace Opm {
 
 
 
-        SimulatorReportSingle solveLocal(const Domain& domain,
-                                         const SimulatorTimerInterface& timer,
-                                         const int global_iteration,
-                                         const bool initial_assembly_required = false)
+        std::pair<SimulatorReportSingle, ConvergenceReport>
+        solveLocal(const Domain& domain,
+                   const SimulatorTimerInterface& timer,
+                   const int global_iteration,
+                   const bool initial_assembly_required = false)
         {
             SimulatorReportSingle report;
             Dune::Timer solveTimer;
@@ -1122,7 +1150,7 @@ namespace Opm {
                 // Exit, but not if we are on the first global iteration
                 // (if so, we require at least one iteration).
                 //if (global_iteration > 0) {
-                    return report;
+                    return { report, convreport };
                 //}
             } else {
                 // std::ostringstream os;
@@ -1221,7 +1249,7 @@ namespace Opm {
             report.total_linearizations = iter;
             report.total_time = solveTimer.stop();
             // TODO: set more info, timing etc.
-            return report;
+            return { report, convreport };
         }
 
 
