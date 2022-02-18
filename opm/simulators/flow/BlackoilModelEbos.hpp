@@ -244,7 +244,7 @@ namespace Opm {
             global_nc_ = detail::countGlobalCells(grid_);
             convergence_reports_.reserve(300); // Often insufficient, but avoids frequent moves.
             // TODO: remember to fix!
-            if (param_.nonlinear_solver_ == "aspin" || param_.nonlinear_solver_ == "nldd") {
+            if (param_.nonlinear_solver_ == "aspin" || param_.nonlinear_solver_ == "nldd" || param_.nonlinear_solver_ == "purelocal") {
                 setupAspinDomains();
             }
         }
@@ -396,7 +396,7 @@ namespace Opm {
                 convergence_reports_.back().report.reserve(11);
             }
 
-            if (param_.nonlinear_solver_ == "aspin" || param_.nonlinear_solver_ == "nldd") {
+            if (param_.nonlinear_solver_ == "aspin" || param_.nonlinear_solver_ == "nldd" || param_.nonlinear_solver_ == "purelocal") {
                 return nonlinearIterationAspin(iteration, timer, nonlinear_solver);
             } else {
                 return nonlinearIterationNewton(iteration, timer, nonlinear_solver);
@@ -781,7 +781,14 @@ namespace Opm {
             }
 #endif
 
-            if (param_.nonlinear_solver_ == "nldd") {
+            if (param_.nonlinear_solver_ == "purelocal") {
+                if (param_.local_solve_approach_ == "jacobi") {
+                    solution = locally_solved;
+                    ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
+                }
+                return report;
+            }
+            else if (param_.nonlinear_solver_ == "nldd") {
                 if (param_.local_solve_approach_ == "jacobi") {
                     solution = locally_solved;
                     ebosSimulator_.model().invalidateAndUpdateIntensiveQuantities(/*timeIdx=*/0);
