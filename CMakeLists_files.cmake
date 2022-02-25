@@ -138,6 +138,7 @@ endif()
 # find tests -name '*.cpp' -a ! -wholename '*/not-unit/*' -printf '\t%p\n' | sort
 list (APPEND TEST_SOURCE_FILES
   tests/test_ALQState.cpp
+  tests/test_aspinPartition.cpp
   tests/test_blackoil_amg.cpp
   tests/test_convergencereport.cpp
   tests/test_deferredlogger.cpp
@@ -162,12 +163,6 @@ list (APPEND TEST_SOURCE_FILES
   tests/test_wellmodel.cpp
   tests/test_wellprodindexcalculator.cpp
   tests/test_wellstate.cpp
-  tests/test_parallelwellinfo.cpp
-  tests/test_glift1.cpp
-  tests/test_keyword_validator.cpp
-  tests/test_GroupState.cpp
-  tests/test_ALQState.cpp
-  tests/test_aspinPartition.cpp
   )
 
 if(MPI_FOUND)
