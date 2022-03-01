@@ -397,7 +397,11 @@ namespace Opm {
             }
 
             if (param_.nonlinear_solver_ == "aspin" || param_.nonlinear_solver_ == "nldd" || param_.nonlinear_solver_ == "purelocal") {
-                return nonlinearIterationAspin(iteration, timer, nonlinear_solver);
+                if (iteration > 0) {
+                    return nonlinearIterationAspin(iteration, timer, nonlinear_solver);
+                } else {
+                    return nonlinearIterationNewton(iteration, timer, nonlinear_solver);
+                }
             } else {
                 return nonlinearIterationNewton(iteration, timer, nonlinear_solver);
             }
