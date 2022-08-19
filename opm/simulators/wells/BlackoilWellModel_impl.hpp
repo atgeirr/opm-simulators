@@ -1453,7 +1453,8 @@ namespace Opm {
         const auto& comm = ebosSimulator_.vanguard().grid().comm();
         updateAndCommunicateGroupData(episodeIdx, iterationIdx);
 
-        const bool network_changed = updateNetworkPressures(episodeIdx);
+        const bool local_network_changed = updateNetworkPressures(episodeIdx);
+        const bool network_changed = comm.sum(local_network_changed);
 
         std::set<std::string> switched_wells;
         std::set<std::string> switched_groups;
