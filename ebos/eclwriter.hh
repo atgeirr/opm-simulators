@@ -479,8 +479,8 @@ public:
                     damaris_err = damaris_write("GLOBAL_CELL_INDEX", local_to_global.data());
                 } else {
                     std::vector<int> local_to_global_filled ;
-                    local_to_global_filled.resize(this->eclOutputModule_->getPRESSURE_size()) ;
-                    for (int i = 0 ; i < this->eclOutputModule_->getPRESSURE_size() ; i++)
+                    local_to_global_filled.resize(numElements);
+                    for (int i = 0 ; i < numElements; i++)
                     {
                         local_to_global_filled[i] = i ;
                     }
