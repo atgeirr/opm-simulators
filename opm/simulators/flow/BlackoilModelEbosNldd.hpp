@@ -718,6 +718,25 @@ private:
                 }
                 break;
             }
+            case DomainOrderingMeasure::MaxPressure: {
+                // Use max pressures to order domains.
+                std::vector<std::pair<double, int>> maxpress_per_domain(domains_.size());
+                for (const auto& domain : domains_) {
+                    double maxpress = 0.0;
+                    for (const int c : domain.cells) {
+                        maxpress = std::max(maxpress, solution[c][Indices::pressureSwitchIdx]);
+                    }
+                    maxpress_per_domain[domain.index] = std::make_pair(maxpress, domain.index);
+                }
+                // Lexicographical sort by pressure, then index.
+                std::sort(maxpress_per_domain.begin(), maxpress_per_domain.end());
+                // Reverse since we want high-pressure regions solved first.
+                std::reverse(maxpress_per_domain.begin(), maxpress_per_domain.end());
+                for (std::size_t ii = 0; ii < domains_.size(); ++ii) {
+                    domain_order[ii] = maxpress_per_domain[ii].second;
+                }
+                break;
+            }
             case DomainOrderingMeasure::Residual: {
                 // Use maximum residual to order domains.
                 const auto& residual = ebosSimulator.model().linearizer().residual();
