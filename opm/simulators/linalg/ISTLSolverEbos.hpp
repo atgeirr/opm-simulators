@@ -57,8 +57,6 @@
 #include <tuple>
 #include <vector>
 
-const double PRESSURE_UNIT_ADJUSTER = 1e0;
-
 namespace Opm::Properties {
 
 namespace TTag {
@@ -352,13 +350,14 @@ std::unique_ptr<Matrix> blockJacobiAdjacency(const Grid& grid,
             initPrepare(M,b);
 
             //! Hacky preconditioning experiment
+            const double pscale = parameters_[activeSolverNum_].pressure_scale_;
             auto mutableM = const_cast<Matrix*>(&M);
             for (auto row = mutableM->begin(); row != mutableM->end(); ++row) {
                 for (auto m_ij = row->begin(); m_ij != row->end(); ++m_ij) {
                     const size_t blockSize = 3; // TODO: replace with templated argument
-                    auto block = *m_ij;
+                    auto& block = *m_ij;
                     for (size_t k = 0; k < blockSize; k++){
-                        block[k][pressureIndex] *= PRESSURE_UNIT_ADJUSTER;
+                        block[k][pressureIndex] *= pscale;
                     }
                 }
             }
@@ -413,8 +412,9 @@ std::unique_ptr<Matrix> blockJacobiAdjacency(const Grid& grid,
                 flexibleSolver_[activeSolverNum_].solver_->apply(x, *rhs_, result);
 
                 //! Hacky preconditioning experiment
+                const double pscale = parameters_[activeSolverNum_].pressure_scale_;
                 for (auto vec = x.begin(); vec != x.end(); ++vec) {
-                    (*vec)[pressureIndex] *= PRESSURE_UNIT_ADJUSTER;
+                    (*vec)[pressureIndex] *= pscale;
                 }
 
             }

@@ -129,6 +129,10 @@ template<class TypeTag, class MyTypeTag>
 struct OpenclIluParallel {
     using type = UndefinedProperty;
 };
+template<class TypeTag, class MyTypeTag>
+struct PressureScale {
+    using type = UndefinedProperty;
+};
 template<class TypeTag>
 struct LinearSolverReduction<TypeTag, TTag::FlowIstlSolverParams> {
     using type = GetPropType<TypeTag, Scalar>;
@@ -216,6 +220,10 @@ template<class TypeTag>
 struct OpenclIluParallel<TypeTag, TTag::FlowIstlSolverParams> {
     static constexpr bool value = true; // note: false should only be used in debug
 };
+template<class TypeTag>
+struct PressureScale<TypeTag, TTag::FlowIstlSolverParams> {
+    static constexpr double value = 1.0;
+};
 
 // Set the backend to be used.
 template<class TypeTag>
@@ -256,6 +264,7 @@ namespace Opm
         int bda_device_id_;
         int opencl_platform_id_;
         bool opencl_ilu_parallel_;
+        double pressure_scale_;
 
         template <class TypeTag>
         void init(bool cprRequestedInDataFile)
@@ -289,6 +298,7 @@ namespace Opm
             bda_device_id_ = EWOMS_GET_PARAM(TypeTag, int, BdaDeviceId);
             opencl_platform_id_ = EWOMS_GET_PARAM(TypeTag, int, OpenclPlatformId);
             opencl_ilu_parallel_ = EWOMS_GET_PARAM(TypeTag, bool, OpenclIluParallel);
+            pressure_scale_ = EWOMS_GET_PARAM(TypeTag, double, PressureScale);
         }
 
         template <class TypeTag>
@@ -315,6 +325,7 @@ namespace Opm
             EWOMS_REGISTER_PARAM(TypeTag, int, BdaDeviceId, "Choose device ID for cusparseSolver or openclSolver, use 'nvidia-smi' or 'clinfo' to determine valid IDs");
             EWOMS_REGISTER_PARAM(TypeTag, int, OpenclPlatformId, "Choose platform ID for openclSolver, use 'clinfo' to determine valid platform IDs");
             EWOMS_REGISTER_PARAM(TypeTag, bool, OpenclIluParallel, "Parallelize ILU decomposition and application on GPU");
+            EWOMS_REGISTER_PARAM(TypeTag, double, PressureScale, "Scaling for the pressure variable within the linear solver");
         }
 
         FlowLinearSolverParameters() { reset(); }
@@ -343,6 +354,7 @@ namespace Opm
             bda_device_id_            = 0;
             opencl_platform_id_       = 0;
             opencl_ilu_parallel_      = true;
+            pressure_scale_           = 1.0;
         }
     };
 
