@@ -53,7 +53,7 @@ class WellContributions
 public:
     static std::unique_ptr<WellContributions> create(const std::string& accelerator_mode, bool useWellConn);
 
-    using UMFPackIndex = SuiteSparse_long;
+    using UMFPackIndex = int64_t;
     /// StandardWell has C, D and B matrices that need to be copied
     enum class MatrixType {
         C,
