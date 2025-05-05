@@ -518,6 +518,7 @@ solveJacobianSystem(BVector& x)
         // consistent, this is not relevant for OPM-flow...
         linSolver.solve(x);
     }
+    x *= 2.0;
 }
 
 template <class TypeTag>

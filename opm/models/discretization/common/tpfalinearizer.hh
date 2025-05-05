@@ -775,7 +775,7 @@ private:
             }
 
             // Accumulation term.
-            double dt = simulator_().timeStepSize();
+            double dt = simulator_().timeStepSize()/2;
             double volume = model_().dofTotalVolume(globI);
             Scalar storefac = volume / dt;
             adres = 0.0;
