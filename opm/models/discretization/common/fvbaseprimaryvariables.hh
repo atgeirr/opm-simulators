@@ -181,7 +181,7 @@ namespace Dune {
       : public FieldTraits<T>
     {
     };
-
+    
     /** Specialization of FieldTraits for all PrimaryVariables derived from Opm::FvBasePrimaryVariables */
     template <class TypeTag, template <class> class EwomsPrimaryVariable>
     requires std::is_base_of_v<Opm::FvBasePrimaryVariables<TypeTag>,
