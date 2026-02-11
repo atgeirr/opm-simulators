@@ -678,10 +678,13 @@ private:
         // If FLOWS/FLORES is set in any RPTRST in the schedule, then we initializate the sparse tables
         // For now, do the same also if any block flows are requested (TODO: only save requested cells...)
         // If DISPERC is in the deck, we initialize the sparse table here as well.
+        // if TEMP option is used we store the fluxes to use them in the energy transport equation
         const bool anyFlows = simulator_().problem().eclWriter().outputModule().getFlows().anyFlows() ||
                               simulator_().problem().eclWriter().outputModule().getFlows().hasBlockFlows();
-        const bool anyFlores = simulator_().problem().eclWriter().outputModule().getFlows().anyFlores();
+        const bool isTemp = simulator_().vanguard().eclState().getSimulationConfig().isTemp();
+        const bool anyFlores = simulator_().problem().eclWriter().outputModule().getFlows().anyFlores() || isTemp;
         const bool dispersionActive = simulator_().vanguard().eclState().getSimulationConfig().rock_config().dispersion();
+
         if (((!anyFlows || !flowsInfo_.empty()) && (!anyFlores || !floresInfo_.empty())) && (!dispersionActive && !enableBioeffects)) {
             return;
         }
@@ -784,7 +787,9 @@ public:
         OPM_TIMEBLOCK(updateFlows);
         const bool enableFlows = simulator_().problem().eclWriter().outputModule().getFlows().hasFlows() ||
                                  simulator_().problem().eclWriter().outputModule().getFlows().hasBlockFlows();
-        const bool enableFlores = simulator_().problem().eclWriter().outputModule().getFlows().hasFlores();
+        // We reuse the fluxes in the TEMP option
+        const bool isTemp = simulator_().vanguard().eclState().getSimulationConfig().isTemp();
+        const bool enableFlores = simulator_().problem().eclWriter().outputModule().getFlows().hasFlores() || isTemp;
         if (!enableFlows && !enableFlores) {
             return;
         }
