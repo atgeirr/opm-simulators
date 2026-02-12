@@ -705,7 +705,8 @@ public:
             // transmissibility this cannot be done as a preprocessing step because the
             // average thermal conductivity is analogous to the permeability but
             // depends on the solution.
-            H = 1.0 / (1.0 / inH + 1.0 / exH);
+            //H = 1.0 / (1.0 / inH + 1.0 / exH);
+            H = inH * exH / (inH + exH);
         }
         else {
             H = 0.0;
