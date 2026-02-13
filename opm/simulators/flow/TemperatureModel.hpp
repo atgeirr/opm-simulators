@@ -327,6 +327,7 @@ public:
         if (!this->doTemp()) {
             return;
         }
+        OPM_TIMEBLOCK(TemperatureModel_endTimeStep);
 
         // We use the specialized intensive quantities here with only the temperature derivative
         const unsigned int numCells = simulator_.model().numTotalDof();
@@ -390,6 +391,7 @@ protected:
 
     void advanceTemperatureFields()
     {
+        OPM_TIMEBLOCK(TemperatureModel_advanceTemperatureFields);
         const int max_iter = 20;
         const int min_iter = 1;
         bool is_converged = false;
@@ -411,6 +413,7 @@ protected:
 
     void solveAndUpdate()
     {
+        OPM_TIMEBLOCK(TemperatureModel_solveAndUpdate);
         const unsigned int numCells = simulator_.model().numTotalDof();
         EnergyVector dx(numCells);
         bool conv = this->linearSolve_(this->energyMatrix_->istlMatrix(), dx, this->energyVector_);
@@ -420,6 +423,7 @@ protected:
             }
         }
         else {
+            OPM_TIMEBLOCK(TemperatureModel_solveAndUpdate_update);
             #ifdef _OPENMP
             #pragma omp parallel for
             #endif
@@ -433,6 +437,7 @@ protected:
 
     bool converged(const int iter)
     {
+        OPM_TIMEBLOCK(TemperatureModel_converged);
         Scalar dt = simulator_.timeStepSize();
         Scalar maxNorm = 0.0;
         Scalar sumNorm = 0.0;
@@ -456,13 +461,17 @@ protected:
                 sum_pv += pvValue;
             }
         }
-        maxNorm = simulator_.gridView().comm().max(maxNorm);
-        sumNorm = simulator_.gridView().comm().sum(sumNorm);
-        sum_pv = simulator_.gridView().comm().sum(sum_pv);
-        sumNorm /= sum_pv;
+        {
+            OPM_TIMEBLOCK(TemperatureModel_converged_communicate);
 
-        // Use relaxed tolerance if the fraction of unconverged cells porevolume is less than relaxed_max_pv_fraction
-        sum_pv_not_converged = simulator_.gridView().comm().sum(sum_pv_not_converged);
+            maxNorm = simulator_.gridView().comm().max(maxNorm);
+            sumNorm = simulator_.gridView().comm().sum(sumNorm);
+            sum_pv = simulator_.gridView().comm().sum(sum_pv);
+            sumNorm /= sum_pv;
+
+            // Use relaxed tolerance if the fraction of unconverged cells porevolume is less than relaxed_max_pv_fraction
+            sum_pv_not_converged = simulator_.gridView().comm().sum(sum_pv_not_converged);
+        }
         Scalar relaxed_max_pv_fraction = Parameters::Get<Parameters::RelaxedMaxPvFraction<Scalar>>();
         const bool relax = (sum_pv_not_converged / sum_pv) <  relaxed_max_pv_fraction;
         const auto tolerance_energy_balance = relax? Parameters::Get<Parameters::ToleranceEnergyBalanceRelaxed<Scalar>>():
@@ -562,6 +571,7 @@ protected:
 
     void assembleEquations()
     {
+        OPM_TIMEBLOCK(TemperatureModel_assembleEquations);
         const unsigned int numCells = simulator_.model().numTotalDof();
         for (unsigned globI = 0; globI < numCells; ++globI) {
             this->energyVector_[globI] = 0.0;
@@ -569,6 +579,8 @@ protected:
         }
         MatrixBlockTemp bMat;
         Scalar dt = simulator_.timeStepSize();
+        {
+        OPM_TIMEBLOCK(TemperatureModel_assembleEquations_storage);
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -581,11 +593,14 @@ protected:
             bMat[0][0] = storefac * storage.derivative(temperatureIdx);
             *diagMatAddress_[globI] += bMat;
         }
+        }
 
         const auto& floresInfo = this->simulator_.problem().model().linearizer().getFloresInfo();
         const bool enableDriftCompensation = Parameters::Get<Parameters::EnableDriftCompensationTemp>();
         const auto& problem = simulator_.problem();
 
+        {
+        OPM_TIMEBLOCK(TemperatureModel_assembleEquations_flux);
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -625,6 +640,7 @@ protected:
                    this->energyVector_[globI] -= drift_hrate*scalingFactor_;
                 }
             }
+        }
         }
 
         // Well terms
