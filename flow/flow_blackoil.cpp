@@ -63,10 +63,6 @@ namespace Opm {
         template<class TypeTag>
         struct AvoidElementContext<TypeTag, TTag::FlowProblemTPFA> { static constexpr bool value = true; };
 
-        template<class TypeTag>
-        struct LinearSolverBackend<TypeTag, TTag::FlowProblemTPFA> {
-        using type = ISTLSolverExperiment<TypeTag>;
-        };
     }
 }
 
