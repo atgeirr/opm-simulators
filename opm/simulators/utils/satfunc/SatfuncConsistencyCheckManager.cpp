@@ -184,6 +184,9 @@ runCellChecks(const int cellIdx)
         }
 
         curve.point->populateCheckPoint(cellIdx, endPoints);
+        if (cellIdx == 191915) {
+            OpmLog::debug("Running checks for cell 191915 ");
+        }
         curve.checks.checkEndpoints(*pointID, endPoints);
     });
 }

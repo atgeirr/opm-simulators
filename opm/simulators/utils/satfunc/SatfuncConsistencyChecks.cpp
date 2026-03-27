@@ -27,6 +27,8 @@
 
 #include <opm/material/fluidmatrixinteractions/EclEpsScalingPoints.hpp>
 
+#include <opm/common/OpmLog/OpmLog.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -520,6 +522,8 @@ writeTabulatedReportSample(const std::size_t         nValueChar,
         writeTableRecord(fieldWidthPointID, formattedPointIDs.first[i],
                          fieldWidths, checkValues,
                          emitReportRecord);
+        OpmLog::debug(fmt::format("SatfuncConsistencyChecks emitted violation record for "
+            "{} ID {}, {}\n", this->pointName_, formattedPointIDs.first[i], formattedPointIDs.second));
     }
 
     // Output separator to end table output.

@@ -934,6 +934,9 @@ public:
     void initial(PrimaryVariables& values, const Context& context, unsigned spaceIdx, unsigned timeIdx) const
     {
         unsigned globalDofIdx = context.globalSpaceIndex(spaceIdx, timeIdx);
+        if (globalDofIdx == 191915) {
+            OpmLog::debug("Initialization for cell 191915 ");
+        }
 
         values.setPvtRegionIndex(pvtRegionIndex(context, spaceIdx, timeIdx));
         values.assignNaive(initialFluidStates_[globalDofIdx]);
@@ -1299,6 +1302,9 @@ protected:
         std::size_t numElems = this->model().numGridDof();
         this->initialFluidStates_.resize(numElems);
         for (std::size_t elemIdx = 0; elemIdx < numElems; ++elemIdx) {
+            if (elemIdx == 191915) {
+                OpmLog::debug("Initialization for cell 191915 ");
+            }
             auto& elemFluidState = this->initialFluidStates_[elemIdx];
             elemFluidState.assign(equilInitializer.initialFluidState(elemIdx));
         }

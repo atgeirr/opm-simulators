@@ -925,6 +925,9 @@ private:
         for (unsigned ii = 0; ii < numCells; ++ii) {
             OPM_TIMEBLOCK_LOCAL(linearizationForEachCell, Subsystem::Assembly);
             const unsigned globI = domain.cells[ii];
+            if (globI == 191915) {
+                OpmLog::debug("Reached cell 191915");
+            }
             const auto& nbInfos = neighborInfo_[globI];
             VectorBlock res(0.0);
             MatrixBlock bMat(0.0);

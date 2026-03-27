@@ -506,6 +506,9 @@ public:
         {
             return false;
         }
+        if (globalDofIdx == 191915) {
+            OpmLog::debug("adaptPrimaryVariables() for cell 191915 ");
+        }
 
         // Read the current saturation from the primary variables
         Scalar sw = 0.0;
