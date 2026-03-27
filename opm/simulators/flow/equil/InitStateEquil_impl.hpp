@@ -788,6 +788,27 @@ initializePhaseQuantities()
 template <class MaterialLawManager, class FluidSystem, class Region, typename CellID>
 void PhaseSaturations<MaterialLawManager, FluidSystem, Region, CellID>::deriveOilSat()
 {
+    // If the gas phase is active, we should ensure minimum oil saturation
+    // sufficiently above the O/G contact.
+    if (this->evalPt_.ptable->gasActive()) {
+        const auto gas_contact = this->evalPt_.region->zgoc();
+        if (this->isConstCapPress(this->gasPos())) {
+            // Sharp interface between phases.
+            // The oil saturation is minimum if the evaluation point is
+            // above the O/G contact.
+            if (this->evalPt_.position->depth < gas_contact) {
+                this->sat_.oil = 0.0; // TODO minimum not zero.
+                return;
+            }
+        }
+        else {
+            // Capillary pressure curve is non-constant, meaning there is a
+            // transition zone between the oil and gas and/or water phases.
+        }
+    }
+
+    // Derive oil saturation from the fact that saturations must sum to
+    // unity.
     this->sat_.oil = 1.0 - this->sat_.water - this->sat_.gas;
 }
 
