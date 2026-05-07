@@ -50,10 +50,6 @@
 #include <opm/models/discretization/common/linearizationtype.hh>
 
 #include <opm/simulators/linalg/exportSystem.hpp>
-#include <opm/simulators/flow/SimplifiedFlowProblemGPU.hpp>
-
-// TODO: fetch via typetag of another class instead of accessing directly in this class
-#include <opm/models/blackoil/blackoilconvectivemixingmodule.hh>
 
 #include <opm/material/fluidsystems/BlackOilFluidSystem.hpp>
 #include <opm/material/fluidsystems/BlackOilFluidSystemNonStatic.hpp>
@@ -65,13 +61,14 @@
 #include <map>
 #include <memory>
 #include <numeric>
-#include <omp.h>
 #include <set>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
-#include <chrono>
+#if HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include <fmt/format.h>
 
@@ -80,6 +77,7 @@
 #include <opm/common/utility/gpuistl_if_available.hpp>
 #if HAVE_CUDA
 #include <opm/simulators/flow/SimplifiedGpuBlackOilModel.hpp>
+#include <opm/simulators/flow/SimplifiedFlowProblemGPU.hpp>
 #if USE_HIP
 #include <opm/simulators/linalg/gpuistl_hip/GpuSparseMatrixWrapper.hpp>
 #include <opm/simulators/linalg/gpuistl_hip/MiniMatrix.hpp>
@@ -300,7 +298,7 @@ namespace  gpuistl {
                                             info.bcdata.boundaryFaceIndex,
                                             info.bcdata.faceArea,
                                             info.bcdata.faceZCoord,
-                                            info.bcdata.exFluidState.withOtherFluidSystem(dynamicGpuFluidSystemPtr)}});
+                                            info.bcdata.exFluidState.withOtherFluidSystem(*dynamicGpuFluidSystemPtr)}});
         }
 
         return gpuistl::GpuBuffer<BoundaryInfoTypeGPU>(gpu_boundary_info);
@@ -1187,13 +1185,7 @@ private:
                 auto gpuFlowProblemView = gpuistl::make_view(gpuFlowProblemBuffer);
                 using GpuProblem = decltype(gpuFlowProblemView);
 
-                int constexpr blockSize = 256;
-#if USE_HIP
-                hipDeviceSynchronize();
-#else
-                cudaDeviceSynchronize();
-#endif
-                auto linearizeStartTime = std::chrono::high_resolution_clock::now();
+                int constexpr blockSize = 256; // Experimentally this is a good value for multiple GPUs. Autotune this later.
 
                 linearize_parallelization_wrapper<run_assembly_on_gpu, GPUBOIQ, decltype(gpuModelView), LocalResidualGPU, VectorBlockGPU, MatrixBlockGPU, ADVectorBlockGPU>(
                     numCells,
@@ -1217,14 +1209,7 @@ private:
                         gpuFlowProblemView);
                 }
 
-#if USE_HIP
-                hipDeviceSynchronize();
-#else
-                cudaDeviceSynchronize();
-#endif
-                auto linearizeEndTime = std::chrono::high_resolution_clock::now();
-                auto linearizeDuration = std::chrono::duration_cast<std::chrono::microseconds>(linearizeEndTime - linearizeStartTime).count();
-                std::cout << fmt::format("GPU linearization took {:.3f} ms\n", static_cast<double>(linearizeDuration) / 1000.0);
+                // The memory copies here are synchronous and in the default stream, guaranteeing that the GPU kernels have completed
 
                 // Now move the gpu residual into the cpu residual
                 auto cpuResidualFromGpu = gpuResidualBuffer.asStdVector();
@@ -1389,7 +1374,7 @@ public:
         bool dispersionActive,
         bool enableBioeffects,
         bool on_full_domain,
-        const GpuScalarViewType GPU_LOCAL_volumes // NO DEFAULT CTOR EXISTS
+        const GpuScalarViewType GPU_LOCAL_volumes
         )
     {
         const unsigned globI = GPU_LOCAL_domain.cells[ii];

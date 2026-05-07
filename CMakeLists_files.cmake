@@ -736,7 +736,6 @@ list (APPEND TEST_DATA_FILES
   tests/data/test_stokes2c.dgf
   tests/data/test_stokes2cni.dgf
   tests/data/waterair.dgf
-  tests/very_simple_deck.DATA
   )
 
 

@@ -14,10 +14,14 @@
   You should have received a copy of the GNU General Public License
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef FLOW_GPU_HIP_HPP
-#define FLOW_GPU_HIP_HPP
+#ifndef FLOW_GPU_HPP
+#define FLOW_GPU_HPP
 
 #include <opm/simulators/flow/FlowGasWaterEnergyTypeTag.hpp>
+
+/*
+    This file extracts typetag declarations that must be present in both the .CU and .HIP executables for Flow to avoid double maintenance.
+*/
 
 namespace Opm
 {
@@ -71,4 +75,4 @@ int flowGasWaterEnergyMainGPUStandalone(int argc, char** argv);
 
 } // namespace Opm
 
-#endif // FLOW_GPU_HIP_HPP
+#endif // FLOW_GPU_HPP
