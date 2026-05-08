@@ -364,7 +364,7 @@ class TpfaLinearizer
     using VectorBlock = Dune::FieldVector<Scalar, numEq>;
     using ADVectorBlock = GetPropType<TypeTag, Properties::RateVector>;
 
-#if HAVE_CUDA && OPM_IS_COMPILING_WITH_GPU_COMPILER
+#if HAVE_CUDA
     using MatrixBlockGPU = gpuistl::MiniMatrix<Scalar, numEq>;
     using VectorBlockGPU = gpuistl::MiniVector<Scalar, numEq>;
     using ADVectorBlockGPU = gpuistl::MiniVector<Evaluation, numEq>;
@@ -808,7 +808,7 @@ private:
 
 #if HAVE_CUDA
         gpuJacobian_.reset(new gpuistl::GpuSparseMatrixWrapper<Scalar>(gpuistl::GpuSparseMatrixWrapper<Scalar>::fromMatrix(jacobian_->istlMatrix())));
-        gpuBufferDiagMatAddress_.reset(new gpuistl::GpuBuffer<Scalar*>(gpuistl::detail::getDiagPtrs(*gpuJacobian_)));
+        gpuBufferDiagMatAddress_.reset(new gpuistl::GpuBuffer<MatrixBlockGPU*>(gpuistl::detail::getDiagPtrsTyped<MatrixBlockGPU>(*gpuJacobian_)));
 #endif
 
         // Create dummy full domain.
@@ -1223,7 +1223,7 @@ private:
                 std::memcpy(&(cpuJacobian[0][0][0][0]), gpuJacobianNonZeroes.data(),
                         totalMatrixSize * sizeof(Scalar));
             } else {
-                assert(false && "Only FullDomain is supported on GPU");
+                OPM_THROW(std::logic_error, "Only FullDomain is supported on GPU");
             }
 #else
             OPM_THROW(std::logic_error, "Trying to run GPU assembly without compiling with GPU support");
@@ -1314,7 +1314,7 @@ private:
                 localVolumes,
                 localGpuProblem);
 #else
-            assert(false && "Trying to run GPU code without GPU support");
+            OPM_THROW(std::runtime_error, "Trying to run GPU code without GPU support");
 #endif
         }
         else {
@@ -1408,7 +1408,7 @@ public:
                 GPU_LOCAL_residualView[globI] += res;
 
                 //SparseAdapter syntax:  jacobian_->addToBlock(globI, globI, bMat);
-                *reinterpret_cast<MatrixBlockType*>(GPU_LOCAL_diagMatAddress[globI]) += bMat;
+                *GPU_LOCAL_diagMatAddress[globI] += bMat;
                 bMat *= -1.0;
                 //SparseAdapter syntax: jacobian_->addToBlock(globJ, globI, bMat);
                 *nbInfo.matBlockAddress += bMat;
@@ -1486,7 +1486,7 @@ public:
         bMat *= storefac;
         GPU_LOCAL_residualView[globI] += res;
         //SparseAdapter syntax: jacobian_->addToBlock(globI, globI, bMat);
-        *reinterpret_cast<MatrixBlockType*>(GPU_LOCAL_diagMatAddress[globI]) += bMat;
+        *GPU_LOCAL_diagMatAddress[globI] += bMat;
     }
 
 private:
@@ -1519,7 +1519,7 @@ private:
                 setResAndJacobi(res, bMat, adres);
                 GPU_LOCAL_residualView[globI] += res;
                 ////SparseAdapter syntax: jacobian_->addToBlock(globI, globI, bMat);
-                *reinterpret_cast<MatrixBlockType*>(GPU_LOCAL_diagMatAddress[globI]) += bMat;
+                *GPU_LOCAL_diagMatAddress[globI] += bMat;
             }
         }
     }
@@ -1552,7 +1552,7 @@ private:
     std::unique_ptr<SparseMatrixAdapter> jacobian_{};
 #if HAVE_CUDA
     std::unique_ptr<gpuistl::GpuSparseMatrixWrapper<Scalar>> gpuJacobian_;
-    std::unique_ptr<gpuistl::GpuBuffer<Scalar*>> gpuBufferDiagMatAddress_;
+    std::unique_ptr<gpuistl::GpuBuffer<MatrixBlockGPU*>> gpuBufferDiagMatAddress_;
 #endif
 
     // the right-hand side
@@ -1700,7 +1700,7 @@ __global__ void linearize_kernel_bc(
             for (int i = 0; i < numEq; ++i) {
                 atomicAdd(&((*residualPtr)[i]), res[i]);
             }
-            auto* matPtr = reinterpret_cast<MatrixBlockType*>(GPU_LOCAL_diagMatAddress[globI]);
+            auto* matPtr = GPU_LOCAL_diagMatAddress[globI];
             for (int row = 0; row < bMat.size(); ++row) {
                 for (int col = 0; col < bMat.size(); ++col) {
                     Scalar* elemPtr = &((*matPtr)[row][col]);
