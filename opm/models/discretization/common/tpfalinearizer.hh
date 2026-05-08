@@ -241,28 +241,26 @@ namespace  gpuistl {
         using StructWithMinimatrix = NeighborInfoStruct<ResidualNBInfoType, MiniMatrixType>;
         using Scalar = typename GpuMatrixType::field_type;
         std::vector<StructWithMinimatrix> minimatrices(cpuNeighborInfoTable.dataSize());
-        size_t idx = 0;
-        for (auto e : cpuNeighborInfoTable.dataStorage()) {
+        Scalar* gpuBufStart = gpuJacobian.getNonZeroValues().data();
+        Scalar* cpuBufStart = &(cpuJacobian[0][0][0][0]);
+
+        // To compute the length of the buffer of the cpuJacobian we here assume we have a blocked
+        // BCRS matrix with square blocks and that the blocks are stored as Dune::FieldMatrix
+        using CpuBlockType = typename CpuMatrixType::block_type::BaseType;
+
+        const size_t gpuBufferSize = gpuJacobian.nonzeroes() * gpuJacobian.blockSize() * gpuJacobian.blockSize();
+        const size_t cpuBufferSize = cpuJacobian.nonzeroes() * CpuBlockType::rows * CpuBlockType::cols;
+        assert(gpuBufferSize == cpuBufferSize);
+
+        const auto& dataStorage = cpuNeighborInfoTable.dataStorage();
+        const size_t dataSize = cpuNeighborInfoTable.dataSize();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (size_t idx = 0; idx < dataSize; ++idx) {
+            const auto& e = dataStorage[idx];
             minimatrices[idx] = StructWithMinimatrix(e);
-
-            Scalar* gpuBufStart = gpuJacobian.getNonZeroValues().data();
-            Scalar* cpuBufStart = &(cpuJacobian[0][0][0][0]);
             Scalar* cpuPtr = &((*e.matBlockAddress)[0][0]);
-
-            const size_t gpuNonZeroes = gpuJacobian.nonzeroes();
-            const size_t cpuNonZeroes = cpuJacobian.nonzeroes();
-
-            // To compute the length of the buffer of the cpuJacobian we here assume we have a blocked
-            // BCRS matrix with square blocks and that the blocks are stored as Dune::FieldMatrix
-            using CpuBlockType = typename CpuMatrixType::block_type::BaseType;
-
-            const size_t gpuBlockSize = gpuJacobian.blockSize() * gpuJacobian.blockSize();
-            const size_t cpuBlockSize = CpuBlockType::rows * CpuBlockType::cols;
-
-            size_t gpuBufferSize = gpuNonZeroes * gpuBlockSize;
-            size_t cpuBufferSize = cpuNonZeroes * cpuBlockSize;
-
-            assert (gpuBufferSize == cpuBufferSize);
 
             // convert the pointer from CPU to GPU pointer based on offset in CPU jacobian
             Scalar* gpuPtr = ComputePtrBasedOnOffsetInOtherBuffer(
@@ -272,8 +270,6 @@ namespace  gpuistl {
             );
 
             minimatrices[idx].matBlockAddress = reinterpret_cast<MiniMatrixType*>(gpuPtr);
-
-            ++idx;
         }
 
         return SparseTable<StructWithMinimatrix, gpuistl::GpuBuffer>(
