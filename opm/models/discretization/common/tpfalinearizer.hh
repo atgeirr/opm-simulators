@@ -235,14 +235,14 @@ struct BoundaryInfo
 #if HAVE_CUDA && OPM_IS_COMPILING_WITH_GPU_COMPILER
 namespace  gpuistl {
     template< class MiniMatrixType, class GpuMatrixType, class CpuMatrixType, class MatrixBlockType, class ResidualNBInfoType>
-    auto copy_to_gpu(const SparseTable<NeighborInfoStruct<ResidualNBInfoType, MatrixBlockType>>& cpu_neighbor_table, GpuMatrixType& gpuJacobian, CpuMatrixType& cpuJacobian)
+    auto copy_to_gpu(const SparseTable<NeighborInfoStruct<ResidualNBInfoType, MatrixBlockType>>& cpuNeighborInfoTable, GpuMatrixType& gpuJacobian, CpuMatrixType& cpuJacobian)
     {
         // Convert the DUNE FieldVectors to MiniMatrix types
         using StructWithMinimatrix = NeighborInfoStruct<ResidualNBInfoType, MiniMatrixType>;
         using Scalar = typename GpuMatrixType::field_type;
-        std::vector<StructWithMinimatrix> minimatrices(cpu_neighbor_table.dataSize());
+        std::vector<StructWithMinimatrix> minimatrices(cpuNeighborInfoTable.dataSize());
         size_t idx = 0;
-        for (auto e : cpu_neighbor_table.dataStorage()) {
+        for (auto e : cpuNeighborInfoTable.dataStorage()) {
             minimatrices[idx] = StructWithMinimatrix(e);
 
             Scalar* gpuBufStart = gpuJacobian.getNonZeroValues().data();
@@ -278,7 +278,7 @@ namespace  gpuistl {
 
         return SparseTable<StructWithMinimatrix, gpuistl::GpuBuffer>(
             gpuistl::GpuBuffer<StructWithMinimatrix>(minimatrices),
-            gpuistl::GpuBuffer<int>(cpu_neighbor_table.rowStarts())
+            gpuistl::GpuBuffer<int>(cpuNeighborInfoTable.rowStarts())
         );
     }
 
