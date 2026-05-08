@@ -705,14 +705,6 @@ public:
             Evaluation heatFlux;
             // avoid overload of functions with same numeber of elements in eclproblem
             Scalar alpha;
-// #if OPM_IS_INSIDE_DEVICE_FUNCTION
-//                 // This path is currently only intended for the SimplifiedBlackoilModel for GPUs
-//                 // which currently does not aim to reproduce the full problem object on the GPU.
-//                 alpha = problem.getAlpha(globalSpaceIdx, bdyInfo.boundaryFaceIndex);
-// #else
-//                 alpha = problem.eclTransmissibilities().thermalHalfTransBoundary(
-//                     globalSpaceIdx, bdyInfo.boundaryFaceIndex);
-// #endif
             if constexpr (!std::is_empty_v<GetPropType<TypeTag, Properties::FluidSystem>>) {
                 alpha = problem.getAlpha(globalSpaceIdx, bdyInfo.boundaryFaceIndex);
             } else {

@@ -402,6 +402,7 @@ private:
     __host__ __device__ void assertInRange(size_t idx) const
     {
 #if OPM_IS_INSIDE_DEVICE_FUNCTION
+        // TODO: find a better way to handle exceptions in kernels, this will possibly be printed many times
         assert(idx < m_numberOfElements && "The index provided was not in the range [0, buffersize-1]");
 #else
         if (idx >= m_numberOfElements) {
