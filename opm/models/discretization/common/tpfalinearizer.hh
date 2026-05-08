@@ -1338,15 +1338,7 @@ private:
         }
     }
 
-    // Some helper structs so we can wrap arguments and use references or const values in the same signature
-    // based on whether or not we are instantiating the function for GPU or CPU.
 public:
-    template<typename T, bool useGPU>
-    using ArgType = std::conditional_t<useGPU, T, T&>;
-
-    template<typename T, bool useGPU>
-    using ConstArgType = std::conditional_t<useGPU, T, const T&>;
-
     template<bool useGPU,
              class ProblemType,
              class VelocityInfoType,
@@ -1363,18 +1355,18 @@ public:
              class GpuScalarViewType>
     OPM_HOST_DEVICE static void linearize_kernel(
         const unsigned int ii,
-        const ConstArgType<DomainType, useGPU> GPU_LOCAL_domain,
-        const ConstArgType<NeighborSparseTable, useGPU> GPU_LOCAL_neighborInfo,
-        const ConstArgType<DiagPtrType, useGPU> GPU_LOCAL_diagMatAddress,
-        ArgType<GpuResidualView, useGPU> GPU_LOCAL_residualView,
-        ArgType<LocalModelClass, useGPU> localModel,
-        ArgType<VelocityInfoType, useGPU> localVelocityInfo,
+        const DomainType& GPU_LOCAL_domain,
+        const NeighborSparseTable& GPU_LOCAL_neighborInfo,
+        const DiagPtrType& GPU_LOCAL_diagMatAddress,
+        GpuResidualView& GPU_LOCAL_residualView,
+        LocalModelClass& localModel,
+        VelocityInfoType& localVelocityInfo,
         Scalar invLocDT,
-        const ConstArgType<ProblemType, useGPU> localProblem,
+        const ProblemType& localProblem,
         bool dispersionActive,
         bool enableBioeffects,
         bool on_full_domain,
-        const GpuScalarViewType GPU_LOCAL_volumes
+        const GpuScalarViewType& GPU_LOCAL_volumes
         )
     {
         const unsigned globI = GPU_LOCAL_domain.cells[ii];
@@ -1430,7 +1422,7 @@ public:
         }
         setResAndJacobi(res, bMat, adres);
 
-        if constexpr (!useGPU) {
+        if constexpr (!useGPU) { // Cached storage not enabled for GPU
             // Either use cached storage term, or compute it on the fly.
             if (localModel.enableStorageCache()) {
                 // The cached storage for timeIdx 0 (current time) is not
@@ -1636,6 +1628,9 @@ __global__ __launch_bounds__(256) void gpu_parallelize_linearization_kernel(
     const unsigned int ii = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (ii < numCells) {
+        // localVelocityInfo is unused on GPU (guarded by if constexpr (!useGPU)),
+        // but the parameter is T& so we need an lvalue to bind to.
+        std::nullptr_t dummyVelocityInfo = nullptr;
         TpfaLinearizer<TypeTag>::template linearize_kernel<true,
         LocalGpuProblemType,
         std::nullptr_t,
@@ -1655,7 +1650,7 @@ __global__ __launch_bounds__(256) void gpu_parallelize_linearization_kernel(
             GPU_LOCAL_diagMatAddress,
             GPU_LOCAL_residualView,
             localModel,
-            nullptr,
+            dummyVelocityInfo,
             invLocDT,
             localGpuProblem,
             dispersionActive,
