@@ -132,7 +132,6 @@ struct FullDomain
     };
 
 template<class TypeTag,
-         class LocalIntensiveQuantities,
          class LocalModelClass,
          class LocalResidualKernel,
          class VectorBlockType,
@@ -158,7 +157,6 @@ __global__ void gpu_parallelize_linearization_kernel(
     LocalGpuProblemType localGpuProblem);
 
 template<class TypeTag,
-         class LocalIntensiveQuantities,
          class LocalModelClass,
          class LocalResidualKernel,
          class VectorBlockType,
@@ -1076,7 +1074,6 @@ private:
 
         if constexpr (!run_assembly_on_gpu) {
             linearize_parallelization_wrapper<run_assembly_on_gpu,
-                                              IntensiveQuantities,
                                               Model,
                                               LocalResidual,
                                               VectorBlock,
@@ -1271,7 +1268,6 @@ private:
     }
 
     template<bool useGPU,
-             class LocalIntensiveQuantities,
              class LocalModelClass,
              class LocalResidualKernel,
              class VectorBlockType,
@@ -1303,7 +1299,7 @@ private:
             assert(!dispersionActive && "Dispersion not yet supported on GPU");
 #if HAVE_CUDA && OPM_IS_COMPILING_WITH_GPU_COMPILER
             int constexpr blockSize = 256;
-            gpu_parallelize_linearization_kernel<TypeTag, LocalIntensiveQuantities, LocalModelClass, LocalResidualKernel, VectorBlockType, MatrixBlockType, ADVectorBlockType, DiagPtrType, DomainType, NeighborSparseTable, ResidualType, LocalGpuProblemType><<<((numCells + blockSize - 1) / blockSize), blockSize>>>(
+            gpu_parallelize_linearization_kernel<TypeTag, LocalModelClass, LocalResidualKernel, VectorBlockType, MatrixBlockType, ADVectorBlockType, DiagPtrType, DomainType, NeighborSparseTable, ResidualType, LocalGpuProblemType><<<((numCells + blockSize - 1) / blockSize), blockSize>>>(
                 numCells,
                 localDomain,
                 localNeighborInfo,
@@ -1322,7 +1318,7 @@ private:
         else {
 #pragma omp parallel for
             for (unsigned ii = 0; ii < numCells; ++ii) {
-            linearize_kernel<false, LocalGpuProblemType, decltype(velocityInfo_), LocalIntensiveQuantities , LocalModelClass, LocalResidual, VectorBlockType, MatrixBlockType, ADVectorBlockType, DiagPtrType, DomainType, NeighborSparseTable, ResidualType>(
+            linearize_kernel<false, LocalGpuProblemType, decltype(velocityInfo_) , LocalModelClass, LocalResidual, VectorBlockType, MatrixBlockType, ADVectorBlockType, DiagPtrType, DomainType, NeighborSparseTable, ResidualType>(
                 ii,
                 localDomain,
                 localNeighborInfo,
@@ -1343,7 +1339,6 @@ public:
     template<bool useGPU,
              class ProblemType,
              class VelocityInfoType,
-             class LocalIntensiveQuantities,
              class LocalModelClass,
              class LocalResidualKernel,
              class VectorBlockType,
@@ -1360,12 +1355,12 @@ public:
         const NeighborSparseTable& GPU_LOCAL_neighborInfo,
         const DiagPtrType& GPU_LOCAL_diagMatAddress,
         GpuResidualView& GPU_LOCAL_residualView,
-        LocalModelClass& localModel,
+        const LocalModelClass& localModel,
         VelocityInfoType& localVelocityInfo,
-        Scalar invLocDT,
+        const Scalar invLocDT,
         const ProblemType& localProblem,
-        bool dispersionActive,
-        bool on_full_domain,
+        const bool dispersionActive,
+        const bool on_full_domain,
         const GpuScalarViewType& GPU_LOCAL_volumes
         )
     {
@@ -1375,7 +1370,7 @@ public:
         MatrixBlockType bMat(0.0);
         ADVectorBlockType adres(0.0);
         ADVectorBlockType darcyFlux(0.0);
-        const LocalIntensiveQuantities& intQuantsIn = localModel.intensiveQuantities(globI, /*timeIdx*/ 0);
+        const auto& intQuantsIn = localModel.intensiveQuantities(globI, /*timeIdx*/ 0);
 
         // Flux term.
         {
@@ -1387,7 +1382,7 @@ public:
                 adres = 0.0;
                 darcyFlux = 0.0;
 
-                const LocalIntensiveQuantities& intQuantsEx = localModel.intensiveQuantities(globJ, /*timeIdx*/ 0);
+                const auto& intQuantsEx = localModel.intensiveQuantities(globJ, /*timeIdx*/ 0);
 
                 LocalResidualKernel::computeFlux(adres, darcyFlux, globI, globJ, intQuantsIn, intQuantsEx,
                                                 nbInfo.res_nbinfo, localProblem.moduleParams());
@@ -1452,7 +1447,7 @@ public:
                     }
                     else {
                         VectorBlockType tmp;
-                        const LocalIntensiveQuantities intQuantOld = localModel.intensiveQuantities(globI, 1);
+                        const auto& intQuantOld = localModel.intensiveQuantities(globI, 1);
                         LocalResidualKernel::template computeStorage<Scalar>(tmp, intQuantOld);
                         localModel.updateCachedStorage(globI, 1, tmp);
                     }
@@ -1462,14 +1457,14 @@ public:
             else {
                 OPM_TIMEBLOCK_LOCAL(computeStorage0, Subsystem::Assembly);
                 VectorBlockType tmp;
-                const LocalIntensiveQuantities intQuantOld = localModel.intensiveQuantities(globI, 1);
+                const auto& intQuantOld = localModel.intensiveQuantities(globI, 1);
                 LocalResidualKernel::template computeStorage<Scalar>(tmp, intQuantOld);
                 // assume volume do not change
                 res -= tmp;
             }
         } else {
             VectorBlockType tmp;
-            const LocalIntensiveQuantities intQuantOld = localModel.intensiveQuantities(globI, 1);
+            const auto& intQuantOld = localModel.intensiveQuantities(globI, 1);
             LocalResidualKernel::template computeStorage<Scalar>(tmp, intQuantOld);
             // assume volume do not change
             res -= tmp;
