@@ -165,10 +165,10 @@ class BlackOilConvectiveMixingModule<TypeTag, /*enableConvectiveMixing=*/true>
     using Toolbox = MathToolbox<Evaluation>;
     using ConvectiveMixingModuleParamT = ConvectiveMixingModuleParam<Scalar>;
 
-    enum { conti0EqIdx = Indices::conti0EqIdx };
-    enum { dimWorld = GridView::dimensionworld };
-    enum { waterPhaseIdx = FluidSystem::waterPhaseIdx };
-    enum { oilPhaseIdx = FluidSystem::oilPhaseIdx };
+    static constexpr int conti0EqIdx = Indices::conti0EqIdx;
+    static constexpr int dimWorld = GridView::dimensionworld;
+    static constexpr int waterPhaseIdx = FluidSystem::waterPhaseIdx;
+    static constexpr int oilPhaseIdx = FluidSystem::oilPhaseIdx;
     static constexpr bool enableFullyImplicitThermal = (getPropValue<TypeTag, Properties::EnergyModuleType>() == EnergyModules::FullyImplicitThermal);
     static constexpr unsigned contiEnergyEqIdx = Indices::contiEnergyEqIdx;
 

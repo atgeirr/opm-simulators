@@ -1295,14 +1295,14 @@ private:
         bool enableBioeffectsArg,
         bool onFullDomain,
         LocalGpuProblemType& localGpuProblem,
-        const LocalVolumesViewType& localVolumes = LocalVolumesViewType()
+        [[maybe_unused]] const LocalVolumesViewType& localVolumes = LocalVolumesViewType()
         )
     {
         if constexpr (useGPU) {
             assert(!enableBioeffectsArg && "Bioeffects not yet supported on GPU");
             assert(!dispersionActive && "Dispersion not yet supported on GPU");
-            int constexpr blockSize = 256;
 #if HAVE_CUDA && OPM_IS_COMPILING_WITH_GPU_COMPILER
+            int constexpr blockSize = 256;
             gpu_parallelize_linearization_kernel<TypeTag, LocalIntensiveQuantities, LocalModelClass, LocalResidualKernel, VectorBlockType, MatrixBlockType, ADVectorBlockType, DiagPtrType, DomainType, NeighborSparseTable, ResidualType, LocalGpuProblemType><<<((numCells + blockSize - 1) / blockSize), blockSize>>>(
                 numCells,
                 localDomain,
@@ -1312,7 +1312,6 @@ private:
                 localModel,
                 invLocDT,
                 dispersionActive,
-                enableBioeffectsArg,
                 onFullDomain,
                 localVolumes,
                 localGpuProblem);
@@ -1334,7 +1333,6 @@ private:
                 invLocDT,
                 localGpuProblem,
                 dispersionActive,
-                enableBioeffects,
                 onFullDomain,
                 0 /* not used on CPU */);
             }
@@ -1367,7 +1365,6 @@ public:
         Scalar invLocDT,
         const ProblemType& localProblem,
         bool dispersionActive,
-        bool enableBioeffects,
         bool on_full_domain,
         const GpuScalarViewType& GPU_LOCAL_volumes
         )
@@ -1508,7 +1505,7 @@ private:
         const GpuBoundaryInfoView& GPU_LOCAL_boundaryInfo)
     {
         // Boundary terms. Only looping over cells with nontrivial bcs.
-        for (int ii = 0; ii < GPU_LOCAL_boundaryInfo.size(); ++ii)
+        for (std::size_t ii = 0; ii < GPU_LOCAL_boundaryInfo.size(); ++ii)
         {
             if (GPU_LOCAL_boundaryInfo[ii].bcdata.type != BCType::NONE)
             {
