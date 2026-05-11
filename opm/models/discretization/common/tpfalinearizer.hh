@@ -1075,18 +1075,24 @@ private:
         const bool on_full_domain = (numCells == model_().numTotalDof());
 
         if constexpr (!run_assembly_on_gpu) {
-            linearize_parallelization_wrapper<run_assembly_on_gpu, IntensiveQuantities, Model, LocalResidual, VectorBlock, MatrixBlock, ADVectorBlock>(
-                numCells/*numCells*/,
-                domain,
-                neighborInfo_,
-                diagMatAddress_,
-                residual_,
-                model_(),
-                invDt,
-                dispersionActive,
-                enableBioeffects,
-                on_full_domain,
-                problem_());
+            linearize_parallelization_wrapper<run_assembly_on_gpu,
+                                              IntensiveQuantities,
+                                              Model,
+                                              LocalResidual,
+                                              VectorBlock,
+                                              MatrixBlock,
+                                              ADVectorBlock,
+                                              std::vector<Scalar>>(numCells /*numCells*/,
+                                                                   domain,
+                                                                   neighborInfo_,
+                                                                   diagMatAddress_,
+                                                                   residual_,
+                                                                   model_(),
+                                                                   invDt,
+                                                                   dispersionActive,
+                                                                   enableBioeffects,
+                                                                   on_full_domain,
+                                                                   problem_());
 
             linearize_kernel_CPU_boundary<IntensiveQuantities, Model, LocalResidual, VectorBlock, MatrixBlock, ADVectorBlock>(
                 diagMatAddress_,
@@ -1271,6 +1277,7 @@ private:
              class VectorBlockType,
              class MatrixBlockType,
              class ADVectorBlockType,
+             class LocalVolumesViewType,
              class DiagPtrType,
              class DomainType,
              class NeighborSparseTable,
@@ -1288,7 +1295,7 @@ private:
         bool enableBioeffectsArg,
         bool onFullDomain,
         LocalGpuProblemType& localGpuProblem,
-        const gpuistl::GpuView<Scalar>& localVolumes = gpuistl::GpuView<Scalar>()
+        const LocalVolumesViewType& localVolumes = LocalVolumesViewType()
         )
     {
         if constexpr (useGPU) {

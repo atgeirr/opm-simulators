@@ -154,6 +154,7 @@ public:
     Storage<BlackOilIntensiveQuantities<TypeTag>> cachedIntensiveQuantities1_;
 };
 
+#if HAVE_CUDA && OPM_IS_COMPILING_WITH_GPU_COMPILER
 namespace gpuistl
 {
     // For now we make a copy of the simplified CPU model because we need to set the fluid system
@@ -231,6 +232,7 @@ namespace gpuistl
             make_view(gpuSimplifiedGpuFIBlackOilModel.cachedIntensiveQuantities1_));
     }
 } // namespace gpuistl
+#endif
 
 } // namespace Opm
 

@@ -18,7 +18,7 @@
 #define FLOW_GPU_HPP
 
 #include <opm/simulators/flow/FlowGasWaterEnergyTypeTag.hpp>
-
+#include <opm/simulators/flow/SimplifiedGpuBlackOilModel.hpp>
 /*
     This file extracts typetag declarations that must be present in both the .CU and .HIP executables for Flow to avoid double maintenance.
 */
