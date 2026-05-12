@@ -1184,25 +1184,31 @@ private:
 
                 int constexpr blockSize = 256; // Experimentally this is a good value for multiple GPUs. Autotune this later.
 
-                linearize_parallelization_wrapper<run_assembly_on_gpu, GPUBOIQ, decltype(gpuModelView), LocalResidualGPU>(
-                    numCells,
-                    domain_view,
-                    neighborInfo_view,
-                    diagMatAddressView,
-                    gpuResidualView,
-                    gpuModelView,
-                    invDt,
-                    dispersionActive,
-                    on_full_domain,
-                    gpuFlowProblemView,
-                    gpuVolumesView);
+                linearize_parallelization_wrapper<run_assembly_on_gpu,
+                                                  GPUBOIQ,
+                                                  decltype(gpuModelView),
+                                                  LocalResidualGPU>(numCells,
+                                                                    domain_view,
+                                                                    neighborInfo_view,
+                                                                    diagMatAddressView,
+                                                                    gpuResidualView,
+                                                                    gpuModelView,
+                                                                    invDt,
+                                                                    dispersionActive,
+                                                                    on_full_domain,
+                                                                    gpuFlowProblemView,
+                                                                    gpuVolumesView);
                 if (boundaryInfo_buffer.size() > 0) {
-                    linearize_kernel_bc<CorrectTypeTagView, GPUBOIQ, decltype(gpuModelView), LocalResidualGPU><<<((boundaryInfo_buffer.size()+blockSize - 1)/blockSize), blockSize>>>(
-                        diagMatAddressView,
-                        gpuResidualView,
-                        boundaryInfo_view,
-                        gpuModelView,
-                        gpuFlowProblemView);
+                    linearize_kernel_bc<CorrectTypeTagView,
+                                        GPUBOIQ,
+                                        decltype(gpuModelView),
+                                        LocalResidualGPU>
+                        <<<((boundaryInfo_buffer.size() + blockSize - 1) / blockSize), blockSize>>>(
+                            diagMatAddressView,
+                            gpuResidualView,
+                            boundaryInfo_view,
+                            gpuModelView,
+                            gpuFlowProblemView);
                 }
 
                 // The memory copies here are synchronous and in the default stream, guaranteeing that the GPU kernels have completed
@@ -1292,18 +1298,25 @@ private:
             assert(!dispersionActive && "Dispersion not yet supported on GPU");
 #if HAVE_CUDA && OPM_IS_COMPILING_WITH_GPU_COMPILER
             int constexpr blockSize = 256;
-            gpu_parallelize_linearization_kernel<TypeTag, LocalModelClass, LocalResidualKernel, DiagPtrType, DomainType, NeighborSparseTable, ResidualType, LocalGpuProblemType><<<((numCells + blockSize - 1) / blockSize), blockSize>>>(
-                numCells,
-                localDomain,
-                localNeighborInfo,
-                localDiagMatAddress,
-                localResidual,
-                localModel,
-                invLocDT,
-                dispersionActive,
-                onFullDomain,
-                localVolumes,
-                localGpuProblem);
+            gpu_parallelize_linearization_kernel<TypeTag,
+                                                 LocalModelClass,
+                                                 LocalResidualKernel,
+                                                 DiagPtrType,
+                                                 DomainType,
+                                                 NeighborSparseTable,
+                                                 ResidualType,
+                                                 LocalGpuProblemType>
+                <<<((numCells + blockSize - 1) / blockSize), blockSize>>>(numCells,
+                                                                          localDomain,
+                                                                          localNeighborInfo,
+                                                                          localDiagMatAddress,
+                                                                          localResidual,
+                                                                          localModel,
+                                                                          invLocDT,
+                                                                          dispersionActive,
+                                                                          onFullDomain,
+                                                                          localVolumes,
+                                                                          localGpuProblem);
 #else
             OPM_THROW(std::runtime_error, "Trying to run GPU code without GPU support");
 #endif
@@ -1611,15 +1624,15 @@ __global__ __launch_bounds__(256) void gpu_parallelize_linearization_kernel(
         // but the parameter is T& so we need an lvalue to bind to.
         std::nullptr_t dummyVelocityInfo = nullptr;
         TpfaLinearizer<TypeTag>::template linearize_kernel<true,
-        LocalGpuProblemType,
-        std::nullptr_t,
-        LocalIntensiveQuantities,
-        LocalModelClass,
-        LocalResidualKernel,
-        DiagPtrType,
-        DomainType,
-        NeighborSparseTable,
-        GpuResidualView>(
+                                                           LocalGpuProblemType,
+                                                           std::nullptr_t,
+                                                           LocalIntensiveQuantities,
+                                                           LocalModelClass,
+                                                           LocalResidualKernel,
+                                                           DiagPtrType,
+                                                           DomainType,
+                                                           NeighborSparseTable,
+                                                           GpuResidualView>(
             ii,
             GPU_LOCAL_domain,
             GPU_LOCAL_neighborInfo,
@@ -1632,8 +1645,7 @@ __global__ __launch_bounds__(256) void gpu_parallelize_linearization_kernel(
             dispersionActive,
             enableBioeffects,
             onFullDomain,
-            GPU_LOCAL_volumes
-            );
+            GPU_LOCAL_volumes);
     }
 }
 
