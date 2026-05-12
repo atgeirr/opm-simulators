@@ -151,7 +151,6 @@ __global__ void gpu_parallelize_linearization_kernel(
     LocalModelClass localModel,
     GetPropType<TypeTag, Properties::Scalar> invLocDT,
     bool dispersionActive,
-    bool enableBioeffects,
     bool onFullDomain,
     const gpuistl::GpuView<GetPropType<TypeTag, Properties::Scalar>> GPU_LOCAL_volumes,
     LocalGpuProblemType localGpuProblem);
@@ -1087,7 +1086,6 @@ private:
                                                                    model_(),
                                                                    invDt,
                                                                    dispersionActive,
-                                                                   enableBioeffects,
                                                                    on_full_domain,
                                                                    problem_());
 
@@ -1195,7 +1193,6 @@ private:
                     gpuModelView,
                     invDt,
                     dispersionActive,
-                    enableBioeffects,
                     on_full_domain,
                     gpuFlowProblemView,
                     gpuVolumesView);
@@ -1288,14 +1285,13 @@ private:
         LocalModelClass& localModel,
         Scalar invLocDT,
         bool dispersionActive,
-        bool enableBioeffectsArg,
         bool onFullDomain,
         LocalGpuProblemType& localGpuProblem,
         [[maybe_unused]] const LocalVolumesViewType& localVolumes = LocalVolumesViewType()
         )
     {
         if constexpr (useGPU) {
-            assert(!enableBioeffectsArg && "Bioeffects not yet supported on GPU");
+            static_assert(!enableBioeffects && "Bioeffects not yet supported on GPU");
             assert(!dispersionActive && "Dispersion not yet supported on GPU");
 #if HAVE_CUDA && OPM_IS_COMPILING_WITH_GPU_COMPILER
             int constexpr blockSize = 256;
