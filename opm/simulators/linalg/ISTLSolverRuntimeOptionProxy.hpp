@@ -34,6 +34,7 @@
 
 #include <opm/simulators/linalg/system/ISTLSolverSystem.hpp>
 
+#include <filesystem>
 #include <fmt/format.h>
 
 namespace Opm
@@ -154,12 +155,22 @@ private:
     template <class... Args>
     void createSolver(const Simulator& simulator, Args&&... args)
     {
-        if (Parameters::Get<Parameters::UseSystemSolver>()) {
+        auto linSolverConf = Parameters::Get<Parameters::LinearSolver>();
+        bool useSystemCpr = (linSolverConf == "system_cpr");
+        if (!useSystemCpr && linSolverConf.size() > 5
+            && linSolverConf.substr(linSolverConf.size() - 5) == ".json"
+            && std::filesystem::exists(linSolverConf)) {
+            try {
+                PropertyTree prm(linSolverConf);
+                useSystemCpr = (prm.get<std::string>("preconditioner.type", "") == "system_cpr");
+            } catch (...) {}
+        }
+        if (useSystemCpr) {
             using Indices = GetPropType<TypeTag, Properties::Indices>;
             const auto backend = Parameters::linearSolverAcceleratorTypeFromCLI();
             if (backend != Parameters::LinearSolverAcceleratorType::CPU) {
                 OPM_THROW(std::invalid_argument,
-                          "The system solver (--use-system-solver=true) currently only "
+                          "The system solver currently only "
                           "supports --linear-solver-accelerator=cpu");
             }
             // System solver types are hardcoded for 3-equation blackoil (see SystemTypes.hpp).
@@ -168,9 +179,15 @@ private:
                     simulator, std::forward<Args>(args)...);
             } else {
                 OPM_THROW(std::invalid_argument,
-                          "The system solver (--use-system-solver=true) is only supported for "
+                          "The system solver is only supported for "
                           "standard 3-phase blackoil (3 equations). This model has " +
                               std::to_string(Indices::numEq) + " equations.");
+            }
+            // Add well contributions is not supported
+            if (Parameters::Get<Parameters::MatrixAddWellContributions>()) {
+                OPM_THROW(std::invalid_argument,
+                          "The option to add well contributions to the system matrix is not supported "
+                          "when using the system solver.");
             }
             return;
         }

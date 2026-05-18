@@ -88,18 +88,6 @@ void FlowLinearSolverParameters::init(bool cprRequestedInDataFile)
         }
     }
 
-    if (Parameters::Get<Parameters::UseSystemSolver>()) {
-        const bool isJsonFile = linsolver_.size() > 5
-                                && linsolver_.substr(linsolver_.size() - 5) == ".json";
-        if (!isJsonFile && linsolver_ != "system_cpr") {
-            if (Parameters::IsSet<Parameters::LinearSolver>()) {
-                throw std::invalid_argument(
-                    "--use-system-solver=true is not compatible with --linear-solver="
-                    + linsolver_ + ". Use system_cpr (default) or a JSON file.");
-            }
-            linsolver_ = "system_cpr";
-        }
-    }
 }
 
 void FlowLinearSolverParameters::registerParameters()
@@ -146,7 +134,7 @@ void FlowLinearSolverParameters::registerParameters()
     Parameters::Register<Parameters::ScaleLinearSystem>
         ("Scale linear system according to equation scale and primary variable types");
     Parameters::Register<Parameters::LinearSolver>
-        ("Configuration of solver. Valid options are: cprw (default), "
+        ("Configuration of solver. Valid options are: cprw (default), system_cpr (CPU-only), "
          "ilu0, dilu, cpr (an alias for cprw), cpr_quasiimpes, "
          "cpr_trueimpes, cpr_trueimpesanalytic, amg or hybrid (experimental). "
          "Alternatively, you can request a configuration to be read from a "
@@ -197,9 +185,6 @@ void FlowLinearSolverParameters::registerParameters()
     Parameters::Register<Parameters::CprWeightsThreadParallel>
         ("Enable OpenMP thread parallelization of CPR weight calculation. "
             "This can improve performance for large models but is disabled by default");
-
-    Parameters::Register<Parameters::UseSystemSolver>
-        ("Use the coupled reservoir-well system solver");
 
     Parameters::SetDefault<Parameters::LinearSolverVerbosity>(0);
 }

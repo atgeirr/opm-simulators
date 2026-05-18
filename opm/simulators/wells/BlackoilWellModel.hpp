@@ -347,9 +347,6 @@ template<class Scalar> class WellContributions;
             bool addMatrixContributions() const
             { return param_.matrix_add_well_contributions_; }
 
-            bool useSystemSolver() const
-            { return param_.use_system_solver_; }
-
             int numStrictIterations() const
             { return param_.strict_outer_iter_wells_; }
 
@@ -740,7 +737,7 @@ template<class Scalar> class WellContributions;
 
             // Store cell rates after assembling to avoid iterating all wells and connections for every element
             std::map<int, RateVector> cellRates_;
-            
+
             // Cached well solution from the system solver, consumed by
             // recoverWellSolutionAndUpdateWellState during postSolve.
             std::optional<WellVectorT<Scalar>> cachedSystemWellSolution_;

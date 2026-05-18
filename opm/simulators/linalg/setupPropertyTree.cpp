@@ -286,6 +286,8 @@ setupPropertyTree(FlowLinearSolverParameters p, // Note: copying the parameters 
                 conf + " is not a valid setting for --linear-solver-configuration."
                 " Please use ilu0, dilu, isai, cpr, cprw, cpr_trueimpes, cpr_quasiimpes, cpr_trueimpesanalytic, or system_cpr");
     }
+
+
 }
 
 std::string getSolverString(const FlowLinearSolverParameters& p)
@@ -490,7 +492,9 @@ setupSystemCPR([[maybe_unused]] const std::string& conf, const FlowLinearSolverP
     prm.put("preconditioner.reservoir_smoother.maxiter", 1);
     prm.put("preconditioner.reservoir_smoother.tol", p.linear_solver_reduction_);
     prm.put("preconditioner.reservoir_smoother.verbosity", 0);
-    prm.put("preconditioner.reservoir_smoother.solver", "loopsolver"s);
+    // Apply the configured smoother once without loopsolver's extra defect
+    // updates and convergence bookkeeping.
+    prm.put("preconditioner.reservoir_smoother.solver", "preconditioner2inverseoperator"s);
     prm.put("preconditioner.reservoir_smoother.preconditioner.type", "paroverilu0"s);
     prm.put("preconditioner.reservoir_smoother.preconditioner.relaxation", 1.0);
 
@@ -498,7 +502,9 @@ setupSystemCPR([[maybe_unused]] const std::string& conf, const FlowLinearSolverP
     prm.put("preconditioner.reservoir_solver.maxiter", 1);
     prm.put("preconditioner.reservoir_solver.tol", p.linear_solver_reduction_);
     prm.put("preconditioner.reservoir_solver.verbosity", 0);
-    prm.put("preconditioner.reservoir_solver.solver", "loopsolver"s);
+    // Apply the configured reservoir preconditioner once without loopsolver's
+    // extra defect updates and convergence bookkeeping.
+    prm.put("preconditioner.reservoir_solver.solver", "preconditioner2inverseoperator"s);
     prm.put("preconditioner.reservoir_solver.preconditioner.type", "cpr"s);
     prm.put("preconditioner.reservoir_solver.preconditioner.relaxation", 1.0);
     prm.put("preconditioner.reservoir_solver.preconditioner.use_well_weights", "false"s);
@@ -522,7 +528,6 @@ setupSystemCPR([[maybe_unused]] const std::string& conf, const FlowLinearSolverP
     prm.put("preconditioner.well_solver.tol", p.linear_solver_reduction_);
     prm.put("preconditioner.well_solver.verbosity", 0);
     prm.put("preconditioner.well_solver.solver", "umfpack"s);
-
     return prm;
 }
 

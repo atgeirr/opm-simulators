@@ -2011,7 +2011,6 @@ namespace Opm
         }
 
         this->parallel_well_info_.communication().sum(this->ipr_a_.data(), this->ipr_a_.size());
-
         this->linSys_.createSolver();
     }
 
