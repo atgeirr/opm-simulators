@@ -166,7 +166,7 @@ public:
                 volumes[domain.cells[i]] = model.dofTotalVolume(domain.cells[i]);
             }
             GpuModel gpuModel(
-                model.allIntensiveQuantities0(), model.allIntensiveQuantities1(), volumes);
+                model.intensiveQuantityCache()[0], model.intensiveQuantityCache()[1], volumes);
             return gpuistl::copy_to_gpu(gpuModel, dynamicGpuFluidSystemPtr_.get());
         }())
         , gpuFlowProblemBuffer_([&]() -> GpuFlowProblemBufferType {

@@ -660,11 +660,8 @@ public:
         return &intensiveQuantityCache_[timeIdx][globalIdx];
     }
 
-    const auto& allIntensiveQuantities0() const
-    { return intensiveQuantityCache_[0]; }
-
-    const auto& allIntensiveQuantities1() const
-    { return intensiveQuantityCache_[1]; }
+    const auto& intensiveQuantityCache() const
+    { return intensiveQuantityCache_; }
 
     /*!
      * \brief Update the intensive quantity cache for a entity on the grid at given time.
