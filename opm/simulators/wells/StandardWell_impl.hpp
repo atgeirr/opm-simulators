@@ -490,7 +490,7 @@ namespace Opm
                                   this->linSys_,
                                   stopped_or_zero_target);
         }
-
+        // do the local inversion of D.
         try {
             this->linSys_.invert();
         } catch( ... ) {
@@ -1498,6 +1498,8 @@ namespace Opm
         this->linSys_.recoverSolutionWell(x, xw);
         updateWellState(simulator, xw, groupStateHelper, well_state);
     }
+
+
 
 
     template<typename TypeTag>

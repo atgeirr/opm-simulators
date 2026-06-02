@@ -47,8 +47,7 @@ struct AvoidElementContext<TypeTag, TTag::FlowProblemTPFA>
 
 } // namespace Opm::Properties
 
-namespace Opm
-{
+namespace Opm {
 std::unique_ptr<FlowMain<Properties::TTag::FlowProblemTPFA>>
 flowBlackoilTpfaMainInit(int argc, char** argv, bool outputCout, bool outputFiles)
 {

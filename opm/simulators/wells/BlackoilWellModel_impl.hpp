@@ -1381,6 +1381,7 @@ namespace Opm {
         // We make sure that all processes throw in case there is an exception
         // on one of them (WetGasPvt::saturationPressure might throw if not converged)
         OPM_BEGIN_PARALLEL_TRY_CATCH();
+
         for (auto& well: well_container_) {
             well->assembleWellEqWithoutIteration(simulator_, this->groupStateHelper(), dt, this->wellState(),
                                                  /*solving_with_zero_rate=*/false);
