@@ -173,13 +173,13 @@ namespace Opm {
                           std::vector<DMatrix>& d_matrices,
                           std::vector<std::vector<int>>& wcells) const override
         {
-            // System solver is only supported when well DOF dimensions
+            // System_cpr preconditioner is only supported when well DOF dimensions
             // match between WellInterface and MultisegmentWellEval (standard 3-phase blackoil).
             if constexpr (Base::numWellDofs == MSWEval::numWellDofs) {
                 MSWEval::addBCDMatrix(b_matrices, c_matrices, d_matrices, wcells);
             } else {
                 OPM_THROW(std::runtime_error,
-                          "System solver with multisegment wells is only supported for standard "
+                          "system_cpr preconditioner with multisegment wells is only supported for standard "
                           "3-phase blackoil (Indices::numEq == 3). This model has different equation count.");
             }
         }

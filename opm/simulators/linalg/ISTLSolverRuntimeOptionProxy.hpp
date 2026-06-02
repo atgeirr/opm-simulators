@@ -170,7 +170,7 @@ private:
             const auto backend = Parameters::linearSolverAcceleratorTypeFromCLI();
             if (backend != Parameters::LinearSolverAcceleratorType::CPU) {
                 OPM_THROW(std::invalid_argument,
-                          "The system solver currently only "
+                          "The system_cpr preconditioner currently only "
                           "supports --linear-solver-accelerator=cpu");
             }
             // System solver types are hardcoded for 3-equation blackoil (see SystemTypes.hpp).
@@ -179,7 +179,7 @@ private:
                     simulator, std::forward<Args>(args)...);
             } else {
                 OPM_THROW(std::invalid_argument,
-                          "The system solver is only supported for "
+                          "The system_cpr preconditioner is only supported for "
                           "standard 3-phase blackoil (3 equations). This model has " +
                               std::to_string(Indices::numEq) + " equations.");
             }
@@ -187,7 +187,7 @@ private:
             if (Parameters::Get<Parameters::MatrixAddWellContributions>()) {
                 OPM_THROW(std::invalid_argument,
                           "The option to add well contributions to the system matrix is not supported "
-                          "when using the system solver.");
+                          "when using system_cpr (cpr on the full-system) preconditioner.");
             }
             return;
         }
