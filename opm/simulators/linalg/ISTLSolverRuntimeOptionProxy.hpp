@@ -183,12 +183,7 @@ private:
                           "standard 3-phase blackoil (3 equations). This model has " +
                               std::to_string(Indices::numEq) + " equations.");
             }
-            // Add well contributions is not supported
-            if (Parameters::Get<Parameters::MatrixAddWellContributions>()) {
-                OPM_THROW(std::invalid_argument,
-                          "The option to add well contributions to the system matrix is not supported "
-                          "when using system_cpr (cpr on the full-system) preconditioner.");
-            }
+            checkSystemCPRMatrixAddWell(Parameters::Get<Parameters::MatrixAddWellContributions>());
             return;
         }
 

@@ -513,6 +513,7 @@ list (APPEND TEST_SOURCE_FILES
   tests/test_preconditionerfactory.cpp
   tests/test_privarspacking.cpp
   tests/test_propertytree.cpp
+  tests/test_setuppropertytree.cpp
   tests/test_region_phase_pvaverage.cpp
   tests/test_relpermdiagnostics.cpp
   tests/test_RestartSerialization.cpp
@@ -699,6 +700,12 @@ list (APPEND TEST_DATA_FILES
   tests/options_flexiblesolver_1x1.json
   tests/options_flexiblesolver_3x3.json
   tests/options_flexiblesolver_simple.json
+  tests/options_system_cpr_complete.json
+  tests/options_system_cpr_missing_precond_type.json
+  tests/options_system_cpr_missing_ressolver.json
+  tests/options_system_cpr_missing_smoother.json
+  tests/options_system_cpr_missing_well.json
+  tests/options_system_cpr_res_precond_not_cpr.json
   tests/GCONSUMP.DATA
   tests/GCONSUMP_COMPLEX.DATA
   tests/GROUP_HIGHER_CONSTRAINTS.DATA

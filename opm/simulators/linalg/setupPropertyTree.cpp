@@ -191,12 +191,15 @@ setupPropertyTree(FlowLinearSolverParameters p, // Note: copying the parameters 
         if ( !std::filesystem::exists(conf) ) {
             OPM_THROW(std::invalid_argument, "JSON file " + conf + " does not exist.");
         }
+        PropertyTree tree;
         try {
-            return PropertyTree(conf);
+            tree = PropertyTree(conf);
         }
         catch (...) {
             OPM_THROW(std::invalid_argument, "Failed reading linear solver configuration from JSON file " + conf);
         }
+        validateSystemCPRTree(tree);
+        return tree;
     }
 
     // We use lower case as the internal canonical representation of solver names.
@@ -529,6 +532,41 @@ setupSystemCPR([[maybe_unused]] const std::string& conf, const FlowLinearSolverP
     prm.put("preconditioner.well_solver.verbosity", 0);
     prm.put("preconditioner.well_solver.solver", "umfpack"s);
     return prm;
+}
+
+
+void validateSystemCPRTree(const PropertyTree& prm)
+{
+    if (prm.get("preconditioner.type", std::string{}) != "system_cpr") {
+        return;
+    }
+    for (const char* sub : {"reservoir_solver", "reservoir_smoother", "well_solver"}) {
+        if (!prm.get_child_optional(std::string("preconditioner.") + sub).has_value()) {
+            OPM_THROW(std::invalid_argument,
+                      fmt::format("system_cpr JSON configuration is missing the required "
+                                  "'preconditioner.{}' sub-tree.", sub));
+        }
+    }
+    // Ensure reservoir_solver uses CPR preconditioner
+    auto reservoir_solver = prm.get_child_optional("preconditioner.reservoir_solver");
+    if (reservoir_solver) {
+        std::string precond_type = reservoir_solver->get<std::string>("preconditioner.type", "");
+        if (precond_type != "cpr") {
+            OPM_THROW(std::invalid_argument,
+                      "In system_cpr configuration, the reservoir_solver must use the CPR preconditioner "
+                      "(preconditioner.reservoir_solver.preconditioner.type = 'cpr').");
+        }
+    }
+}
+
+
+void checkSystemCPRMatrixAddWell(bool matrixAddWellContributions)
+{
+    if (matrixAddWellContributions) {
+        OPM_THROW(std::invalid_argument,
+                  "--matrix-add-well-contributions=true is incompatible with "
+                  "--linear-solver=system_cpr because the standard CPR implementation assumes that well contributions are not added to the matrix.");
+    }
 }
 
 
