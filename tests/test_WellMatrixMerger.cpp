@@ -12,25 +12,13 @@
 namespace {
 
 using Scalar = double;
-using WRMatrix = Opm::WRMatrixT<Scalar>;
-using RWMatrix = Opm::RWMatrixT<Scalar>;
-using WWMatrix = Opm::WWMatrixT<Scalar>;
+using WRMatrix = Opm::WRMatrix<Scalar>;
+using RWMatrix = Opm::RWMatrix<Scalar>;
+using WWMatrix = Opm::WWMatrix<Scalar>;
 using WRBlock = WRMatrix::block_type;
 using RWBlock = RWMatrix::block_type;
 using WWBlock = WWMatrix::block_type;
-
-// WellMatrixMerger assembles the global coupled well part of
-//
-//     [ A  C ]
-//     [ B  D ]
-//
-// from the per-well blocks B_j, C_j and D_j. It preserves each well's local
-// sparsity pattern and only does two structural operations: concatenate the
-// well blocks and remap perforation-related rows/columns through the list of
-// perforated reservoir cells for each well.
-
-// Give each block a distinctive value pattern so it is easy to see where it
-// ended up after merging.
+    \
 template<class Block>
 Block makeBlock(const Scalar base)
 {
@@ -120,6 +108,18 @@ struct TestMatrices
     std::vector<std::vector<int>> wellCells;
 };
 
+// WellMatrixMerger assembles the global coupled well part of
+//
+// [ A  C ]
+// [ B  D ]
+//
+// from the per-well blocks B_j, C_j and D_j. It preserves each well's local
+// sparsity pattern and only does two structural operations: concatenate the
+// well blocks and remap perforation-related rows/columns through the list of
+// perforated reservoir cells for each well.
+
+ // Give each block a distinctive value pattern so it is easy to see where it
+// ended up after merging.
 struct MergedMatrices
 {
     WRMatrix b;

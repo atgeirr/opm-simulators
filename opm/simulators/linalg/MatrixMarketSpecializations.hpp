@@ -21,7 +21,7 @@ namespace Dune
 {
 
     
-    template < typename... Args >
+template < typename... Args >
     void writeMatrixMarket(const Dune::MultiTypeBlockVector<Args...>& vector,std::ostream& os){
                             os<<"%%MatrixMarket matrix array real general"<<std::endl;
       using namespace Dune::Hybrid;
@@ -33,7 +33,7 @@ namespace Dune
 namespace MatrixMarketImpl
 {
 
-    template <typename T, int i, int j, typename A>
+template <typename T, int i, int j, typename A>
     struct mm_header_printer<BCRSMatrix<Opm::MatrixBlock<T,i,j>, A>>
     {
         static void print(std::ostream& os)

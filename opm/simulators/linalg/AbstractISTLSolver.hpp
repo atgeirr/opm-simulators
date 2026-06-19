@@ -17,12 +17,6 @@
 #ifndef OPM_ABSTRACTISTLSOLVER_HEADER_INCLUDED
 #define OPM_ABSTRACTISTLSOLVER_HEADER_INCLUDED
 
-#include <opm/common/Exceptions.hpp>
-#include <opm/simulators/linalg/FlowLinearSolverParameters.hpp>
-#include <opm/simulators/linalg/PropertyTree.hpp>
-#include <opm/simulators/linalg/system/SystemTypes.hpp>
-
-#include <optional>
 
 namespace Opm
 {

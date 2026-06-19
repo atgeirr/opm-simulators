@@ -1,10 +1,25 @@
+/*
+This file is part of the Open Porous Media project (OPM).
+
+  OPM is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  OPM is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with OPM.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
-#include "MultiComm.hpp"
-#include "SystemPreconditioner.hpp"
-#include "SystemTypes.hpp"
-
+#include <opm/simulators/linalg/system/MultiComm.hpp>
+#include <opm/simulators/linalg/system/SystemPreconditioner.hpp>
 #include <opm/simulators/linalg/PreconditionerFactory.hpp>
+#include <opm/simulators/linalg/system/SystemTypes.hpp>
 
 #include <dune/istl/operators.hh>
 #include <dune/istl/paamg/pinfo.hh>
@@ -16,14 +31,14 @@ template <class Operator, class Comm, typename>
 struct StandardPreconditioners;
 
 template<typename Scalar>
-using SystemSeqOpT = Dune::MatrixAdapter<SystemMatrixT<Scalar>, SystemVectorT<Scalar>, SystemVectorT<Scalar>>;
+using SystemSeqOpT = Dune::MatrixAdapter<SystemMatrixT<Scalar>, SystemVector<Scalar>, SystemVector<Scalar>>;
 
 #if HAVE_MPI
 using SystemComm = Dune::MultiCommunicator<const Dune::OwnerOverlapCopyCommunication<int, int>&,
                                            const Dune::JacComm&>;
 template<typename Scalar>
-using SystemParOpT = Dune::OverlappingSchwarzOperator<SystemMatrixT<Scalar>, SystemVectorT<Scalar>,
-                                                      SystemVectorT<Scalar>, SystemComm>;
+using SystemParOpT = Dune::OverlappingSchwarzOperator<SystemMatrixT<Scalar>, SystemVector<Scalar>,
+                                                      SystemVector<Scalar>, SystemComm>;
 #endif
 
 // Full specialisations of StandardPreconditioners for the coupled system
@@ -38,14 +53,14 @@ void addSystemCprSeq()
 {
     using O = SystemSeqOpT<Scalar>;
     using F = PreconditionerFactory<O, Dune::Amg::SequentialInformation>;
-    using V = SystemVectorT<Scalar>;
+    using V = SystemVector<Scalar>;
     using P = PropertyTree;
 
     F::addCreator("system_cpr",
                   [](const O& op, const P& prm,
                      const std::function<V()>& sysWeightCalc,
                      std::size_t pressureIndex) {
-                      std::function<ResVectorT<Scalar>()> resWeightCalc;
+                      std::function<ResVector<Scalar>()> resWeightCalc;
                       if (sysWeightCalc) {
                           resWeightCalc = [sysWeightCalc]() {
                               return sysWeightCalc()[Dune::Indices::_0];
@@ -62,14 +77,14 @@ void addSystemCprParSeq()
 {
     using O = SystemParOpT<Scalar>;
     using F = PreconditionerFactory<O, Dune::Amg::SequentialInformation>;
-    using V = SystemVectorT<Scalar>;
+    using V = SystemVector<Scalar>;
     using P = PropertyTree;
 
     F::addCreator("system_cpr",
                   [](const O& op, const P& prm,
                      const std::function<V()>& sysWeightCalc,
                      std::size_t pressureIndex) {
-                      std::function<ResVectorT<Scalar>()> resWeightCalc;
+                      std::function<ResVector<Scalar>()> resWeightCalc;
                       if (sysWeightCalc) {
                           resWeightCalc = [sysWeightCalc]() {
                               return sysWeightCalc()[Dune::Indices::_0];
@@ -85,7 +100,7 @@ void addSystemCprPar()
 {
     using O = SystemParOpT<Scalar>;
     using F = PreconditionerFactory<O, SystemComm>;
-    using V = SystemVectorT<Scalar>;
+    using V = SystemVector<Scalar>;
     using P = PropertyTree;
 
     F::addCreator("system_cpr",
@@ -93,7 +108,7 @@ void addSystemCprPar()
                      const std::function<V()>& sysWeightCalc,
                      std::size_t pressureIndex,
                      const SystemComm& comm) {
-                      std::function<ResVectorT<Scalar>()> resWeightCalc;
+                      std::function<ResVector<Scalar>()> resWeightCalc;
                       if (sysWeightCalc) {
                           resWeightCalc = [sysWeightCalc]() {
                               return sysWeightCalc()[Dune::Indices::_0];

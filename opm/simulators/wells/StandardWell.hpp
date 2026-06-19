@@ -118,10 +118,7 @@ namespace Opm
 
         using IndexTraits = typename FluidSystem::IndexTraitsType;
         using WellStateType = WellState<Scalar, IndexTraits>;
-        using BMatrix = typename Base::BMatrix;
-        using CMatrix = typename Base::CMatrix;
-        using DMatrix = typename Base::DMatrix;
-        using WVector = typename Base::WVector;
+
         StandardWell(const Well& well,
                      const ParallelWellInfo<Scalar>& pw_info,
                      const int time_step,
@@ -251,10 +248,10 @@ namespace Opm
                                     DeferredLogger& deferred_logger) const override;
 
 
-        void addBCDMatrix(std::vector<BMatrix>& b_matrices,
-                          std::vector<CMatrix>& c_matrices,
-                          std::vector<DMatrix>& d_matrices,
-                          std::vector<std::vector<int>>& wcells) const override
+        void addBCDMatrix(std::vector<typename Base::BMatrix>& b_matrices,
+                          std::vector<typename Base::CMatrix>& c_matrices,
+                          std::vector<typename Base::DMatrix>& d_matrices,
+                          Opm::SparseTable<int>& wcells) const override
         {
             StdWellEval::addBCDMatrix(b_matrices, c_matrices, d_matrices, wcells);
         }

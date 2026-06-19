@@ -1,7 +1,24 @@
+/*
+This file is part of the Open Porous Media project (OPM).
+
+  OPM is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  OPM is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with OPM.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
-#include "SystemPreconditionerFactory.hpp"
-#include "WellMatrixMerger.hpp"
+#include <opm/simulators/linalg/system/SystemTypes.hpp>
+#include <opm/simulators/linalg/system/SystemPreconditionerFactory.hpp>
+#include <opm/simulators/linalg/system/WellMatrixMerger.hpp>
 
 #include <opm/simulators/linalg/FlexibleSolver.hpp>
 #include <opm/simulators/linalg/ISTLSolver.hpp>
@@ -13,25 +30,22 @@ template <class TypeTag>
 class ISTLSolverSystem : public ISTLSolver<TypeTag>
 {
 protected:
-    using GridView = GetPropType<TypeTag, Properties::GridView>;
     using Scalar = GetPropType<TypeTag, Properties::Scalar>;
-    using SparseMatrixAdapter = GetPropType<TypeTag, Properties::SparseMatrixAdapter>;
     using Vector = GetPropType<TypeTag, Properties::GlobalEqVector>;
-    using Indices = GetPropType<TypeTag, Properties::Indices>;
-    using WellModel = GetPropType<TypeTag, Properties::WellModel>;
-    using Simulator = GetPropType<TypeTag, Properties::Simulator>;
+    using SparseMatrixAdapter = GetPropType<TypeTag, Properties::SparseMatrixAdapter>;
     using Matrix = typename SparseMatrixAdapter::IstlMatrix;
-    using ThreadManager = GetPropType<TypeTag, Properties::ThreadManager>;
-    using ElementContext = GetPropType<TypeTag, Properties::ElementContext>;
-    using AbstractSolverType = Dune::InverseOperator<Vector, Vector>;
-    using AbstractOperatorType = Dune::AssembledLinearOperator<Matrix, Vector, Vector>;
-    using AbstractPreconditionerType = Dune::PreconditionerWithUpdate<Vector, Vector>;
-    using WellModelOperator = WellModelAsLinearOperator<WellModel, Vector, Vector>;
-    using ElementMapper = GetPropType<TypeTag, Properties::ElementMapper>;
-    using ElementChunksType = ElementChunks<GridView, Dune::Partitions::All>;
+    using Simulator = GetPropType<TypeTag, Properties::Simulator>;
+    using Indices = GetPropType<TypeTag, Properties::Indices>;
+
+    // Compile-time validation: SystemPreconditionerFactory and related types
+    // are hardcoded for standard 3-phase blackoil (3 reservoir equations, 4 well equations).
+    // See SystemTypes.hpp for details.
+    static_assert(Indices::numEq == 3,
+                  "ISTLSolverSystem (with system_cpr preconditioner) only supports "
+                  "3-equation blackoil models. This model has different equation count.");
 
     constexpr static std::size_t pressureIndex
-        = GetPropType<TypeTag, Properties::Indices>::pressureSwitchIdx;
+        = Indices::pressureSwitchIdx;
 
     enum { enablePolymerMolarWeight = getPropValue<TypeTag, Properties::EnablePolymerMW>() };
     constexpr static bool isIncompatibleWithCprw = enablePolymerMolarWeight;
@@ -105,19 +119,19 @@ private:
     WellMatrixStructure cachedWellStructure_;
 
     // Current per-well B/C/D blocks for the explicit 2x2 system matrix.
-    std::vector<WRMatrixT<Scalar>> wellBMatrices_;
-    std::vector<RWMatrixT<Scalar>> wellCMatrices_;
-    std::vector<WWMatrixT<Scalar>> wellDMatrices_;
-    std::vector<std::vector<int>> wellCells_;
+    std::vector<WRMatrix<Scalar>> wellBMatrices_;
+    std::vector<RWMatrix<Scalar>> wellCMatrices_;
+    std::vector<WWMatrix<Scalar>> wellDMatrices_;
+    Opm::SparseTable<int> wellCells_;
 
     // Owned storage for merged well matrices; SystemMatrix points into these.
-    WRMatrixT<Scalar> mergedB_;
-    RWMatrixT<Scalar> mergedC_;
-    WWMatrixT<Scalar> mergedD_;
+    WRMatrix<Scalar> mergedB_;
+    RWMatrix<Scalar> mergedC_;
+    WWMatrix<Scalar> mergedD_;
 
     SystemMatrixT<Scalar> sysMatrix_;
-    SystemVectorT<Scalar> sysX_;
-    SystemVectorT<Scalar> sysRhs_;
+    SystemVector<Scalar> sysX_;
+    SystemVector<Scalar> sysRhs_;
 
     // Serial solver components
     std::unique_ptr<SystemSeqOpT<Scalar>> sysOp_;
@@ -132,8 +146,8 @@ private:
     std::unique_ptr<Dune::FlexibleSolver<SystemParOpT<Scalar>>> sysFlexSolverPar_;
 #endif
 
-    using SysSolverType = Dune::InverseOperator<SystemVectorT<Scalar>, SystemVectorT<Scalar>>;
-    using SysPrecondType = Dune::PreconditionerWithUpdate<SystemVectorT<Scalar>, SystemVectorT<Scalar>>;
+    using SysSolverType = Dune::InverseOperator<SystemVector<Scalar>, SystemVector<Scalar>>;
+    using SysPrecondType = Dune::PreconditionerWithUpdate<SystemVector<Scalar>, SystemVector<Scalar>>;
     using SeqSysPrecondType = SystemPreconditioner<Scalar, SeqResOperatorT<Scalar>>;
 #if HAVE_MPI
     using ParSysPrecondType = SystemPreconditioner<Scalar, ParResOperatorT<Scalar>, ParResComm>;
@@ -204,32 +218,33 @@ private:
         if (this->comm_->communicator().size() > 1) {
             if (auto* precond = dynamic_cast<ParSysPrecondType*>(sysPrecond_)) {
                 precond->updateForChangedWellStructure();
-                return;
+            } else
+            { // Rebuild the parallel solver if the parallel preconditioner cannot be updated in-place.
+                createSystemSolver(prm);
             }
-            createSystemSolver(prm);
             return;
         }
 #endif
 
         if (auto* precond = dynamic_cast<SeqSysPrecondType*>(sysPrecond_)) {
             precond->updateForChangedWellStructure();
-            return;
+        } else
+        { // Rebuild the solver if the sequential preconditioner cannot be updated in-place
+            createSystemSolver(prm);
         }
-
-        createSystemSolver(prm);
     }
 
     void createSystemSolver(const Opm::PropertyTree& prm)
     {
         // Derive weights from the reservoir sub-block config (which uses CPR internally)
         auto resSolverPrm = prm.get_child("preconditioner.reservoir_solver");
-        std::function<ResVectorT<Scalar>()> resWeightCalc
+        std::function<ResVector<Scalar>()> resWeightCalc
             = this->getWeightsCalculator(resSolverPrm, this->getMatrix(), pressureIndex);
 
-        std::function<SystemVectorT<Scalar>()> sysWeightCalc;
+        std::function<SystemVector<Scalar>()> sysWeightCalc;
         if (resWeightCalc) {
             sysWeightCalc = [resWeightCalc]() {
-                SystemVectorT<Scalar> w;
+                SystemVector<Scalar> w;
                 w[_0] = resWeightCalc();
                 return w;
             };

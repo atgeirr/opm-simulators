@@ -85,7 +85,7 @@ StandardWellEval<FluidSystem,Indices>::
 addBCDMatrix(std::vector<BMatrix>& b_matrices,
              std::vector<CMatrix>& c_matrices,
              std::vector<DMatrix>& d_matrices,
-             std::vector<std::vector<int>>& wcells) const
+             Opm::SparseTable<int>& wcells) const
 {
     const auto& srcB = linSys_.getB();
     const auto& srcC = linSys_.getC();
@@ -147,7 +147,7 @@ addBCDMatrix(std::vector<BMatrix>& b_matrices,
     b_matrices.push_back(duneB);
     c_matrices.push_back(duneC);
     d_matrices.push_back(duneD);
-    wcells.push_back(linSys_.cells());
+    wcells.appendRow(linSys_.cells().begin(), linSys_.cells().end());
 }
 
 template<class FluidSystem, class Indices>

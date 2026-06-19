@@ -28,6 +28,8 @@
 #include <opm/simulators/wells/MultisegmentWellSegments.hpp>
 #include <opm/simulators/wells/ParallelWellInfo.hpp>
 
+#include <opm/grid/utility/SparseTable.hpp>
+
 #include <opm/material/densead/Evaluation.hpp>
 
 #include <utility>
@@ -48,13 +50,7 @@ class MultisegmentWellEval : public MultisegmentWellGeneric<typename FluidSystem
 {
 public:
     using Scalar = typename FluidSystem::Scalar;
-    static constexpr int numResDofs = Indices::numEq;
     using PrimaryVariables = MultisegmentWellPrimaryVariables<FluidSystem,Indices>;
-    static constexpr int numWellDofs = PrimaryVariables::numWellEq;// numResDofs + 1; // NB will fail for for thermal for now
-    using BMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numResDofs>>;
-    using CMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numResDofs, numWellDofs>>;
-    using DMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numWellDofs>>;
-    using WVector = Dune::BlockVector<Dune::FieldVector<Scalar, numWellDofs>>;
 
 protected:
     using IndexTraits = typename FluidSystem::IndexTraitsType;
@@ -78,11 +74,18 @@ public:
     //! \brief Returns a const reference to equation system.
     const Equations& linSys() const
     { return linSys_; }
-    
+
+    static constexpr int numResDofs = Indices::numEq;
+    static constexpr int numWellDofs = PrimaryVariables::numWellEq;// numResDofs + 1; // NB will fail for for thermal for now
+    using BMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numResDofs>>;
+    using CMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numResDofs, numWellDofs>>;
+    using DMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numWellDofs>>;
+    using WVector = Dune::BlockVector<Dune::FieldVector<Scalar, numWellDofs>>;
+
     void addBCDMatrix(std::vector<BMatrix>& b_matrices,
                 std::vector<CMatrix>& c_matrices,
                 std::vector<DMatrix>& d_matrices,
-                std::vector<std::vector<int>>& wcells) const;
+                Opm::SparseTable<int>& wcells) const;
 protected:
     MultisegmentWellEval(WellInterfaceIndices<FluidSystem, Indices>& baseif, const ParallelWellInfo<Scalar>& parallel_well_info);
 

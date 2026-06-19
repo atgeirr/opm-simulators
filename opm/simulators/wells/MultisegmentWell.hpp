@@ -168,10 +168,10 @@ namespace Opm {
         std::vector<Scalar> getPrimaryVars() const override;
 
         int setPrimaryVars(typename std::vector<Scalar>::const_iterator it) override;
-        void addBCDMatrix(std::vector<BMatrix>& b_matrices,
-                          std::vector<CMatrix>& c_matrices,
-                          std::vector<DMatrix>& d_matrices,
-                          std::vector<std::vector<int>>& wcells) const override
+        void addBCDMatrix(std::vector<typename Base::BMatrix>& b_matrices,
+                          std::vector<typename Base::CMatrix>& c_matrices,
+                          std::vector<typename Base::DMatrix>& d_matrices,
+                          Opm::SparseTable<int>& wcells) const override
         {
             // System_cpr preconditioner is only supported when well DOF dimensions
             // match between WellInterface and MultisegmentWellEval (standard 3-phase blackoil).

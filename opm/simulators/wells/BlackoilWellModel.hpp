@@ -29,6 +29,7 @@
 #include <dune/istl/matrixmatrix.hh>
 
 #include <opm/common/OpmLog/OpmLog.hpp>
+#include <opm/grid/utility/SparseTable.hpp>
 
 #include <opm/input/eclipse/Schedule/Group/Group.hpp>
 #include <opm/input/eclipse/Schedule/Group/GuideRate.hpp>
@@ -117,12 +118,6 @@ template<class Scalar> class WellContributions;
             using GroupStateHelperType = GroupStateHelper<Scalar, IndexTraits>;
 
             constexpr static std::size_t pressureVarIndex = GetPropType<TypeTag, Properties::Indices>::pressureSwitchIdx;
-            static constexpr int numResDofs = Indices::numEq;
-            static constexpr int numWellDofs = numResDofs + 1;//NB will fail for for thermal for now
-            using BMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numResDofs>>;
-            using CMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numResDofs, numWellDofs>>;
-            using DMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numWellDofs>>;
-            using WVector = Dune::BlockVector<Dune::FieldVector<Scalar, numWellDofs>>;
 
             static const int numEq = Indices::numEq;
             static const int solventSaturationIdx = Indices::solventSaturationIdx;
@@ -290,10 +285,18 @@ template<class Scalar> class WellContributions;
             bool updateGroupControls(const Group& group,
                                     DeferredLogger& deferred_logger,
                                     const int reportStepIdx);
+
+            static constexpr int numResDofs = Indices::numEq;
+            static constexpr int numWellDofs = numResDofs + 1;//NB will fail for for thermal for now
+            using BMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numResDofs>>;
+            using CMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numResDofs, numWellDofs>>;
+            using DMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<Scalar, numWellDofs, numWellDofs>>;
+            using WVector = Dune::BlockVector<Dune::FieldVector<Scalar, numWellDofs>>;
+
             void addBCDMatrix(std::vector<BMatrix>& b_matrices,
                                             std::vector<CMatrix>& c_matrices,
                                             std::vector<DMatrix>& d_matrices,
-                                            std::vector<std::vector<int>>& wcells) const;
+                                            Opm::SparseTable<int>& wcells) const;
 
             const WellInterface<TypeTag>& getWell(const std::string& well_name) const;
 
@@ -740,7 +743,7 @@ template<class Scalar> class WellContributions;
 
             // Cached well solution from the system solver, consumed by
             // recoverWellSolutionAndUpdateWellState during postSolve.
-            std::optional<WellVectorT<Scalar>> cachedSystemWellSolution_;
+            std::optional<WellVector<Scalar>> cachedSystemWellSolution_;
             std::vector<int> cachedWellDofOffsets_;
 
             void assignWellTracerRates(data::Wells& wsrpt) const;

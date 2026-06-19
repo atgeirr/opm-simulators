@@ -1,26 +1,42 @@
+/*
+This file is part of the Open Porous Media project (OPM).
+
+  OPM is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  OPM is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with OPM.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
-#include "MultiComm.hpp"
-#include "SystemTypes.hpp"
+#include <opm/simulators/linalg/system/MultiComm.hpp>
+#include <opm/simulators/linalg/system/SystemTypes.hpp>
+#include <opm/simulators/linalg/FlexibleSolver.hpp>
+#include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
+#include <opm/simulators/linalg/PropertyTree.hpp>
 
 #include <dune/istl/operators.hh>
 #include <dune/istl/paamg/pinfo.hh>
 
-#include <opm/simulators/linalg/FlexibleSolver.hpp>
-#include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
-#include <opm/simulators/linalg/PropertyTree.hpp>
 
 namespace Opm
 {
 
 // Reservoir operator/comm types used as template arguments.
 template<typename Scalar>
-using SeqResOperatorT = Dune::MatrixAdapter<RRMatrixT<Scalar>, ResVectorT<Scalar>, ResVectorT<Scalar>>;
+using SeqResOperatorT = Dune::MatrixAdapter<RRMatrix<Scalar>, ResVector<Scalar>, ResVector<Scalar>>;
 
 #if HAVE_MPI
 using ParResComm = Dune::OwnerOverlapCopyCommunication<int, int>;
 template<typename Scalar>
-using ParResOperatorT = Dune::OverlappingSchwarzOperator<RRMatrixT<Scalar>, ResVectorT<Scalar>, ResVectorT<Scalar>, ParResComm>;
+using ParResOperatorT = Dune::OverlappingSchwarzOperator<RRMatrix<Scalar>, ResVector<Scalar>, ResVector<Scalar>, ParResComm>;
 #endif
 
 // Preconditioner for the coupled reservoir-well system.
@@ -34,13 +50,13 @@ using ParResOperatorT = Dune::OverlappingSchwarzOperator<RRMatrixT<Scalar>, ResV
 // For parallel runs, copyOwnerToAll synchronises overlap DOFs before
 // each reservoir sub-solve.
 template <class Scalar, class ResOp, class ResComm = Dune::Amg::SequentialInformation>
-class SystemPreconditioner : public Dune::PreconditionerWithUpdate<SystemVectorT<Scalar>, SystemVectorT<Scalar>>
+class SystemPreconditioner : public Dune::PreconditionerWithUpdate<SystemVector<Scalar>, SystemVector<Scalar>>
 {
 public:
     static constexpr bool isParallel = !std::is_same_v<ResComm, Dune::Amg::SequentialInformation>;
 
     using ResFlexibleSolverType = Dune::FlexibleSolver<ResOp>;
-    using WellOperator = Dune::MatrixAdapter<WWMatrixT<Scalar>, WellVectorT<Scalar>, WellVectorT<Scalar>>;
+    using WellOperator = Dune::MatrixAdapter<WWMatrix<Scalar>, WellVector<Scalar>, WellVector<Scalar>>;
     using WellFlexibleSolverType = Dune::FlexibleSolver<WellOperator>;
 
     static constexpr auto _0 = Dune::Indices::_0;
@@ -49,9 +65,10 @@ public:
     // Sequential constructor (enabled only for non-parallel specializations).
     template <bool P = isParallel, std::enable_if_t<!P, int> = 0>
     SystemPreconditioner(const SystemMatrixT<Scalar>& S,
-                         const std::function<ResVectorT<Scalar>()>& weightsCalculator,
+                         const std::function<ResVector<Scalar>()>& weightsCalculator,
                          int pressureIndex,
                          const Opm::PropertyTree& prm)
+        requires (!isParallel)
         : S_(S)
         , pressureIndex_(pressureIndex)
     {
@@ -62,10 +79,11 @@ public:
     // Parallel constructor (enabled only for parallel specializations).
     template <bool P = isParallel, std::enable_if_t<P, int> = 0>
     SystemPreconditioner(const SystemMatrixT<Scalar>& S,
-                         const std::function<ResVectorT<Scalar>()>& weightsCalculator,
+                         const std::function<ResVector<Scalar>()>& weightsCalculator,
                          int pressureIndex,
                          const Opm::PropertyTree& prm,
                          const ResComm& resComm)
+        requires (isParallel)
         : S_(S)
         , resComm_(&resComm)
         , pressureIndex_(pressureIndex)
@@ -74,11 +92,11 @@ public:
         initWorkVectors();
     }
 
-    void pre(SystemVectorT<Scalar>&, SystemVectorT<Scalar>&) override
+    void pre(SystemVector<Scalar>&, SystemVector<Scalar>&) override
     {
     }
 
-    void post(SystemVectorT<Scalar>&) override
+    void post(SystemVector<Scalar>&) override
     {
     }
 
@@ -110,12 +128,23 @@ public:
         return true;
     }
 
-    void apply(SystemVectorT<Scalar>& v, const SystemVectorT<Scalar>& d) override
+//   System matrix block structure:
+//
+//       [ A  C ] [ x_res ]   [ resRes ]
+//   S = [ B  D ] [ x_well ] = [ wRes  ]
+//
+//   A = reservoir-reservoir (top-left)
+//   C = reservoir-well coupling (top-right)
+//   B = well-reservoir coupling (bottom-left)
+//   D = well-well (bottom-right)
+     void apply(SystemVector<Scalar>& v, const SystemVector<Scalar>& d) override
     {
+        // Extract blocks using the agreed convention
         const auto& A = S_[_0][_0];
-        const auto& C = S_[_1][_0];
-        const auto& B = S_[_0][_1];
+        const auto& C = S_[_0][_1];
+        const auto& B = S_[_1][_0];
         const auto& D = S_[_1][_1];
+
         resRes_ = d[_0];
         wRes_ = d[_1];
         resSol_ = 0.0;
@@ -129,8 +158,10 @@ public:
             syncResVector(tmp_resRes_);
             resSolver_->apply(dresSol_, tmp_resRes_, res_result);
             resSol_ += dresSol_;
+            // resRes_ -= A * dresSol_, A is the (well) upper-left block
             A.mmv(dresSol_, resRes_);
-            C.mmv(dresSol_, wRes_);
+            // wRes_ -= B * dresSol_, B is the (well) lower-left block
+            B.mmv(dresSol_, wRes_);
         }
 
         // Stage 2: Well solve + reservoir system smoothing
@@ -140,7 +171,9 @@ public:
             tmp_wRes_ = wRes_;
             wellSolver_->apply(dwSol_, tmp_wRes_, well_result);
             wSol_ += dwSol_;
-            B.mmv(dwSol_, resRes_);
+            // resRes_ -= C * dwSol_, C is the (reservoir) upper-right block
+            C.mmv(dwSol_, resRes_);
+            // resRes_ -= D * dwSol_, D is the (reservoir) lower-right block
             D.mmv(dwSol_, wRes_);
 
             Dune::InverseOperatorResult res_result;
@@ -149,7 +182,8 @@ public:
             syncResVector(tmp_resRes_);
             resSmoother_->apply(dresSol_, tmp_resRes_, res_result);
             resSol_ += dresSol_;
-            C.mmv(dresSol_, wRes_);
+            // wRes_ -= B * dresSol_, B is the (well) lower-left block
+            B.mmv(dresSol_, wRes_);
         }
 
         // Stage 3: Final well solve
@@ -170,6 +204,7 @@ private:
     const SystemMatrixT<Scalar>& S_;
     const ResComm* resComm_ = nullptr;
     int pressureIndex_ = 0;
+    static constexpr int dummyWellPressureIndex = std::numeric_limits<int>::min();
     Opm::PropertyTree wellprm_;
 
     std::unique_ptr<ResOp> rop_;
@@ -178,16 +213,16 @@ private:
     std::unique_ptr<ResFlexibleSolverType> resSmoother_;
     std::unique_ptr<WellFlexibleSolverType> wellSolver_;
 
-    WellVectorT<Scalar> wSol_;
-    ResVectorT<Scalar> resSol_;
-    ResVectorT<Scalar> dresSol_;
-    WellVectorT<Scalar> dwSol_;
-    ResVectorT<Scalar> tmp_resRes_;
-    WellVectorT<Scalar> tmp_wRes_;
-    ResVectorT<Scalar> resRes_;
-    WellVectorT<Scalar> wRes_;
+    WellVector<Scalar> wSol_;
+    ResVector<Scalar> resSol_;
+    ResVector<Scalar> dresSol_;
+    WellVector<Scalar> dwSol_;
+    ResVector<Scalar> tmp_resRes_;
+    WellVector<Scalar> tmp_wRes_;
+    ResVector<Scalar> resRes_;
+    WellVector<Scalar> wRes_;
 
-    void syncResVector(ResVectorT<Scalar>& v)
+    void syncResVector(ResVector<Scalar>& v)
     {
         if constexpr (isParallel) {
             resComm_->copyOwnerToAll(v, v);
@@ -197,13 +232,13 @@ private:
     void initWellSolver()
     {
         wop_ = std::make_unique<WellOperator>(S_[_1][_1]);
-        std::function<WellVectorT<Scalar>()> weightsCalculatorWell;
+        std::function<WellVector<Scalar>()> weightsCalculatorWell;
         wellSolver_ = std::make_unique<WellFlexibleSolverType>(
-            *wop_, wellprm_, weightsCalculatorWell, pressureIndex_);
+            *wop_, wellprm_, weightsCalculatorWell, dummyWellPressureIndex);
     }
 
     void initSubSolvers(const Opm::PropertyTree& prm,
-                        const std::function<ResVectorT<Scalar>()>& weightsCalculator)
+                        const std::function<ResVector<Scalar>()>& weightsCalculator)
     {
         auto resprm = prm.get_child("reservoir_solver");
         auto resprmsmoother = prm.get_child("reservoir_smoother");

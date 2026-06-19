@@ -1,6 +1,24 @@
+/*
+This file is part of the Open Porous Media project (OPM).
+
+  OPM is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  OPM is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with OPM.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
-#include "SystemTypes.hpp"
+#include <opm/simulators/linalg/system/SystemTypes.hpp>
+
+#include <opm/grid/utility/SparseTable.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -37,14 +55,15 @@ struct MatrixSparsityPattern
 };
 
 // Structural cache key for the merged well part of the system matrix.
-//
-// totalWellDofs is part of the cache record so the well-vector size and the
-// structure-rebuild decision stay in the same place.
+//  totalWellDofs is the sum of all individual well D-matrix dimensions,
+//  i.e., the total number of well degrees of freedom.  It is stored here
+//  so that the well-vector size and the structure-rebuild decision stay
+//  in the same place.
 struct WellMatrixStructure
 {
     std::size_t numResDofs = 0;
-    std::size_t totalWellDofs = 0;
-    std::vector<std::vector<int>> wellCells;
+    std::size_t totalWellDofs = 0;  // Aggregated well DOFs (sum of D_i.N())
+    Opm::SparseTable<int> wellCells;
     std::vector<MatrixSparsityPattern> bPatterns;
     std::vector<MatrixSparsityPattern> cPatterns;
     std::vector<MatrixSparsityPattern> dPatterns;
@@ -88,19 +107,56 @@ captureMatrixSparsity(const Matrix& matrix)
     return pattern;
 }
 
+template<class Matrix> bool hasSameMatrixSparsity(const Matrix& matrix,
+                                                  const MatrixSparsityPattern& pattern)
+{
+    if (matrix.N() != pattern.rows || matrix.M() != pattern.cols) {
+        return false;
+    }
+
+    if (pattern.rowOffsets.size() != pattern.rows + 1
+        || pattern.rowOffsets.empty()
+        || pattern.rowOffsets.front() != 0)
+    {
+        return false;
+    }
+
+    std::size_t entryOffset = 0;
+    for (std::size_t rowIdx = 0; rowIdx < matrix.N(); ++rowIdx) {
+        if (pattern.rowOffsets[rowIdx] != entryOffset) {
+            return false;
+        }
+
+        for (auto colIt = matrix[rowIdx].begin(); colIt != matrix[rowIdx].end(); ++colIt) {
+            if (entryOffset >= pattern.columnIndices.size()
+                || pattern.columnIndices[entryOffset] != colIt.index())
+            {
+                return false;
+            }
+            ++entryOffset;
+        }
+
+        if (pattern.rowOffsets[rowIdx + 1] != entryOffset) {
+            return false;
+        }
+    }
+
+    return entryOffset == pattern.columnIndices.size();
+}
+
 template<typename Scalar>
 class WellMatrixMerger
 {
 public:
-    using BMatrix = WRMatrixT<Scalar>;
-    using CMatrix = RWMatrixT<Scalar>;
-    using DMatrix = WWMatrixT<Scalar>;
+    using BMatrix = WRMatrix<Scalar>;
+    using CMatrix = RWMatrix<Scalar>;
+    using DMatrix = WWMatrix<Scalar>;
 
     WellMatrixMerger(const std::size_t numResDofs,
                      const std::vector<BMatrix>& bMatrices,
                      const std::vector<CMatrix>& cMatrices,
                      const std::vector<DMatrix>& dMatrices,
-                     const std::vector<std::vector<int>>& wellCells)
+                     const Opm::SparseTable<int>& wellCells)
         : numResDofs_(numResDofs)
         , bMatrices_(bMatrices)
         , cMatrices_(cMatrices)
@@ -197,44 +253,6 @@ private:
             assert(C.M() == D.M());
             assert(D.N() == D.M());
         }
-    }
-
-    template<class Matrix>
-    static bool hasSameMatrixSparsity(const Matrix& matrix,
-                                      const MatrixSparsityPattern& pattern)
-    {
-        if (matrix.N() != pattern.rows || matrix.M() != pattern.cols) {
-            return false;
-        }
-
-        if (pattern.rowOffsets.size() != pattern.rows + 1
-            || pattern.rowOffsets.empty()
-            || pattern.rowOffsets.front() != 0)
-        {
-            return false;
-        }
-
-        std::size_t entryOffset = 0;
-        for (std::size_t rowIdx = 0; rowIdx < matrix.N(); ++rowIdx) {
-            if (pattern.rowOffsets[rowIdx] != entryOffset) {
-                return false;
-            }
-
-            for (auto colIt = matrix[rowIdx].begin(); colIt != matrix[rowIdx].end(); ++colIt) {
-                if (entryOffset >= pattern.columnIndices.size()
-                    || pattern.columnIndices[entryOffset] != colIt.index())
-                {
-                    return false;
-                }
-                ++entryOffset;
-            }
-
-            if (pattern.rowOffsets[rowIdx + 1] != entryOffset) {
-                return false;
-            }
-        }
-
-        return entryOffset == pattern.columnIndices.size();
     }
 
     template<class Matrix>
@@ -443,7 +461,7 @@ private:
     const std::vector<BMatrix>& bMatrices_;
     const std::vector<CMatrix>& cMatrices_;
     const std::vector<DMatrix>& dMatrices_;
-    const std::vector<std::vector<int>>& wellCells_;
+    const Opm::SparseTable<int>& wellCells_;
 };
 
 } // namespace Opm
