@@ -97,21 +97,30 @@ template <class X, class Y>
 class DirectSolverUpdatePreconditioner : public PreconditionerWithUpdate<X, Y>
 {
 public:
-    DirectSolverUpdatePreconditioner(SolverCategory::Category category,
-                                     bool& directSolverNeedsRebuild)
+    explicit DirectSolverUpdatePreconditioner(SolverCategory::Category category)
         : category_(category)
-        , direct_solver_needs_rebuild_(&directSolverNeedsRebuild)
+        , needs_rebuild_(false)
     {
     }
 
     void update() override
     {
-        *direct_solver_needs_rebuild_ = true;
+        needs_rebuild_ = true;
     }
 
     bool hasPerfectUpdate() const override
     {
         return true;
+    }
+
+    bool needsRebuild() const
+    {
+        return needs_rebuild_;
+    }
+
+    void resetNeedsRebuild()
+    {
+        needs_rebuild_ = false;
     }
 
     void pre([[maybe_unused]] X& x, [[maybe_unused]] Y& y) override
@@ -133,7 +142,7 @@ public:
 
 private:
     SolverCategory::Category category_;
-    bool* direct_solver_needs_rebuild_;
+    bool needs_rebuild_;
 };
 
 /// @brief Interface class ensuring make function is overriden

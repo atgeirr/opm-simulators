@@ -14,17 +14,18 @@ This file is part of the Open Porous Media project (OPM).
   You should have received a copy of the GNU General Public License
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
-#pragma once
+#ifndef OPM_MULTICOMM_HEADER_INCLUDED
+#define OPM_MULTICOMM_HEADER_INCLUDED
+
+#include <dune/common/hybridutilities.hh>
+#include <dune/common/parallel/mpicommunication.hh>
+
+#include <mpi.h>
 
 #include <cmath>
 #include <cstddef>
 #include <tuple>
 #include <type_traits>
-
-#include <mpi.h>
-
-#include <dune/common/hybridutilities.hh>
-#include <dune/common/parallel/mpicommunication.hh>
 
 namespace Dune
 {
@@ -175,3 +176,5 @@ public:
 };
 
 } // namespace Dune
+
+#endif // OPM_MULTICOMM_HEADER_INCLUDED

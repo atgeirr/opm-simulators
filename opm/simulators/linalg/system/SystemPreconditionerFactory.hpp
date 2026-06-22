@@ -14,7 +14,8 @@ This file is part of the Open Porous Media project (OPM).
   You should have received a copy of the GNU General Public License
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
-#pragma once
+#ifndef OPM_SYSTEMPRECONDITIONERFACTORY_HEADER_INCLUDED
+#define OPM_SYSTEMPRECONDITIONERFACTORY_HEADER_INCLUDED
 
 #include <opm/simulators/linalg/system/MultiComm.hpp>
 #include <opm/simulators/linalg/system/SystemPreconditioner.hpp>
@@ -31,13 +32,13 @@ template <class Operator, class Comm, typename>
 struct StandardPreconditioners;
 
 template<typename Scalar>
-using SystemSeqOpT = Dune::MatrixAdapter<SystemMatrixT<Scalar>, SystemVector<Scalar>, SystemVector<Scalar>>;
+using SystemSeqOpT = Dune::MatrixAdapter<SystemMatrix<Scalar>, SystemVector<Scalar>, SystemVector<Scalar>>;
 
 #if HAVE_MPI
 using SystemComm = Dune::MultiCommunicator<const Dune::OwnerOverlapCopyCommunication<int, int>&,
                                            const Dune::JacComm&>;
 template<typename Scalar>
-using SystemParOpT = Dune::OverlappingSchwarzOperator<SystemMatrixT<Scalar>, SystemVector<Scalar>,
+using SystemParOpT = Dune::OverlappingSchwarzOperator<SystemMatrix<Scalar>, SystemVector<Scalar>,
                                                       SystemVector<Scalar>, SystemComm>;
 #endif
 
@@ -72,6 +73,11 @@ void addSystemCprSeq()
 }
 
 #if HAVE_MPI
+// Register a sequential (non-MPI) version of the system_cpr preconditioner
+// for the parallel operator.  This allows each MPI rank to apply a local,
+// communication‑free CPR preconditioner inside the overlapping Schwarz
+// framework.  It is a lightweight alternative to the fully parallel
+// preconditioner registered by addSystemCprPar().
 template<typename Scalar>
 void addSystemCprParSeq()
 {
@@ -156,3 +162,5 @@ struct StandardPreconditioners<SystemParOpT<float>, SystemComm, void> {
 #endif
 
 } // namespace Opm
+
+#endif // OPM_SYSTEMPRECONDITIONERFACTORY_HEADER_INCLUDED

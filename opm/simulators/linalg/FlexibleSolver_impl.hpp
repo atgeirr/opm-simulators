@@ -95,8 +95,12 @@ namespace Dune
     FlexibleSolver<Operator>::
     apply(VectorType& x, VectorType& rhs, Dune::InverseOperatorResult& res)
     {
-        if (direct_solver_ && direct_solver_needs_rebuild_) {
-            recreateDirectSolver();
+        if (direct_solver_) {
+            auto* direct_precond = dynamic_cast<Dune::DirectSolverUpdatePreconditioner<VectorType, VectorType>*>(preconditioner_.get());
+            if (direct_precond && direct_precond->needsRebuild()) {
+                recreateDirectSolver();
+                direct_precond->resetNeedsRebuild();
+            }
         }
         linsolver_->apply(x, rhs, res);
     }
@@ -106,8 +110,12 @@ namespace Dune
     FlexibleSolver<Operator>::
     apply(VectorType& x, VectorType& rhs, double reduction, Dune::InverseOperatorResult& res)
     {
-        if (direct_solver_ && direct_solver_needs_rebuild_) {
-            recreateDirectSolver();
+        if (direct_solver_) {
+            auto* direct_precond = dynamic_cast<Dune::DirectSolverUpdatePreconditioner<VectorType, VectorType>*>(preconditioner_.get());
+            if (direct_precond && direct_precond->needsRebuild()) {
+                recreateDirectSolver();
+                direct_precond->resetNeedsRebuild();
+            }
         }
         linsolver_->apply(x, rhs, reduction, res);
     }
@@ -146,7 +154,7 @@ namespace Dune
         auto child = prm.get_child_optional("preconditioner");
         if (solver_type == "umfpack") {
             preconditioner_ = std::make_shared<Dune::DirectSolverUpdatePreconditioner<VectorType, VectorType>>(
-                linearoperator_for_solver_->category(), direct_solver_needs_rebuild_);
+                linearoperator_for_solver_->category());
         } else {
             preconditioner_ = Opm::PreconditionerFactory<Operator, Comm>::create(op,
                                                                                  child ? *child : Opm::PropertyTree(),
@@ -172,7 +180,7 @@ namespace Dune
         auto child = prm.get_child_optional("preconditioner");
         if (solver_type == "umfpack") {
             preconditioner_ = std::make_shared<Dune::DirectSolverUpdatePreconditioner<VectorType, VectorType>>(
-                linearoperator_for_solver_->category(), direct_solver_needs_rebuild_);
+                linearoperator_for_solver_->category());
         } else {
             preconditioner_ = Opm::PreconditionerFactory<Operator, Dune::Amg::SequentialInformation>::create(op,
                                                                                                               child ? *child : Opm::PropertyTree(),
@@ -202,7 +210,6 @@ namespace Dune
         // (that it is nullptr at the start of this function).
         linsolver_.reset();
         direct_solver_ = false;
-        direct_solver_needs_rebuild_ = false;
         if (solver_type == "bicgstab") {
             linsolver_ = std::make_shared<Dune::BiCGSTABSolver<VectorType>>(*linearoperator_for_solver_,
                                                                             *scalarproduct_,
@@ -275,7 +282,6 @@ namespace Dune
                         using MatrixType = std::remove_const_t<std::remove_reference_t<decltype(linearoperator_for_solver_->getmat())>>;
                         linsolver_ = std::make_shared<Dune::UMFPack<MatrixType>>(linearoperator_for_solver_->getmat(), verbosity, false);
                         direct_solver_ = true;
-                        direct_solver_needs_rebuild_ = false;
                     }
 #endif
 #if HAVE_CUDA
@@ -316,7 +322,6 @@ namespace Dune
             } else {
                 using MatrixType = std::remove_const_t<std::remove_reference_t<decltype(linearoperator_for_solver_->getmat())>>;
                 linsolver_ = std::make_shared<Dune::UMFPack<MatrixType>>(linearoperator_for_solver_->getmat(), 0, false);
-                direct_solver_needs_rebuild_ = false;
             }
         }
 #else

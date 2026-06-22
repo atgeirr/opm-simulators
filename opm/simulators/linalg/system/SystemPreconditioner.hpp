@@ -14,7 +14,8 @@ This file is part of the Open Porous Media project (OPM).
   You should have received a copy of the GNU General Public License
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
-#pragma once
+#ifndef OPM_SYSTEMPRECONDITIONER_HEADER_INCLUDED
+#define OPM_SYSTEMPRECONDITIONER_HEADER_INCLUDED
 
 #include <opm/simulators/linalg/system/MultiComm.hpp>
 #include <opm/simulators/linalg/system/SystemTypes.hpp>
@@ -64,7 +65,7 @@ public:
 
     // Sequential constructor (enabled only for non-parallel specializations).
     template <bool P = isParallel, std::enable_if_t<!P, int> = 0>
-    SystemPreconditioner(const SystemMatrixT<Scalar>& S,
+    SystemPreconditioner(const SystemMatrix<Scalar>& S,
                          const std::function<ResVector<Scalar>()>& weightsCalculator,
                          int pressureIndex,
                          const Opm::PropertyTree& prm)
@@ -78,7 +79,7 @@ public:
 
     // Parallel constructor (enabled only for parallel specializations).
     template <bool P = isParallel, std::enable_if_t<P, int> = 0>
-    SystemPreconditioner(const SystemMatrixT<Scalar>& S,
+    SystemPreconditioner(const SystemMatrix<Scalar>& S,
                          const std::function<ResVector<Scalar>()>& weightsCalculator,
                          int pressureIndex,
                          const Opm::PropertyTree& prm,
@@ -201,7 +202,7 @@ public:
     }
 
 private:
-    const SystemMatrixT<Scalar>& S_;
+    const SystemMatrix<Scalar>& S_;
     const ResComm* resComm_ = nullptr;
     int pressureIndex_ = 0;
     static constexpr int dummyWellPressureIndex = std::numeric_limits<int>::min();
@@ -287,3 +288,5 @@ private:
 };
 
 } // namespace Opm
+
+#endif // OPM_SYSTEMPRECONDITIONER_HEADER_INCLUDED

@@ -14,10 +14,10 @@ This file is part of the Open Porous Media project (OPM).
   You should have received a copy of the GNU General Public License
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
-#pragma once
+#ifndef OPM_WELLMATRIXMERGER_HEADER_INCLUDED
+#define OPM_WELLMATRIXMERGER_HEADER_INCLUDED
 
 #include <opm/simulators/linalg/system/SystemTypes.hpp>
-
 #include <opm/grid/utility/SparseTable.hpp>
 
 #include <cassert>
@@ -465,3 +465,5 @@ private:
 };
 
 } // namespace Opm
+
+#endif // OPM_WELLMATRIXMERGER_HEADER_INCLUDED

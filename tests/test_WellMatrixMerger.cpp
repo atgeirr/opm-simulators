@@ -1,10 +1,9 @@
 #include <config.h>
-
 #define BOOST_TEST_MODULE OPM_test_WellMatrixMerger
 #include <boost/test/unit_test.hpp>
 
 #include <opm/simulators/linalg/system/WellMatrixMerger.hpp>
-
+#include <opm/grid/utility/SparseTable.hpp>
 #include <cstddef>
 #include <utility>
 #include <vector>
@@ -18,7 +17,7 @@ using WWMatrix = Opm::WWMatrix<Scalar>;
 using WRBlock = WRMatrix::block_type;
 using RWBlock = RWMatrix::block_type;
 using WWBlock = WWMatrix::block_type;
-    \
+
 template<class Block>
 Block makeBlock(const Scalar base)
 {
@@ -105,21 +104,9 @@ struct TestMatrices
     std::vector<WRMatrix> bMatrices;
     std::vector<RWMatrix> cMatrices;
     std::vector<WWMatrix> dMatrices;
-    std::vector<std::vector<int>> wellCells;
+    Opm::SparseTable<int> wellCells;
 };
-
-// WellMatrixMerger assembles the global coupled well part of
-//
-// [ A  C ]
-// [ B  D ]
-//
-// from the per-well blocks B_j, C_j and D_j. It preserves each well's local
-// sparsity pattern and only does two structural operations: concatenate the
-// well blocks and remap perforation-related rows/columns through the list of
-// perforated reservoir cells for each well.
-
- // Give each block a distinctive value pattern so it is easy to see where it
-// ended up after merging.
+    
 struct MergedMatrices
 {
     WRMatrix b;
@@ -143,7 +130,9 @@ TestMatrices buildTestMatrices()
     // wellCells[well][local perforation] = global reservoir cell index.
     // The first well perforates cells 1 and 3, the second well perforates
     // cells 0 and 4.
-    matrices.wellCells = {{1, 3}, {0, 4}};
+    matrices.wellCells.clear();
+    matrices.wellCells.appendRow(std::vector<int>{1, 3}.begin(), std::vector<int>{1, 3}.end());
+    matrices.wellCells.appendRow(std::vector<int>{0, 4}.begin(), std::vector<int>{0, 4}.end());
 
     // Toy MSW: two segment rows/columns and one local perforation attached to
     // each segment. B and C therefore have one entry per row. D has the full
@@ -471,11 +460,16 @@ BOOST_AUTO_TEST_CASE(StructureChangesWhenPerforationMappingChanges)
     constexpr std::size_t numResDof = 5;
 
     const auto matrices = buildTestMatrices();
-    auto changedWellCells = matrices.wellCells;
-    // Keep the local B/C/D sparsity unchanged but swap which global reservoir
-    // cells the standard well perforates. The structure key must change
-    // because the merged B and C entries move to different reservoir slots.
-    changedWellCells[1] = {4, 0};
+
+    // Build a new wellCells table with row 1 swapped
+    Opm::SparseTable<int> changedWellCells;
+    changedWellCells.clear();
+    // Row 0 unchanged: copy from the original matrices
+    changedWellCells.appendRow(matrices.wellCells[0].begin(),
+                               matrices.wellCells[0].end());
+    // Row 1: swap the two perforation cells (4 and 0)
+    const std::vector<int> newRow = {4, 0};
+    changedWellCells.appendRow(newRow.begin(), newRow.end());
 
     const Opm::WellMatrixMerger<Scalar> referenceMerger(
         numResDof,

@@ -1134,6 +1134,12 @@ list (APPEND PUBLIC_HEADER_FILES
   opm/simulators/linalg/is_gpu_operator.hpp
   opm/simulators/linalg/ISTLSolver.hpp
   opm/simulators/linalg/ISTLSolverRuntimeOptionProxy.hpp
+  opm/simulators/linalg/Preconditioner2InverseOperator.hpp
+  opm/simulators/linalg/system/MultiComm.hpp
+  opm/simulators/linalg/system/SystemPreconditioner.hpp
+  opm/simulators/linalg/system/SystemPreconditionerFactory.hpp
+  opm/simulators/linalg/system/SystemTypes.hpp
+  opm/simulators/linalg/system/WellMatrixMerger.hpp
   opm/simulators/linalg/ISTLSolverTPSA.hpp
   opm/simulators/linalg/istlpreconditionerwrappers.hh
   opm/simulators/linalg/istlsolverwrappers.hh

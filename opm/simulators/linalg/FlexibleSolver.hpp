@@ -105,7 +105,6 @@ private:
     std::shared_ptr<AbstractScalarProductType> scalarproduct_;
     std::shared_ptr<AbstractSolverType> linsolver_;
     bool direct_solver_ = false;
-    bool direct_solver_needs_rebuild_ = false;
 };
 
 } // namespace Dune
