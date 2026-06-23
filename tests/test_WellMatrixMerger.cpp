@@ -311,7 +311,7 @@ BOOST_AUTO_TEST_CASE(MergeHandlesEmptyWellSet)
     const auto structure = merger.buildStructure();
 
     BOOST_CHECK_EQUAL(structure.numResDofs, numResDof);
-    BOOST_CHECK_EQUAL(structure.totalWellDofs, std::size_t{0});
+    BOOST_CHECK_EQUAL(structure.totalWellBlocks, std::size_t{0});
 
     const auto merged = buildMergedMatrices(matrices, numResDof);
     checkEmptyMergedMatrices(merged, numResDof);
@@ -332,7 +332,7 @@ BOOST_AUTO_TEST_CASE(MergeBuildsExpectedMatricesAndStructure)
 
     // The cached structure records both the perforated-cell mapping and the
     // exact sparsity of every per-well B, C and D block.
-    BOOST_CHECK_EQUAL(structure.totalWellDofs, std::size_t{3});
+    BOOST_CHECK_EQUAL(structure.totalWellBlocks, std::size_t{3});
     BOOST_CHECK(structure.wellCells == matrices.wellCells);
     BOOST_REQUIRE_EQUAL(structure.bPatterns.size(), matrices.bMatrices.size());
     BOOST_REQUIRE_EQUAL(structure.cPatterns.size(), matrices.cMatrices.size());
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(StructureChangesWhenWellPatternChanges)
 
     BOOST_CHECK(referenceMerger.hasSameStructure(reference));
     BOOST_CHECK(!changedMerger.hasSameStructure(reference));
-    BOOST_CHECK_EQUAL(reference.totalWellDofs, changed.totalWellDofs);
+    BOOST_CHECK_EQUAL(reference.totalWellBlocks, changed.totalWellBlocks);
     BOOST_CHECK(reference != changed);
     BOOST_CHECK(reference.dPatterns[0] != changed.dPatterns[0]);
 }

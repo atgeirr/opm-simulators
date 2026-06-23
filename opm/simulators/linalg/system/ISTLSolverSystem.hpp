@@ -96,7 +96,7 @@ public:
         ++this->solveCount_;
 
         const std::size_t numRes = Parent::matrix_->N();
-        const std::size_t numWell = cachedWellStructure_.totalWellDofs;
+        const std::size_t numWell = cachedWellStructure_.totalWellBlocks;
 
         sysX_[_0].resize(numRes);
         sysX_[_0] = 0.0;

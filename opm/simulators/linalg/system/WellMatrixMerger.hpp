@@ -57,14 +57,14 @@ struct MatrixSparsityPattern
 };
 
 // Structural cache key for the merged well part of the system matrix.
-//  totalWellDofs is the sum of all individual well D-matrix dimensions,
+//  totalWellBlocks is the sum of all individual well D-matrix dimensions,
 //  i.e., the total number of well degrees of freedom.  It is stored here
 //  so that the well-vector size and the structure-rebuild decision stay
 //  in the same place.
 struct WellMatrixStructure
 {
     std::size_t numResDofs = 0;
-    std::size_t totalWellDofs = 0;  // Aggregated well DOFs (sum of D_i.N())
+    std::size_t totalWellBlocks = 0;  // Aggregated well DOFs (sum of D_i.N())
     Opm::SparseTable<int> wellCells;
     std::vector<MatrixSparsityPattern> bPatterns;
     std::vector<MatrixSparsityPattern> cPatterns;
@@ -73,7 +73,7 @@ struct WellMatrixStructure
     bool operator==(const WellMatrixStructure& other) const
     {
         return numResDofs == other.numResDofs
-            && totalWellDofs == other.totalWellDofs
+            && totalWellBlocks == other.totalWellBlocks
             && wellCells == other.wellCells
             && bPatterns == other.bPatterns
             && cPatterns == other.cPatterns
@@ -146,6 +146,18 @@ template<class Matrix> bool hasSameMatrixSparsity(const Matrix& matrix,
     return entryOffset == pattern.columnIndices.size();
 }
 
+// WellMatrixMerger assembles the global coupled well part of
+//
+//     [ A  C ]
+//     [ B  D ]
+//
+// from the per-well blocks B_j, C_j and D_j. It preserves each well's local
+// sparsity pattern and only does two structural operations: concatenate the
+// well blocks and remap perforation-related rows/columns through the list of
+// perforated reservoir cells for each well.
+
+// Give each block a distinctive value pattern so it is easy to see where it
+// ended up after merging.
 template<typename Scalar>
 class WellMatrixMerger
 {
@@ -193,14 +205,14 @@ public:
             }
         }
 
-        return cachedStructure.totalWellDofs == totalWellDofs;
+        return cachedStructure.totalWellBlocks == totalWellDofs;
     }
 
     WellMatrixStructure buildStructure() const
     {
         WellMatrixStructure structure;
         structure.numResDofs = numResDofs_;
-        structure.totalWellDofs = 0;
+        structure.totalWellBlocks = 0;
         structure.wellCells = wellCells_;
         structure.bPatterns.reserve(bMatrices_.size());
         structure.cPatterns.reserve(cMatrices_.size());
@@ -210,7 +222,7 @@ public:
             structure.bPatterns.push_back(captureMatrixSparsity(bMatrices_[well]));
             structure.cPatterns.push_back(captureMatrixSparsity(cMatrices_[well]));
             structure.dPatterns.push_back(captureMatrixSparsity(dMatrices_[well]));
-            structure.totalWellDofs += dMatrices_[well].N();
+            structure.totalWellBlocks += dMatrices_[well].N();
         }
 
         return structure;
