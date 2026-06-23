@@ -22,7 +22,9 @@
 #include <dune/common/hybridutilities.hh>
 #include <dune/common/parallel/mpicommunication.hh>
 
+#if HAVE_MPI
 #include <mpi.h>
+#endif
 
 #include <cmath>
 #include <cstddef>
