@@ -1558,16 +1558,17 @@ namespace Opm {
     {
         auto loggerGuard = this->groupStateHelper().pushLogger();
         OPM_BEGIN_PARALLEL_TRY_CATCH();
-        // Schur complement path: recover well solution from
-        // reservoir solution via xw = D^-1 * (resWell - B * x).
-        for (const auto& well : well_container_) {
-            const auto& cells = well->cells();
-            x_local_.resize(cells.size());
-            for (size_t i = 0; i < cells.size(); ++i) {
-                x_local_[i] = x[cells[i]];
+        {
+            for (const auto& well : well_container_) {
+                const auto& cells = well->cells();
+                x_local_.resize(cells.size());
+
+                for (size_t i = 0; i < cells.size(); ++i) {
+                    x_local_[i] = x[cells[i]];
+                }
+                well->recoverWellSolutionAndUpdateWellState(simulator_, x_local_,
+                                                            this->groupStateHelper(), this->wellState());
             }
-            well->recoverWellSolutionAndUpdateWellState(simulator_, x_local_,
-                                                        this->groupStateHelper(), this->wellState());
         }
         OPM_END_PARALLEL_TRY_CATCH("recoverWellSolutionAndUpdateWellState() failed: ",
                                    simulator_.vanguard().grid().comm());

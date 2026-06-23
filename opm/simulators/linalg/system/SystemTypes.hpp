@@ -1,5 +1,7 @@
 /*
-This file is part of the Open Porous Media project (OPM).
+  Copyright Equinor ASA 2026
+
+  This file is part of the Open Porous Media project (OPM).
 
   OPM is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by

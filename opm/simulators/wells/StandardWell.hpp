@@ -253,7 +253,15 @@ namespace Opm
                           std::vector<typename Base::DMatrix>& d_matrices,
                           Opm::SparseTable<int>& wcells) const override
         {
-            StdWellEval::addBCDMatrix(b_matrices, c_matrices, d_matrices, wcells);
+            // System_cpr preconditioner is only supported when well DOF dimensions
+            // match between WellInterface and StandardWellEval (standard 3-phase blackoil).
+            if constexpr (Base::numWellDofs == StdWellEval::numWellDofs) {
+                StdWellEval::addBCDMatrix(b_matrices, c_matrices, d_matrices, wcells);
+            } else {
+                OPM_THROW(std::runtime_error,
+                          "system_cpr preconditioner with standard wells is only supported for standard "
+                          "3-phase blackoil (Indices::numEq == 3). This model has different equation count.");
+            }
         }
 
     protected:

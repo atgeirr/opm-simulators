@@ -1,5 +1,7 @@
 /*
-This file is part of the Open Porous Media project (OPM).
+  Copyright Equinor ASA 2026
+
+  This file is part of the Open Porous Media project (OPM).
 
   OPM is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -135,23 +137,23 @@ private:
     SystemVector<Scalar> sysRhs_;
 
     // Serial solver components
-    std::unique_ptr<SystemSeqOpT<Scalar>> sysOp_;
-    std::unique_ptr<Dune::FlexibleSolver<SystemSeqOpT<Scalar>>> sysFlexSolverSeq_;
+    std::unique_ptr<SystemSeqOp<Scalar>> sysOp_;
+    std::unique_ptr<Dune::FlexibleSolver<SystemSeqOp<Scalar>>> sysFlexSolverSeq_;
 
     // Parallel solver components
 #if HAVE_MPI
     using WellComm = Dune::JacComm;
     std::unique_ptr<WellComm> wellComm_;
     std::unique_ptr<SystemComm> systemComm_;
-    std::unique_ptr<SystemParOpT<Scalar>> sysOpPar_;
-    std::unique_ptr<Dune::FlexibleSolver<SystemParOpT<Scalar>>> sysFlexSolverPar_;
+    std::unique_ptr<SystemParOp<Scalar>> sysOpPar_;
+    std::unique_ptr<Dune::FlexibleSolver<SystemParOp<Scalar>>> sysFlexSolverPar_;
 #endif
 
     using SysSolverType = Dune::InverseOperator<SystemVector<Scalar>, SystemVector<Scalar>>;
     using SysPrecondType = Dune::PreconditionerWithUpdate<SystemVector<Scalar>, SystemVector<Scalar>>;
-    using SeqSysPrecondType = SystemPreconditioner<Scalar, SeqResOperatorT<Scalar>>;
+    using SeqSysPrecondType = SystemPreconditioner<Scalar, SeqResOperator<Scalar>>;
 #if HAVE_MPI
-    using ParSysPrecondType = SystemPreconditioner<Scalar, ParResOperatorT<Scalar>, ParResComm>;
+    using ParSysPrecondType = SystemPreconditioner<Scalar, ParResOperator<Scalar>, ParResComm>;
 #endif
     SysSolverType* sysSolver_ = nullptr;
     SysPrecondType* sysPrecond_ = nullptr;
@@ -258,18 +260,18 @@ private:
             wellComm_ = std::make_unique<WellComm>();
             systemComm_ = std::make_unique<SystemComm>(*(this->comm_), *wellComm_);
 
-            sysOpPar_ = std::make_unique<SystemParOpT<Scalar>>(sysMatrix_, *systemComm_);
+            sysOpPar_ = std::make_unique<SystemParOp<Scalar>>(sysMatrix_, *systemComm_);
 
-            sysFlexSolverPar_ = std::make_unique<Dune::FlexibleSolver<SystemParOpT<Scalar>>>(
+            sysFlexSolverPar_ = std::make_unique<Dune::FlexibleSolver<SystemParOp<Scalar>>>(
                 *sysOpPar_, *systemComm_, prm, sysWeightCalc, pressureIndex);
 
             sysSolver_ = sysFlexSolverPar_.get();
             sysPrecond_ = &sysFlexSolverPar_->preconditioner();
 #endif
         } else {
-            sysOp_ = std::make_unique<SystemSeqOpT<Scalar>>(sysMatrix_);
+            sysOp_ = std::make_unique<SystemSeqOp<Scalar>>(sysMatrix_);
 
-            sysFlexSolverSeq_ = std::make_unique<Dune::FlexibleSolver<SystemSeqOpT<Scalar>>>(
+            sysFlexSolverSeq_ = std::make_unique<Dune::FlexibleSolver<SystemSeqOp<Scalar>>>(
                 *sysOp_, prm, sysWeightCalc, pressureIndex);
 
             sysSolver_ = sysFlexSolverSeq_.get();
