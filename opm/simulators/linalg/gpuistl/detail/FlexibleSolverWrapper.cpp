@@ -24,6 +24,7 @@
 #include <dune/istl/schwarz.hh>
 
 #include <opm/simulators/linalg/FlexibleSolver.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/simulators/linalg/gpuistl/GpuSparseMatrixWrapper.hpp>
 #include <opm/simulators/linalg/gpuistl/GpuOwnerOverlapCopy.hpp>
 
@@ -148,7 +149,7 @@ FlexibleSolverWrapper<Matrix, Vector, Comm>::update()
 #if HAVE_MPI
 using CommunicationType = Dune::OwnerOverlapCopyCommunication<int, int>;
 #else
-using CommunicationType = Dune::Communication<int>;
+using CommunicationType = SerialCommunication;
 #endif
 
 #define INSTANTIATE_FLEXIBLE_SOLVER_WRAPPER(real_type)                                                                 \

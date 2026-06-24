@@ -44,6 +44,7 @@
 #include <opm/simulators/linalg/matrixblock.hh>
 #include <opm/simulators/linalg/istlsparsematrixadapter.hh>
 #include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/simulators/linalg/WellOperators.hpp>
 #include <opm/simulators/linalg/WriteSystemMatrixHelper.hpp>
 #include <opm/simulators/linalg/findOverlapRowsAndColumns.hpp>
@@ -176,7 +177,7 @@ std::unique_ptr<Matrix> blockJacobiAdjacency(const Grid& grid,
 #if HAVE_MPI
         using CommunicationType = Dune::OwnerOverlapCopyCommunication<int,int>;
 #else
-        using CommunicationType = Dune::Communication<int>;
+    using CommunicationType = SerialCommunication;
 #endif
 
     public:

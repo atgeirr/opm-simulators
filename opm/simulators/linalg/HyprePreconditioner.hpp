@@ -25,6 +25,7 @@
 #include <opm/common/TimingMacros.hpp>
 #include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
 #include <opm/simulators/linalg/PropertyTree.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/simulators/linalg/hypreinterface/HypreInterface.hpp>
 
 #if HYPRE_USING_CUDA
@@ -97,7 +98,7 @@ public:
         int size;
         int rank;
         MPI_Comm mpi_comm;
-        if constexpr (std::is_same_v<Comm, Dune::Amg::SequentialInformation>) {
+        if constexpr (std::is_same_v<Comm, Dune::Amg::SequentialInformation> || Opm::is_serial_communication_v<Comm>) {
             mpi_comm = MPI_COMM_SELF;
         } else {
             mpi_comm = comm.communicator();
@@ -309,7 +310,7 @@ public:
      */
     Dune::SolverCategory::Category category() const override
     {
-        return std::is_same_v<Comm, Dune::Amg::SequentialInformation> ? Dune::SolverCategory::sequential
+        return (std::is_same_v<Comm, Dune::Amg::SequentialInformation> || Opm::is_serial_communication_v<Comm>) ? Dune::SolverCategory::sequential
                                                                       : Dune::SolverCategory::overlapping;
     }
 

@@ -23,6 +23,7 @@
 #define OPM_ISTLSOLVER_WITH_GPUBRIDGE_HEADER_INCLUDED
 
 #include <opm/simulators/linalg/ISTLSolver.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 
 #include <cstddef>
 #include <memory>
@@ -124,7 +125,7 @@ protected:
 #if HAVE_MPI
     using CommunicationType = Dune::OwnerOverlapCopyCommunication<int,int>;
 #else
-    using CommunicationType = Dune::Communication<int>;
+    using CommunicationType = SerialCommunication;
 #endif
 
 public:

@@ -29,6 +29,7 @@
 #include <opm/common/TimingMacros.hpp>
 
 #include <opm/simulators/linalg/matrixblock.hh>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <dune/common/shared_ptr.hh>
 #include <dune/istl/paamg/smoother.hh>
 
@@ -306,7 +307,7 @@ public:
 #if HAVE_MPI
     using communication_type = Dune::OwnerOverlapCopyCommunication<int,int>;
 #else
-    using communication_type = Dune::Communication<int>;
+    using communication_type = SerialCommunication;
 #endif
 
     Dune::SolverCategory::Category category() const override

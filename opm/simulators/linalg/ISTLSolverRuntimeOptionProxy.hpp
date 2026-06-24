@@ -21,6 +21,7 @@
 #include <opm/simulators/linalg/setupPropertyTree.hpp>
 #include <opm/simulators/linalg/AbstractISTLSolver.hpp>
 #include <opm/simulators/linalg/ISTLSolver.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/models/utils/propertysystem.hh>
 #if COMPILE_GPU_BRIDGE
 #include <opm/simulators/linalg/ISTLSolverGpuBridge.hpp>
@@ -56,7 +57,7 @@ public:
 #if HAVE_MPI
     using CommunicationType = Dune::OwnerOverlapCopyCommunication<int, int>;
 #else
-    using CommunicationType = Dune::Communication<int>;
+    using CommunicationType = SerialCommunication;
 #endif
 
 

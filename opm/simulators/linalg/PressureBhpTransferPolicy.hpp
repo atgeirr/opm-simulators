@@ -24,6 +24,7 @@
 
 #include <opm/simulators/linalg/matrixblock.hh>
 #include <opm/simulators/linalg/PropertyTree.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/simulators/linalg/twolevelmethodcpr.hh>
 
 #include <dune/istl/paamg/pinfo.hh>
@@ -89,7 +90,7 @@ namespace Opm
                                            PressureVectorType<Scalar>,
                                            Comm>;
         template<class Scalar, class Comm>
-        using CoarseOperatorType = std::conditional_t<std::is_same<Comm, Dune::Amg::SequentialInformation>::value,
+        using CoarseOperatorType = std::conditional_t<std::is_same<Comm, Dune::Amg::SequentialInformation>::value || Opm::is_serial_communication_v<Comm>,
                                                       SeqCoarseOperatorType<Scalar>,
                                                       ParCoarseOperatorType<Scalar,Comm>>;
     } // namespace Details
@@ -148,7 +149,7 @@ namespace Opm
                     ++createIter;
                 }
             }
-        if constexpr (std::is_same_v<Communication, Dune::Amg::SequentialInformation>) {
+        if constexpr (std::is_same_v<Communication, Dune::Amg::SequentialInformation> || Opm::is_serial_communication_v<Communication>) {
             coarseLevelCommunication_ = std::make_shared<Communication>();
         } else {
             coarseLevelCommunication_ = std::make_shared<Communication>(
@@ -157,7 +158,7 @@ namespace Opm
         if (prm_.get<bool>("add_wells")) {
             fineOperator.addWellPressureEquationsStruct(*coarseLevelMatrix_);
             coarseLevelMatrix_->compress(); // all elemenst should be set
-            if constexpr (!std::is_same_v<Communication, Dune::Amg::SequentialInformation>) {
+            if constexpr (!(std::is_same_v<Communication, Dune::Amg::SequentialInformation> || Opm::is_serial_communication_v<Communication>)) {
                 extendCommunicatorWithWells(*communication_, coarseLevelCommunication_, nw);
             }
         }

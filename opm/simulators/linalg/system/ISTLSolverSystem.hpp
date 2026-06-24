@@ -56,7 +56,7 @@ protected:
 #if HAVE_MPI
     using CommunicationType = Dune::OwnerOverlapCopyCommunication<int, int>;
 #else
-    using CommunicationType = Dune::Communication<int>;
+    using CommunicationType = SerialCommunication;
 #endif
     using Parent = ISTLSolver<TypeTag>;
 

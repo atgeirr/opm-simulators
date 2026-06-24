@@ -26,6 +26,7 @@
 #include <dune/istl/solver.hh>
 #include <opm/simulators/linalg/PreconditionerWithUpdate.hpp>
 #include <opm/simulators/linalg/PropertyTree.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/simulators/linalg/gpuistl/GpuOwnerOverlapCopy.hpp>
 
 namespace Opm::gpuistl::detail
@@ -51,7 +52,7 @@ public:
     using AbstractOperatorPtrType = std::unique_ptr<AbstractOperatorType>;
     using AbstractSolverPtrType = std::unique_ptr<AbstractSolverType>;
     using GpuCommunicationType = std::conditional_t<
-        std::is_same_v<Comm, Dune::Communication<int>>,
+        Opm::is_serial_communication_v<Comm>,
         int, // Dummy type for serial case
         GpuOwnerOverlapCopy<typename Matrix::field_type, Comm>>;
 

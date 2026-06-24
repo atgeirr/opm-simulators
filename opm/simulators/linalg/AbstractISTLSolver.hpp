@@ -20,6 +20,7 @@
 #include <opm/common/Exceptions.hpp>
 #include <opm/simulators/linalg/FlowLinearSolverParameters.hpp>
 #include <opm/simulators/linalg/PropertyTree.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 
 namespace Opm
 {
@@ -47,7 +48,7 @@ public:
 #if HAVE_MPI
     using CommunicationType = Dune::OwnerOverlapCopyCommunication<int, int>;
 #else
-    using CommunicationType = Dune::Communication<int>;
+    using CommunicationType = SerialCommunication;
 #endif
 
     using Matrix = typename SparseMatrixAdapter::IstlMatrix;

@@ -29,6 +29,7 @@
 
 #include <opm/simulators/linalg/FlexibleSolver.hpp>
 #include <opm/simulators/linalg/ParallelIstlInformation.hpp>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/simulators/utils/ParallelCommunication.hpp>
 
 #include <fmt/format.h>
@@ -171,7 +172,7 @@ using BV = Dune::BlockVector<Dune::FieldVector<Scalar,Dim>>;
 #if HAVE_MPI
 using CommunicationType = Dune::OwnerOverlapCopyCommunication<int,int>;
 #else
-using CommunicationType = Dune::Communication<int>;
+using CommunicationType = SerialCommunication;
 #endif
 
 #define INSTANTIATE_FLEX(T,Dim)                                                           \

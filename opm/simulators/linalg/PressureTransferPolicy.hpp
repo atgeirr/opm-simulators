@@ -25,6 +25,7 @@
 #include <opm/simulators/linalg/twolevelmethodcpr.hh>
 #include <opm/simulators/linalg/PropertyTree.hpp>
 #include <opm/simulators/linalg/matrixblock.hh>
+#include <opm/simulators/linalg/SerialCommunication.hpp>
 #include <opm/simulators/linalg/WellOperators.hpp>
 
 #include <cstddef>
@@ -42,7 +43,7 @@ namespace Opm { namespace Details {
                                        PressureVectorType<Scalar>,
                                        Comm>;
     template<class Scalar, class Comm>
-    using CoarseOperatorType = std::conditional_t<std::is_same<Comm, Dune::Amg::SequentialInformation>::value,
+    using CoarseOperatorType = std::conditional_t<std::is_same<Comm, Dune::Amg::SequentialInformation>::value || Opm::is_serial_communication_v<Comm>,
                                                   SeqCoarseOperatorType<Scalar>,
                                                   ParCoarseOperatorType<Scalar,Comm>>;
 } // namespace Details
